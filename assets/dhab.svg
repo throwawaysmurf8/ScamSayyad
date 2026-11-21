@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 130" role="img" aria-label="Dhab, the ScamSayyad mascot: an Arabian spiny-tailed lizard holding a magnifying glass">
+  <!-- Sand dune -->
+  <path d="M0 118 Q60 96 120 110 T220 106 V130 H0 Z" fill="#E9C46A" opacity="0.55"/>
+  <!-- Spiny tail: the dhab's signature ringed, spiky tail -->
+  <path d="M66 74 L44 80 L26 87 L10 95 L12 99 L28 96 L46 94 L66 92 Z" fill="#C98F34" stroke="#7A5218" stroke-width="2" stroke-linejoin="round"/>
+  <g fill="#9C6A22" stroke="#7A5218" stroke-width="1.5" stroke-linejoin="round">
+    <path d="M58 76 L55 68 L51 78 Z"/>
+    <path d="M47 79 L43 71 L40 81 Z"/>
+    <path d="M36 83 L32 76 L29 85 Z"/>
+    <path d="M26 88 L22 81 L20 90 Z"/>
+    <path d="M17 92 L13 86 L12 94 Z"/>
+  </g>
+  <g stroke="#7A5218" stroke-width="1.5" opacity="0.6">
+    <line x1="54" y1="77" x2="54" y2="93"/>
+    <line x1="43" y1="80" x2="43" y2="94"/>
+    <line x1="32" y1="85" x2="32" y2="95"/>
+    <line x1="22" y1="90" x2="22" y2="97"/>
+  </g>
+  <!-- Back leg -->
+  <path d="M76 92 Q72 104 66 108 L80 108 Q84 100 86 94 Z" fill="#C98F34" stroke="#7A5218" stroke-width="2" stroke-linejoin="round"/>
+  <!-- Body -->
+  <ellipse cx="104" cy="82" rx="44" ry="21" fill="#D9A441" stroke="#7A5218" stroke-width="2"/>
+  <path d="M68 90 Q104 108 142 90 Q104 100 68 90 Z" fill="#F2D28B"/>
+  <!-- Back pattern -->
+  <g fill="#B07A2A" opacity="0.85">
+    <ellipse cx="86" cy="72" rx="6" ry="3.5"/>
+    <ellipse cx="102" cy="68" rx="6.5" ry="3.5"/>
+    <ellipse cx="118" cy="70" rx="6" ry="3.5"/>
+    <ellipse cx="94" cy="80" rx="4" ry="2.5"/>
+    <ellipse cx="111" cy="79" rx="4" ry="2.5"/>
+  </g>
+  <!-- Front leg -->
+  <path d="M126 94 Q124 104 118 108 L132 108 Q136 100 136 94 Z" fill="#C98F34" stroke="#7A5218" stroke-width="2" stroke-linejoin="round"/>
+  <!-- Arm holding the magnifying glass -->
+  <path d="M138 78 Q152 70 164 58" fill="none" stroke="#7A5218" stroke-width="7" stroke-linecap="round"/>
+  <path d="M138 78 Q152 70 164 58" fill="none" stroke="#C98F34" stroke-width="4" stroke-linecap="round"/>
+  <!-- Magnifying glass (the hunter's tool) -->
+  <line x1="164" y1="58" x2="176" y2="46" stroke="#0B6B63" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="186" cy="36" r="14" fill="#BFE7E2" fill-opacity="0.55" stroke="#0B6B63" stroke-width="4.5"/>
+  <path d="M178 30 Q182 25 188 25" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
+  <!-- Head -->
+  <ellipse cx="150" cy="68" rx="21" ry="16" fill="#D9A441" stroke="#7A5218" stroke-width="2"/>
+  <path d="M136 76 Q152 84 168 74" fill="none" stroke="#7A5218" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="166" cy="66" r="1.4" fill="#7A5218"/>
+  <!-- Eye -->
+  <circle cx="153" cy="62" r="6" fill="#FFFFFF" stroke="#7A5218" stroke-width="1.5"/>
+  <circle cx="155" cy="62" r="3" fill="#2B1A08"/>
+  <circle cx="156.2" cy="60.8" r="1" fill="#FFFFFF"/>
+  <!-- Brow: focused hunter look -->
+  <path d="M146 55 Q153 52 160 55" fill="none" stroke="#7A5218" stroke-width="2" stroke-linecap="round"/>
+</svg>

@@ -21,7 +21,7 @@ import search_scanner
 from enrich import check, check_and_save
 from scorer import decode_punycode, explain_level, parse, score_url
 
-st.set_page_config(page_title="ScamSayyad · Scam hunter for the UAE", page_icon=":material/shield_with_heart:", layout="wide")
+st.set_page_config(page_title="ScamSayyad · Scam hunter for the UAE", page_icon="🦎", layout="wide")
 
 # Each risk level gets a color AND a shape, so it never relies on color alone.
 # The color names are Streamlit's theme colors, which adapt to light and dark mode.
@@ -166,8 +166,12 @@ def show_result(res, campaign=None):
 
 head, status = st.columns([3, 2], vertical_alignment="bottom")
 with head:
-    st.markdown("# :material/shield_with_heart: ScamSayyad · صيّاد الاحتيال")
-    st.markdown("The scam hunter for the UAE. *Sayyad* (صيّاد) is Arabic for hunter.")
+    mascot, title = st.columns([1, 4], vertical_alignment="center")
+    # Our mascot Dhab, the Arabian spiny-tailed lizard (our own drawing, assets/dhab.svg).
+    mascot.image(str(config.ROOT / "assets" / "dhab.svg"), width=170)
+    title.markdown("# ScamSayyad · صيّاد الاحتيال")
+    title.markdown("The scam hunter for the UAE. *Sayyad* (صيّاد) is Arabic for hunter; "
+                   "our mascot **Dhab** (ضب) is the desert's patient hunter.")
     st.caption("Hunts for websites impersonating UAE police, government and banks. "
                "Scores are leads for officer review, not verdicts. Suspicious pages are never opened.")
 def _source_badge(name, on):

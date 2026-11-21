@@ -482,7 +482,7 @@ with tab_check:
         st.subheader(T("check_title"))
         st.caption(T("check_note"))
         url = st.text_input(T("check_input"), placeholder="http://dubaipol1ce-fines.xyz/pay")
-        msg = st.text_area(T("check_msg"), placeholder="Dubai Police: unpaid fine. Pay within 24 hours...")
+        msg = st.text_area(T("check_msg"), placeholder="Abu Dhabi Police: unpaid traffic fine. Pay within 24 hours...")
         go = st.button(T("check_btn"), type="primary", icon=":material/search:", disabled=not url.strip())
     with result:
         if go:
@@ -514,7 +514,7 @@ with tab_hunt:
     with st.container(border=True):
         st.subheader(T("watcher_title"))
         st.caption(T("watcher_note"))
-        prefixes = st.multiselect(T("prefixes"), config.CT_PREFIXES, default=["salik", "emiratespost", "emiratesnbd."])
+        prefixes = st.multiselect(T("prefixes"), config.CT_PREFIXES, default=["adpolice", "salik", "emiratespost"])
         days = st.slider(T("days_slider"), 1, 90, config.CT_RECENT_DAYS)
         if (st.button(T("run_watcher"), type="primary", icon=":material/play_arrow:", disabled=not prefixes)
                 and allowed_today("watcher", config.PUBLIC_HUNTS_PER_DAY)):
@@ -564,9 +564,9 @@ ABOUT = {
 
 | Signal | Points |
 |---|---|
-| Uses a UAE brand name (Dubai Police, RTA, Salik, DEWA, banks...) on a non-official domain | {W['brand_in_domain']} |
+| Uses a UAE brand name (Abu Dhabi Police, Dubai Police, RTA, Salik, DEWA, banks...) on a non-official domain | {W['brand_in_domain']} |
 | Look-alike spelling (dubaipolise, sa1ik) | {W['lookalike_spelling']} |
-| Google Maps listing with a brand name and a foreign phone number | {W['phone_not_uae']} |
+| Google Maps listing with a brand name and a foreign phone number (never when it links the official website: those always score 0) | {W['phone_not_uae']} |
 | Listed by Google Safe Browsing | {W['safe_browsing_hit']} |
 | Message claims to be from a brand, link isn't official | {W['brand_in_text']} |
 | Domain under 30 days old / under 180 days | {W['very_new_domain']} / {W['new_domain']} |
@@ -601,9 +601,9 @@ Google Safe Browsing, Google Places and Anthropic Claude (optional keys).
 
 | العلامة | النقاط |
 |---|---|
-| يستخدم اسم علامة إماراتية (شرطة دبي، هيئة الطرق، سالك، ديوا، البنوك...) على نطاق غير رسمي | {W['brand_in_domain']} |
+| يستخدم اسم علامة إماراتية (شرطة أبوظبي، شرطة دبي، هيئة الطرق، سالك، ديوا، البنوك...) على نطاق غير رسمي | {W['brand_in_domain']} |
 | تهجئة شبيهة (dubaipolise، sa1ik) | {W['lookalike_spelling']} |
-| إدراج في خرائط Google باسم علامة ورقم هاتف أجنبي | {W['phone_not_uae']} |
+| إدراج في خرائط Google باسم علامة ورقم هاتف أجنبي (ليس إذا كان يربط بالموقع الرسمي: تلك نتيجتها 0 دائماً) | {W['phone_not_uae']} |
 | مدرج لدى Google Safe Browsing | {W['safe_browsing_hit']} |
 | الرسالة تدّعي أنها من علامة والرابط غير رسمي | {W['brand_in_text']} |
 | عمر النطاق أقل من 30 يوماً / أقل من 180 يوماً | {W['very_new_domain']} / {W['new_domain']} |

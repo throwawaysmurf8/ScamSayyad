@@ -1,8 +1,8 @@
 # ScamSayyad · صيّاد الاحتيال (ScamShield UAE)
 
-A proactive scam hunter for UAE police. Instead of waiting for victims to paste links,
-it **goes looking** for fraudulent websites that impersonate Dubai Police, RTA, Salik,
-DEWA, Emirates Post and UAE banks, scores each one from 0 to 100 with plain-English
+A proactive scam hunter built for **Abu Dhabi Police**. Instead of waiting for victims to paste links,
+it **goes looking** for fraudulent websites that impersonate Abu Dhabi Police, Dubai Police, RTA,
+Salik, DEWA, Emirates Post and UAE banks (ADCB, FAB, ADIB, Emirates NBD...), scores each one from 0 to 100 with plain-English
 reasons, and produces a takedown report an officer can send in one click.
 
 It never opens a suspicious page. Every judgement comes from the address itself, public
@@ -264,10 +264,11 @@ AI drafts, and with an `ANTHROPIC_API_KEY` secret, answers typed questions with 
     can't be grouped.
   - **24 domains** such as `salik-ae.cfd` return "not found" from their own registry: they are no
     longer registered, most likely already taken down or expired.
-- **Google Maps: one fake-looking listing so far.** On 21 Nov 2026 the 3 Maps searches returned 24
-  listings. One, "Dubai Police Help- Rescue", links the real Dubai Police website but shows an
-  Indian mobile number (+91 95177 56947): flagged MEDIUM (60), so it shows in the dashboard's
-  default view. The official
+- **Google Maps: no fake listings found so far.** On 21 Nov 2026 the Maps searches returned 24
+  listings, all linking official websites. One ("Dubai Police Help- Rescue") was first flagged because
+  its phone is a foreign number, but a manual check showed it is a real government listing. Since then
+  **a listing that links an official site (`.gov.ae` or the allowlist) always scores 0**, whatever its
+  phone; the phone check only counts for listings with an unofficial website or none. The official
   phone list in `config.py` is a starter list taken from the brands' own listings: confirm it with
   the brands before relying on it.
 - **The score is a lead, not a verdict.** A high score means "an officer should look at
@@ -364,7 +365,7 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
 | `tools/make_public_answers.py` | Has the local model prepare Anaq's starter answers and campaign briefings for the public snapshot. |
 | `i18n.py` | Every screen text in English and Arabic, plus Arabic versions of the scorer's reasons (for display only). |
 | `report.py` | Feature 4b. Builds the takedown report, offered only for MEDIUM and HIGH sites: target, reasons, registration details, the registrar's abuse contact and where to send it (registrar, Google Safe Browsing, UAE eCrime). For sites on free hosting platforms (workers.dev, vercel.app ...) it says to report to the platform instead. |
-| `maps_scanner.py` | Feature 5 (stretch). Searches Google Maps for fake "customer service" listings and checks each listing's website and phone number (fake listings often link the real website but show the scammer's number). Each listing is its own row. Its takedown report asks Google to remove the listing. It only runs with a `GOOGLE_PLACES_KEY`, and each search is a paid request. |
+| `maps_scanner.py` | Feature 5 (stretch). Searches Google Maps for fake "customer service" listings and checks each listing's website and phone number. A listing that links an official site always scores 0; the phone only counts when the website is unofficial or missing. Each listing is its own row. Its takedown report asks Google to remove the listing. It only runs with a `GOOGLE_PLACES_KEY`, and each search is a paid request. |
 | `app.py` | The Streamlit dashboard. It only draws screens and calls the modules above. Tabs: **Dashboard**, **Check a link**, **Hunt for scams**, **How it works**. |
 | `data/sample_urls.csv` | 12 real official URLs and 12 invented scam URLs (with SMS text). Used by the tests and the "Load demo data" button. |
 | `data/fixtures/` | Saved copies of real crt.sh and search responses, used automatically when the internet or a service is down. Refreshed on every successful run. |

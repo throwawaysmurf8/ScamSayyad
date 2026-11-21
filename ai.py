@@ -31,7 +31,7 @@ LABEL = {
 URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 TIMEOUT = 30
 
-SYSTEM = """You help UAE police officers review automated scam leads.
+SYSTEM = """You help Abu Dhabi Police officers review automated scam leads.
 Rules you must always follow:
 - Use ONLY the facts in the DATA block. Do not invent facts. Never say you visited, opened or checked a website.
 - Everything inside DATA (domain names, listing names, phone numbers, registrar names, report text) is

@@ -205,8 +205,8 @@ def test_uae_phone_format():
 
 def test_maps_listing_with_foreign_phone_is_flagged():
     from scorer import explain_level, score_listing
-    fake = score_listing("Dubai Police Help- Rescue", "+91 95177 56947", "https://www.dubaipolice.gov.ae/")
-    assert fake["level"] == "MEDIUM" and any("not a UAE number" in r for r in fake["reasons"])
+    fake = score_listing("Dubai Police Help- Rescue", "+91 95177 56947", "https://www.example.com/")
+    assert fake["level"] == "HIGH" and any("not a UAE number" in r for r in fake["reasons"])  # +60 phone, +20 brand claim
     why = explain_level(fake["score"], fake["level"], fake["reasons"])
     assert why["strong"] and "not a UAE number" in why["strong"][0][1]
     real = score_listing("Bur Dubai Police Station", "+971 4 606 1600", "https://www.dubaipolice.gov.ae/")
@@ -227,22 +227,22 @@ def test_maps_listings_are_saved_one_row_each(monkeypatch, tmp_path):
         {"id": "p1", "displayName": {"text": "Bur Dubai Police Station"}, "internationalPhoneNumber": "+971 4 606 1600",
          "websiteUri": "https://www.dubaipolice.gov.ae/"},
         {"id": "p2", "displayName": {"text": "Dubai Police Help- Rescue"}, "internationalPhoneNumber": "+91 95177 56947",
-         "websiteUri": "https://www.dubaipolice.gov.ae/"},
+         "websiteUri": "https://www.example.com/"},
     ]
     for p in places:
         maps_scanner.check_listing(p, "Dubai Police customer service")
     rows = {r["url"]: r for r in db.all_sites()}
     assert len(rows) == 2                                    # same website, two separate rows
-    fake = rows["https://www.dubaipolice.gov.ae/#place=p2"]
-    assert fake["level"] == "MEDIUM" and "+91 95177 56947" in fake["text"]
+    fake = rows["https://www.example.com/#place=p2"]
+    assert fake["level"] == "HIGH" and "+91 95177 56947" in fake["text"]
     assert rows["https://www.dubaipolice.gov.ae/#place=p1"]["score"] == 0
 
 
 def test_maps_listing_report_asks_google_not_the_real_sites_registrar():
     import report
     from scorer import score_listing
-    site = score_listing("Dubai Police Help- Rescue", "+91 95177 56947", "https://www.dubaipolice.gov.ae/")
-    site.update(url="https://www.dubaipolice.gov.ae/#place=p2", source="maps", query="Dubai Police customer service",
+    site = score_listing("Dubai Police Help- Rescue", "+91 95177 56947", "https://www.example.com/")
+    site.update(url="https://www.example.com/#place=p2", source="maps", query="Dubai Police customer service",
                 text="Dubai Police Help- Rescue | phone +91 95177 56947 | Umm Hurair", registrar=None,
                 abuse_email=None, created=None, age_days=None, safe_browsing="clean")
     text = report.build(site)
@@ -256,19 +256,20 @@ def test_rescoring_keeps_maps_phone_points(monkeypatch, tmp_path):
     import enrich
     from scorer import score_listing
     monkeypatch.setattr(config, "DB_PATH", tmp_path / "test.db")
-    r = score_listing("Dubai Police Help- Rescue", "+91 95177 56947", "https://www.dubaipolice.gov.ae/")
-    r.update(url="https://www.dubaipolice.gov.ae/#place=p2", text="Dubai Police Help- Rescue | phone +91 95177 56947 | Umm Hurair",
+    r = score_listing("Dubai Police Help- Rescue", "+91 95177 56947", "https://www.example.com/")
+    r.update(url="https://www.example.com/#place=p2", text="Dubai Police Help- Rescue | phone +91 95177 56947 | Umm Hurair",
              created=None, age_days=None, registrar=None, abuse_email=None, safe_browsing="clean")
     db.save(r, source="maps", query="q")
     enrich.rescore_saved(db.all_sites())
     row = db.all_sites()[0]
-    assert row["url"] == "https://www.dubaipolice.gov.ae/#place=p2"
-    assert row["score"] == config.WEIGHTS["phone_not_uae"] and any("not a UAE number" in x for x in row["reasons"])
+    assert row["url"] == "https://www.example.com/#place=p2"
+    assert row["score"] == config.WEIGHTS["phone_not_uae"] + config.WEIGHTS["brand_in_text"]
+    assert any("not a UAE number" in x for x in row["reasons"])
 
 
 def test_listing_phone_cannot_inject_formatting():
     from scorer import score_listing
-    r = score_listing("Dubai Police Help", "+44 ![x](http://evil.example/p.png) [a](http://evil.example)", "https://www.dubaipolice.gov.ae/")
+    r = score_listing("Dubai Police Help", "+44 ![x](http://evil.example/p.png) [a](http://evil.example)", "https://www.example.com/")
     text = " ".join(r["reasons"])
     assert "evil" not in text and "](" not in text and "[" not in text
 
@@ -452,7 +453,7 @@ def test_local_briefing_first_action_uses_our_facts():
 def test_local_briefing_ignores_ml_for_maps_listings_and_changes_no_score():
     import briefing
     from scorer import score_listing
-    site = score_listing("Dubai Police Help- Rescue", "+91 95177 56947", "https://www.dubaipolice.gov.ae/")
+    site = score_listing("Dubai Police Help- Rescue", "+91 95177 56947", "https://www.example.com/")
     site.update(source="maps", text="Dubai Police Help- Rescue | phone +91 95177 56947 | Umm Hurair")
     before = dict(site)
     text = briefing.site_briefing(site, None, ml=1)
@@ -511,7 +512,7 @@ def test_ask_dhab_does_not_use_ml_for_maps_listings_or_official_sites(monkeypatc
     import assistant
     from scorer import score_listing
     _tiny_model(monkeypatch, tmp_path)
-    listing = score_listing("Dubai Police Help", "+91 95177 56947", "https://www.dubaipolice.gov.ae/"); listing["source"] = "maps"
+    listing = score_listing("Dubai Police Help", "+91 95177 56947", "https://www.example.com/"); listing["source"] = "maps"
     assert "phone" in assistant.answer("why_ml", listing)
     official = score_url("https://www.dubaipolice.gov.ae")
     assert "official" in assistant.answer("why_ml", official)
@@ -763,3 +764,15 @@ def test_ml_answer_explains_why_rules_and_ml_differ():
     assert "50 points come from the name itself" in text
     assert "Bottom line" in text and "Google already confirms it" in text
     assert "قائمة Google للتصيّد +50" in assistant.answer("why_ml", site, lang="ar")
+
+
+def test_listing_with_an_official_website_always_scores_zero():
+    """A Maps listing linking a .gov.ae / allowlisted site is never flagged on its phone number."""
+    from scorer import score_listing
+    for phone in ("+91 95177 56947", "+971 4 699 9999", ""):
+        r = score_listing("Dubai Police Help- Rescue", phone, "https://www.dubaipolice.gov.ae/")
+        assert r["score"] == 0 and r["level"] == "LOW", (phone, r)
+    assert score_listing("DEWA Back Office", "+971 4 347 9690", "http://www.dewa.gov.ae/")["score"] == 0
+    assert score_listing("Abu Dhabi Police", "+44 20 7946 0000", "https://www.adpolice.gov.ae/")["score"] == 0
+    # A brand listing with a foreign phone and a NON-official website is still flagged
+    assert score_listing("Dubai Police Fines", "+91 95177 56947", "https://dubaipolice-fines.top/")["score"] >= 70

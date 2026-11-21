@@ -1,11 +1,12 @@
 """(Stretch) Google Maps scanner: looks for fake "customer service" listings.
 
-Scammers add Maps listings named e.g. "Dubai Police Customer Service". Often they link the
-REAL website and put their OWN phone number on the listing, so both are checked:
+Scammers add Maps listings named e.g. "Dubai Police Customer Service". Both the website and the
+phone are checked:
   * the website is scored like any other link (brand look-alikes, age, Safe Browsing...);
-  * the phone: a listing that uses a UAE brand name with a foreign number is a strong sign,
-    and a UAE number that isn't one of the brand's known numbers (config.OFFICIAL_PHONES)
-    adds a few points.
+  * a listing that links an OFFICIAL website (.gov.ae or the allowlist) always scores 0: a foreign
+    or unknown phone alone proved nothing (one such listing was checked by hand and was real);
+  * otherwise the phone counts: a UAE brand name with a foreign number is a strong sign, and a UAE
+    number that isn't one of the brand's known numbers (config.OFFICIAL_PHONES) adds a few points.
 Each listing is saved as its own row (keyed by Google's place ID), even when many listings
 link the same website.
 

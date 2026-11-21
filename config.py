@@ -53,7 +53,7 @@ GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite")
 CHAT_DAILY_CAP = int(os.environ.get("CHAT_DAILY_CAP", "100"))  # Anaq questions per day, all visitors combined
 CHAT_PER_VISITOR = int(os.environ.get("CHAT_PER_VISITOR", "10"))  # Anaq questions per visit
 PUBLIC_HUNTS_PER_DAY = int(os.environ.get("PUBLIC_HUNTS_PER_DAY", "20"))  # per hunter: certificate watcher, web search (each)
-PUBLIC_MAPS_PER_DAY = int(os.environ.get("PUBLIC_MAPS_PER_DAY", "6"))  # Maps scans: 3 Google requests each, so 6 scans = 18 requests (Google quota: 20/day)
+PUBLIC_MAPS_PER_DAY = int(os.environ.get("PUBLIC_MAPS_PER_DAY", "5"))  # Maps scans: 4 Google requests each, so 5 scans = 20 requests
 
 # Anaq's side-panel chat with Claude Haiku (Anthropic API). Optional: with ANTHROPIC_API_KEY set, the chat
 # uses Claude on this computer and on the public demo; without it, the local model / Gemini as before.
@@ -178,8 +178,8 @@ DASHBOARD_MIN_SCORE = 60   # dashboard starts here to cut noise; officers can lo
 # matches, e.g. "dewalt"), so narrower variants are used. "emiratesnbd." catches the classic
 # trick "emiratesnbd.com-verify-io.bond".
 CT_PREFIXES = [
-    "salik", "emiratespost", "emiratesnbd.", "dubaipolice", "dubaipol", "dubai-police",
-    "adpolice", "uaepass", "rta-", "dewa-", "adcb-", "emirates-post",
+    "adpolice", "abudhabipolice", "adcb-", "salik", "emiratespost", "emiratesnbd.", "dubaipolice",
+    "dubaipol", "dubai-police", "uaepass", "rta-", "dewa-", "emirates-post",
 ]
 CT_RECENT_DAYS = 90        # only certificates issued in the last N days (30 found almost nothing)
 CT_MAX_LOOKUPS = 25        # cap on domain-age lookups per run (they are slow)
@@ -188,6 +188,8 @@ CT_MAX_LOOKUPS = 25        # cap on domain-age lookups per run (they are slow)
 NO_REGISTRY_DATA = {"ph"}
 
 SEARCH_QUERIES = [
+    "pay Abu Dhabi Police fine",
+    "Abu Dhabi Police traffic fine payment online",
     "pay Dubai Police fine",
     "Dubai Police fine payment online",
     "Salik recharge online",
@@ -220,4 +222,5 @@ OFFICIAL_PHONES = {
     "dewa": ["991", "04 601 9999"],
 }
 
-MAPS_QUERIES = ["Dubai Police customer service", "Salik customer service", "DEWA customer service"]
+MAPS_QUERIES = ["Abu Dhabi Police customer service", "Dubai Police customer service", "Salik customer service",
+                "DEWA customer service"]

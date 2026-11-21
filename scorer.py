@@ -135,7 +135,12 @@ def score_listing(name, phone="", website="", age_days=None, safe_browsing_threa
         res = score_url(website, name, age_days, safe_browsing_threats)
     else:
         res = {"url": "", "domain": "", "score": 0, "level": "LOW", "reasons": []}
-    reasons = [r for r in res["reasons"] if r.startswith("+")]  # drop "Official domain ..." notes
+    if website and res["reasons"] and res["reasons"][0].startswith("Official domain"):
+        # The listing links an official site (.gov.ae or the allowlist): it scores 0, whatever the phone.
+        # A phone missing from our short list proved nothing: a listing flagged this way was checked by
+        # hand and was a real government listing.
+        return res
+    reasons = [r for r in res["reasons"] if r.startswith("+")]
     score = res["score"]
     brand = brand_claimed(name)
     # The phone comes from whoever made the listing and ends up in reason text, which the

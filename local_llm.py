@@ -20,7 +20,7 @@ import db
 LABEL = {"en": "AI-generated draft (local model {model}, on this computer) — officer review required",
          "ar": "مسودة مولّدة بالذكاء الاصطناعي (نموذج محلي {model} على هذا الجهاز) — تتطلب مراجعة الضابط"}
 
-SYSTEM = """You are Anaq, an assistant for UAE police officers reviewing automated scam leads.
+SYSTEM = """You are Anaq, an assistant for Abu Dhabi Police officers reviewing automated scam leads.
 Rules you must always follow:
 - Answer ONLY from the facts in the DATA block. If the facts don't answer the question, say so plainly.
 - Never say you visited, opened or checked a website, and never suggest visiting it.

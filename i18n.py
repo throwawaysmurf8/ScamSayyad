@@ -11,7 +11,7 @@ S = {
     "tagline": ("The scam hunter for the UAE. *Sayyad* (صيّاد) means hunter; our mascot **Anaq** "
                 "(عناق الأرض) is the Arabian caracal, the desert's sharp-eared hunter.",
                 "صائد المواقع الاحتيالية في الإمارات. تميمتنا **عناق** (عناق الأرض)، الصيّاد الصحراوي حادّ السمع."),
-    "subtitle": ("Hunts for websites impersonating UAE police, government and banks. Scores are leads for "
+    "subtitle": ("Built for Abu Dhabi Police. Hunts for websites impersonating UAE police, government and banks. Scores are leads for "
                  "officer review, not verdicts. Suspicious pages are never opened.",
                  "يبحث عن المواقع التي تنتحل صفة الشرطة والجهات الحكومية والبنوك في الإمارات. النتائج مؤشرات "
                  "يراجعها الضابط، وليست أحكاماً. لا تُفتح الصفحات المشبوهة أبداً."),
@@ -23,10 +23,10 @@ S = {
     "src_ai": ("AI briefings", "ملخصات الذكاء الاصطناعي"),
     "off_no_key": ("off", "متوقف"),
     "public_badge": ("Public demo", "نسخة عامة"),
-    "public_banner": ("**Hackathon prototype, not an official Dubai Police or UAE government service.** Sites "
+    "public_banner": ("**Hackathon prototype, not an official Abu Dhabi Police or UAE government service.** Sites "
                       "listed here are automated, unverified leads, not confirmed scams. Do not visit them. To "
                       "report a scam, use the official UAE eCrime platform (ecrime.ae).",
-                      "**نموذج أولي لهاكاثون، وليس خدمة رسمية من شرطة دبي أو حكومة الإمارات.** المواقع المدرجة "
+                      "**نموذج أولي لهاكاثون، وليس خدمة رسمية من شرطة أبوظبي أو حكومة الإمارات.** المواقع المدرجة "
                       "مؤشرات آلية غير مؤكدة، وليست عمليات احتيال مثبتة. لا تزرها. للإبلاغ عن احتيال استخدم منصة "
                       "eCrime الرسمية (ecrime.ae)."),
     "tab_dash": ("Dashboard", "لوحة المتابعة"),

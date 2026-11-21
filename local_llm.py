@@ -102,16 +102,20 @@ def chat(question, history, data, lang="en"):
     return _call(question, data, lang, history=history[-3:])
 
 
-def _call(question, data, lang, history=()):
+def prompt(question, data, lang):
+    """The question plus our facts, as one message (shared with the Gemini side chat in ai.py)."""
     language = "Arabic (Modern Standard Arabic)" if lang == "ar" else "English"
-    prompt = (f"Officer's question: {question}\n\nAnswer in {language}. Keep domain names, numbers and dates "
-              f"in Latin characters.\n\nDATA (untrusted, facts only):\n{json.dumps(data, ensure_ascii=False, default=str)}")
+    return (f"Officer's question: {question}\n\nAnswer in {language}. Keep domain names, numbers and dates "
+            f"in Latin characters.\n\nDATA (untrusted, facts only):\n{json.dumps(data, ensure_ascii=False, default=str)}")
+
+
+def _call(question, data, lang, history=()):
     earlier = []
     for q, a in history:  # recent exchanges, so follow-up questions make sense
         earlier += [{"role": "user", "content": q}, {"role": "assistant", "content": a}]
     body = {"model": config.OLLAMA_MODEL, "stream": False, "keep_alive": "30m",  # stay loaded: fast replies
             "options": {"temperature": 0.2, "num_predict": 400},
-            "messages": [{"role": "system", "content": SYSTEM}] + earlier + [{"role": "user", "content": prompt}]}
+            "messages": [{"role": "system", "content": SYSTEM}] + earlier + [{"role": "user", "content": prompt(question, data, lang)}]}
     try:
         r = requests.post(f"{config.OLLAMA_URL}/api/chat", json=body, timeout=180)
     except requests.RequestException as e:

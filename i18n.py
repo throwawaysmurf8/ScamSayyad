@@ -153,9 +153,15 @@ S = {
     "side_clear": ("New conversation", "محادثة جديدة"),
     "side_off": ("Anaq's chat needs the local language model (Ollama). Start Ollama, then reload this page.",
                  "تحتاج محادثة عناق إلى النموذج اللغوي المحلي (Ollama). شغّل Ollama ثم أعد تحميل الصفحة."),
-    "side_off_public": ("Anaq's chat runs on the officer's laptop version only. Each site's card still has "
+    "side_off_public": ("Anaq's chat is off on this public demo right now. Each site's card still has "
                         "Ask Anaq's ready-made questions.",
-                        "محادثة عناق تعمل على نسخة الضابط المحلية فقط. وما زالت أسئلة «اسأل عناق» الجاهزة متاحة في بطاقة كل موقع."),
+                        "محادثة عناق متوقفة حالياً في هذا العرض العام. وما زالت أسئلة «اسأل عناق» الجاهزة متاحة في بطاقة كل موقع."),
+    "side_cap_day": ("Anaq has answered today's quota of questions on this public demo. Please come back tomorrow.",
+                     "أجاب عناق عن الحد اليومي من الأسئلة في هذا العرض العام. يُرجى العودة غداً."),
+    "side_cap_visitor": ("You've reached the question limit for this visit. Reload the page later to ask more.",
+                         "وصلت إلى حد الأسئلة لهذه الزيارة. أعد تحميل الصفحة لاحقاً لطرح المزيد."),
+    "side_cloud_label": ("AI-generated draft (Google Gemini) — not an official police answer",
+                         "مسودة مولّدة بالذكاء الاصطناعي (Google Gemini) — ليست إجابة رسمية من الشرطة"),
     "ask_own": ("Or ask your own question", "أو اطرح سؤالك الخاص"),
     "ask_own_ph": ("e.g. Is this part of the same campaign as the Salik sites?", "مثلاً: هل هذا جزء من حملة مواقع سالك نفسها؟"),
     "ask_btn": ("Ask", "اسأل"),

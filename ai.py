@@ -13,6 +13,7 @@ What this does, in plain words:
 
 Everything the AI writes must be shown with LABEL ("AI-generated draft -- officer review required").
 """
+import datetime
 import hashlib
 import json
 import math
@@ -62,9 +63,52 @@ class AIError(Exception):
     """A plain-English reason why no AI answer is available."""
 
 
+class DailyCapReached(AIError):
+    """The public site has used up today's side-panel questions."""
+
+
+USAGE_FILE = config.ROOT / "data" / "gemini_usage.json"  # today's question count (not committed)
+
+
 def available():
-    """True when new AI answers can be generated (a key is set and this is not the public demo)."""
+    """True when new AI briefings can be generated (a key is set and this is not the public demo)."""
+    return bool(config.GEMINI_API_KEY) and not config.PUBLIC_MODE
+
+
+def chat_available():
+    """True when Gemini can answer side-panel chat questions (used on the public site)."""
     return bool(config.GEMINI_API_KEY)
+
+
+def _count_question():
+    """Count one chat question for today; refuse once the daily cap is reached (resets at midnight)."""
+    today = datetime.date.today().isoformat()
+    try:
+        used = json.loads(USAGE_FILE.read_text(encoding="utf-8")).get(today, 0)
+    except (OSError, ValueError, AttributeError):
+        used = 0
+    if used >= config.GEMINI_DAILY_CAP:
+        raise DailyCapReached(f"Today's {config.GEMINI_DAILY_CAP} questions are used up.")
+    try:
+        USAGE_FILE.write_text(json.dumps({today: used + 1}), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def chat(question, history, data, lang="en"):
+    """Side-panel conversation with Gemini, using the same rules and facts as the local model.
+    Nothing is saved to the database (the public site's data is read-only)."""
+    import local_llm
+    question = " ".join((question or "").split())[:300]
+    if not question:
+        raise AIError("Please type a question.")
+    if not chat_available():
+        raise AIError("The cloud AI is off: no Gemini key.")
+    _count_question()
+    earlier = []
+    for q, a in history[-3:]:  # recent exchanges, so follow-up questions make sense
+        earlier += [{"role": "user", "parts": [{"text": q}]}, {"role": "model", "parts": [{"text": a}]}]
+    return _call(local_llm.prompt(question, data, lang), 400, system=local_llm.SYSTEM, history=earlier)
 
 
 def _clean(value):
@@ -104,11 +148,11 @@ def campaign_facts(c):
     }
 
 
-def _call(prompt, max_tokens):
+def _call(prompt, max_tokens, system=SYSTEM, history=()):
     """One request to Gemini. Returns its text, or raises AIError (never shows the key)."""
     body = {
-        "systemInstruction": {"parts": [{"text": SYSTEM}]},
-        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "systemInstruction": {"parts": [{"text": system}]},
+        "contents": list(history) + [{"role": "user", "parts": [{"text": prompt}]}],
         "generationConfig": {"temperature": 0.2, "maxOutputTokens": max_tokens},
     }
     try:

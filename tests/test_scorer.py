@@ -1,3 +1,4 @@
+import pytest
 """Automated checks for the scoring engine. Run with:  .venv\\Scripts\\python -m pytest -q"""
 import csv
 
@@ -588,3 +589,31 @@ def test_dashboard_page_loads_without_errors():
     from streamlit.testing.v1 import AppTest
     at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120).run()
     assert not at.exception, [e.value for e in at.exception]
+
+
+def test_public_site_chat_uses_gemini_with_caps(monkeypatch, tmp_path):
+    """Public demo: side chat goes to Gemini (faked here), briefings stay off, and the daily cap holds."""
+    import ai
+    monkeypatch.setattr(config, "PUBLIC_MODE", True)
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "fake-key-for-tests")
+    monkeypatch.setattr(config, "GEMINI_DAILY_CAP", 2)
+    monkeypatch.setattr(ai, "USAGE_FILE", tmp_path / "usage.json")
+    assert ai.available() is False and ai.chat_available() is True  # no briefings publicly, chat yes
+    sent = []
+
+    class Reply:
+        status_code = 200
+
+        def json(self):
+            return {"candidates": [{"content": {"parts": [{"text": "The salik campaign."}]}}]}
+
+    monkeypatch.setattr(ai.requests, "post", lambda url, json, **k: sent.append(json) or Reply())
+    data = {"sites_checked": 3}
+    assert ai.chat("Which campaign?", [], data) == "The salik campaign."
+    ai.chat("Why?", [("Which campaign?", "The salik campaign.")], data)
+    roles = [c["role"] for c in sent[1]["contents"]]
+    assert roles == ["user", "model", "user"]                     # follow-ups remember the last answer
+    assert "untrusted" in sent[1]["systemInstruction"]["parts"][0]["text"]  # same rules as local Anaq
+    with pytest.raises(ai.DailyCapReached):                       # 3rd question today: refused, not sent
+        ai.chat("And now?", [], data)
+    assert len(sent) == 2

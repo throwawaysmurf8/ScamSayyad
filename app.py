@@ -666,21 +666,27 @@ with tab_dash:
 # ----------------------------------------------------------------------------- Anaq, the side-panel assistant
 def side_assistant():
     """Anaq on the side: chat about the whole dashboard, or the site selected in the table.
-    Answers come from the local language model (Ollama), using only our facts."""
+    Answers come from the local language model (Ollama) on the officer's computer, or from Gemini on the
+    public demo (with daily and per-visitor caps). Either way the model sees only our facts."""
     face, head = st.columns([1, 4], vertical_alignment="center")
     face.image(ANAQ_AVATAR, width=48)
     head.markdown(f"**{T('side_title')}**")
     head.caption(T("side_sub"))
     selected = st.session_state.get("selected_site")
     st.caption(T("side_about_site", site=hostname(selected["url"])) if selected else T("side_about_all"))
-    if not llm_ready():
+    cloud = config.PUBLIC_MODE and ai.chat_available()  # the public site has no local model
+    if not (llm_ready() or cloud):
         st.info(T("side_off_public") if config.PUBLIC_MODE else T("side_off"), icon=":material/info:")
         return
+    label = T("side_cloud_label") if cloud else local_llm.LABEL[LANG].format(model=config.OLLAMA_MODEL)
     history = st.session_state.setdefault("anaq_chat", [])  # [(question, answer), ...]
     for q, a in history:
         with st.chat_message("user", avatar=":material/person:"):
             st.text(q)
-        anaq_says(a, f"**{local_llm.LABEL[LANG].format(model=config.OLLAMA_MODEL)}**")
+        anaq_says(a, f"**{label}**")
+    if cloud and st.session_state.get("anaq_asked", 0) >= config.GEMINI_SESSION_CAP:
+        st.info(T("side_cap_visitor"), icon=":material/hourglass_empty:")
+        return
     starters = [T("side_q1"), T("side_q2")] + ([T("side_q3")] if selected else [])
     picked = None if history else st.pills(T("side_try"), starters, key=f"side_starters_{LANG}")
     typed = st.chat_input(T("side_input"), max_chars=300)
@@ -693,10 +699,13 @@ def side_assistant():
                 sites = db.all_sites()
                 data = local_llm.overview_facts(sites, campaigns.find(sites), selected,
                                                 st.session_state.get("selected_campaign"))
-                answer = local_llm.chat(question, history, data, LANG)
+                answer = (ai.chat if cloud else local_llm.chat)(question, history, data, LANG)
             history.append((question, answer))
+            st.session_state["anaq_asked"] = st.session_state.get("anaq_asked", 0) + 1
             st.rerun()
-        except local_llm.LLMError as e:
+        except ai.DailyCapReached:
+            st.info(T("side_cap_day"), icon=":material/hourglass_empty:")
+        except (local_llm.LLMError, ai.AIError) as e:
             st.error(T("ask_failed", err=str(e)), icon=":material/error:")
     if history and st.button(T("side_clear"), icon=":material/refresh:"):
         st.session_state["anaq_chat"] = []

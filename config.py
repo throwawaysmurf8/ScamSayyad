@@ -26,6 +26,10 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 # A fast, low-cost model. Google renames models over time: if Gemini says the model is not
 # found, put the current "Flash-Lite" model name in .env as GEMINI_MODEL=...
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite")
+# Public side-panel chat limits, so strangers can't run up the bill. The daily cap is "soft" (it resets
+# if the cloud server restarts); the hard limit is the spend cap or quota set in Google's own console.
+GEMINI_DAILY_CAP = int(os.environ.get("GEMINI_DAILY_CAP", "200"))  # questions per day, whole site
+GEMINI_SESSION_CAP = int(os.environ.get("GEMINI_SESSION_CAP", "15"))  # questions per visitor
 
 # Free questions to "Ask Anaq": a language model running on this computer with Ollama (local_llm.py).
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434")
@@ -41,7 +45,8 @@ PUBLIC_MODE = os.environ.get("SCAMSHIELD_PUBLIC", "") == "1"
 if PUBLIC_MODE:
     DB_PATH = ROOT / "data" / "public_snapshot.db"
     PLACES_KEY = ""  # never spend the paid Maps key on a public site
-    GEMINI_API_KEY = ""  # nor the Gemini key: saved AI briefings are still shown
+    # The Gemini key stays: on the public site it powers ONLY Anaq's side-panel chat, within the caps
+    # below. Briefings and reports stay off there (ai.available() is False in public mode).
 
 # --- Official domains (never flagged) --------------------------------------
 # Matched on the *registered* domain, so "www.rta.ae" and "fines.rta.ae" are official,

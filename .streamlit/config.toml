@@ -14,26 +14,32 @@ gatherUsageStats = false
 # internet with no login.
 toolbarMode = "minimal"
 
-# Look and feel. Follows the computer's light/dark setting.
-# Teal is the "action" color; red / orange / green are kept for risk levels only,
-# so a color never means two things. All text colors pass WCAG AA (4.5:1) on their background.
+# Look and feel (ScamSayyad). Follows the computer's light/dark setting.
+# - Teal is the ONLY action colour; red / orange / green are kept for risk levels only, and the caracal's
+#   tawny gold lives only in the mascot artwork, so a colour never means two things.
+# - Readex Pro (headings) and IBM Plex Sans Arabic (body) are designed for Arabic AND Latin, so English
+#   and Arabic look like one product. If the fonts can't load (offline), the system font is used.
+# - Every text colour passes WCAG AA: light 15.6-17.6:1, dark 14.0-15.7:1; teal 5.7-9.3:1.
 [theme]
-baseRadius = "0.5rem"
+baseRadius = "0.75rem"
+buttonRadius = "0.6rem"
+font = "'IBM Plex Sans Arabic':https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"
+headingFont = "'Readex Pro':https://fonts.googleapis.com/css2?family=Readex+Pro:wght@500;600;700&display=swap"
 codeFont = "monospace"   # domains and URLs show in monospace, like evidence labels
 showWidgetBorder = true
 
 [theme.light]
-primaryColor = "#0B6B63"             # teal, 6.4:1 on white
+primaryColor = "#0B6B63"             # teal: 6.4:1 on white, 5.7:1 on sand
 backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#EEF3F2"
-textColor = "#14201F"                # 16.7:1
-borderColor = "#D5DDDC"
-dataframeHeaderBackgroundColor = "#EEF3F2"
+secondaryBackgroundColor = "#F4F1EA" # warm sand, from the caracal's desert
+textColor = "#17191C"                # 17.6:1
+borderColor = "#E2DDD2"
+dataframeHeaderBackgroundColor = "#F4F1EA"
 
 [theme.dark]
-primaryColor = "#5CC8BB"             # teal, 9.2:1 on the dark background
-backgroundColor = "#0E1416"
-secondaryBackgroundColor = "#172124"
-textColor = "#E6ECEB"                # 15.5:1
-borderColor = "#2A3638"
-dataframeHeaderBackgroundColor = "#172124"
+primaryColor = "#5CC8BB"             # teal: 9.3:1 on the night background
+backgroundColor = "#0F1315"          # desert night
+secondaryBackgroundColor = "#191F22"
+textColor = "#E9ECEB"                # 15.7:1
+borderColor = "#2B3438"
+dataframeHeaderBackgroundColor = "#191F22"

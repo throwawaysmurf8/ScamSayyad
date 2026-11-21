@@ -8,9 +8,9 @@ import re
 
 S = {
     # --- Header ---------------------------------------------------------------
-    "tagline": ("The scam hunter for the UAE. *Sayyad* (صيّاد) is Arabic for hunter; "
-                "our mascot **Dhab** (ضب) is the desert's patient hunter.",
-                "صائد المواقع الاحتيالية في الإمارات. اسم تميمتنا **ضب**، الصيّاد الصبور في الصحراء."),
+    "tagline": ("The scam hunter for the UAE. *Sayyad* (صيّاد) means hunter; our mascot **Anaq** "
+                "(عناق الأرض) is the Arabian caracal, the desert's sharp-eared hunter.",
+                "صائد المواقع الاحتيالية في الإمارات. تميمتنا **عناق** (عناق الأرض)، الصيّاد الصحراوي حادّ السمع."),
     "subtitle": ("Hunts for websites impersonating UAE police, government and banks. Scores are leads for "
                  "officer review, not verdicts. Suspicious pages are never opened.",
                  "يبحث عن المواقع التي تنتحل صفة الشرطة والجهات الحكومية والبنوك في الإمارات. النتائج مؤشرات "
@@ -139,13 +139,13 @@ S = {
                            "يبقى التقرير الإنجليزي أولاً، ويُضاف التقرير نفسه بالعربية أسفله. يُبنى من قوالب ثابتة "
                            "بالحقائق نفسها، دون الحاجة إلى الذكاء الاصطناعي."),
     "briefing_title": ("Officer briefing", "ملخص للضابط"),
-    "ask_title": ("Ask Dhab", "اسأل ضب"),
+    "ask_title": ("Ask Anaq", "اسأل عناق"),
     "ask_own": ("Or ask your own question", "أو اطرح سؤالك الخاص"),
     "ask_own_ph": ("e.g. Is this part of the same campaign as the Salik sites?", "مثلاً: هل هذا جزء من حملة مواقع سالك نفسها؟"),
     "ask_btn": ("Ask", "اسأل"),
-    "ask_thinking": ("Dhab is thinking (local model, only our facts are used)...",
-                     "ضب يفكّر (نموذج محلي، تُستخدم حقائقنا فقط)..."),
-    "ask_failed": ("Dhab could not answer: {err}", "تعذّر على ضب الإجابة: {err}"),
+    "ask_thinking": ("Anaq is thinking (local model, only our facts are used)...",
+                     "عناق يفكّر (نموذج محلي، تُستخدم حقائقنا فقط)..."),
+    "ask_failed": ("Anaq could not answer: {err}", "تعذّر على عناق الإجابة: {err}"),
     "ask_pick": ("Pick a question", "اختر سؤالاً"),
     "ask_label": ("Answer calculated from our data (rules + ML), no AI service", "إجابة محسوبة من بياناتنا (قواعد + تعلّم آلي)، دون خدمة ذكاء اصطناعي"),
     "ask_free": ("Free questions need the local language model (Ollama). It is not running, so only the set "

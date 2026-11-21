@@ -6,6 +6,7 @@ This file only draws the screens; all the real work happens in the other modules
 Screen text lives in i18n.py (English + Arabic). AI briefings come from ai.py (Gemini).
 """
 import csv
+from pathlib import Path
 import html
 
 import pandas as pd
@@ -28,7 +29,7 @@ from enrich import check, check_and_save
 from report import code_span, escape_md
 from scorer import decode_punycode, explain_level, parse, score_url
 
-st.set_page_config(page_title="ScamSayyad · صيّاد الاحتيال", page_icon="🦎", layout="wide")
+st.set_page_config(page_title="ScamSayyad · صيّاد الاحتيال", page_icon=str(Path(__file__).parent / "assets" / "caracal.svg"), layout="wide")
 
 # Each risk level gets a color AND a shape, so it never relies on color alone.
 # The color names are Streamlit's theme colors, which adapt to light and dark mode.
@@ -43,6 +44,14 @@ LEVELS = {
 HOST_HEADING_CSS = """<style>
 .ss-host { font-size: 1.35rem; font-weight: 600; margin: .25rem 0 .5rem; word-break: break-all; direction: ltr; }
 .ss-HIGH { color: #E53935; } .ss-MEDIUM { color: #C06A00; } .ss-LOW { color: #2E8B3E; }
+</style>"""
+
+# Wordmark: the brand's one custom moment (Readex Pro is designed for Arabic and Latin together).
+BRAND_CSS = """<style>
+.ss-brand { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .9rem; margin-top: .2rem; }
+.ss-name { font-family: 'Readex Pro', sans-serif; font-weight: 700; font-size: 2.35rem; letter-spacing: -0.02em;
+           line-height: 1.1; }
+.ss-name-ar { font-family: 'Readex Pro', sans-serif; font-weight: 600; font-size: 1.6rem; opacity: .72; }
 </style>"""
 
 # Arabic reads right to left. Domain names, URLs and code stay left to right.
@@ -138,8 +147,8 @@ def show_local_briefing(text):
             f"solid #0B6B63;padding:.4rem .8rem'>{html.escape(text)}</div>")
 
 
-def ask_dhab(site, campaign, sites):
-    """'Ask Dhab': set questions about this site, answered exactly from our data (rules + ML)."""
+def ask_anaq(site, campaign, sites):
+    """'Ask Anaq': set questions about this site, answered exactly from our data (rules + ML)."""
     labels = {k: v[1 if LANG == "ar" else 0] for k, v in assistant.QUESTIONS.items()}
     choice = st.pills(T("ask_pick"), list(labels), format_func=labels.get, key=f"ask_{site['url']}_{LANG}",
                       label_visibility="collapsed")
@@ -308,7 +317,7 @@ def _source_badge(name, on):
 
 
 # ----------------------------------------------------------------------------- Header
-head, status = st.columns([3, 2], vertical_alignment="bottom")
+head, status = st.columns([3, 2], vertical_alignment="center")
 with status:
     st.segmented_control("Language / اللغة", ["English", "العربية"], default="English", key="lang_choice",
                          label_visibility="collapsed")
@@ -324,12 +333,14 @@ with status:
 if LANG == "ar":
     st.html(RTL_CSS)
 with head:
-    mascot, title = st.columns([1, 5], vertical_alignment="center")
-    # Our mascot Dhab, the Arabian spiny-tailed lizard (our own drawing, assets/dhab.svg).
-    mascot.image(str(config.ROOT / "assets" / "dhab.svg"), width=120)
-    title.markdown("# ScamSayyad · صيّاد الاحتيال")
+    mascot, title = st.columns([1, 7], vertical_alignment="center")
+    # Our mascot Anaq, the Arabian caracal (our own drawing, assets/caracal.svg). Shown once, small:
+    # the brand defers to the content.
+    mascot.image(str(config.ROOT / "assets" / "caracal.svg"), width=78)
+    title.html(f"{BRAND_CSS}<div class='ss-brand'><span class='ss-name'>ScamSayyad</span>"
+               f"<span class='ss-name-ar'>صيّاد الاحتيال</span></div>")
     title.markdown(T("tagline"))
-    st.caption(T("subtitle"))
+st.caption(T("subtitle"))
 
 if config.PUBLIC_MODE:
     st.warning(T("public_banner"), icon=":material/info:")
@@ -431,8 +442,8 @@ def render_dashboard():
                     st.markdown(f":material/assignment: **{T('briefing_title')}**")
                     ai_briefing_block("site", key=f"ai_site_{site['url']}", site=site, campaign=in_campaign)
             with st.container(border=True):
-                st.markdown(f"🦎 **{T('ask_title')}**")
-                ask_dhab(site, in_campaign, sites)
+                st.markdown(f":material/pets: **{T('ask_title')}**")
+                ask_anaq(site, in_campaign, sites)
             with st.container(border=True):
                 st.markdown(T("report_title"))
                 if report.is_reportable(site):

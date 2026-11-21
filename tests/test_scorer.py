@@ -472,7 +472,7 @@ def test_arabic_report_is_built_without_ai_and_sits_below_english():
     assert "AI-generated" not in both                                # nothing AI-written here
 
 
-# ---------------------------------------------------------------- Ask Dhab (assistant) + ML explanation, offline
+# ---------------------------------------------------------------- Ask Anaq (assistant) + ML explanation, offline
 def test_ml_explains_itself_with_parts_of_the_name(monkeypatch, tmp_path):
     ml = _tiny_model(monkeypatch, tmp_path)
     e = ml.explain("https://verify-account-login.top")

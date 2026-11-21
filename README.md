@@ -69,9 +69,9 @@ internet and no cost, every line comes from a fixed template, and no score is ch
 panel's **Add Arabic version** switch adds the same report in Arabic below the English one, built from
 templates (`report.build_ar`) with the scorer's reasons translated (`i18n.py`).
 
-### Ask Dhab: the assistant
+### Ask Anaq: the assistant
 
-Each flagged site's card has an **Ask Dhab** box with six set questions: *Why does the ML agree or
+Each flagged site's card has an **Ask Anaq** box with six set questions: *Why does the ML agree or
 disagree with the rules? Why did the rules give this score? Which other sites look like this one?
 What would change the risk level? What should I do first? How sure can we be?* Every answer is
 calculated from our data (`assistant.py`), so it is exact and explainable. Because the ML is a simple
@@ -160,6 +160,19 @@ To refresh the public results later, copy `data/scamshield.db` over `data/public
 (removing demo rows), then push to GitHub; the site updates by itself.
 
 ---
+
+## Design
+
+- **Mascot:** Anaq (عناق الأرض), the Arabian caracal, the desert's sharp-eared hunter. Our own vector
+  drawing (`assets/caracal.svg`, made by `tools/make_caracal.py`). It appears once, small, in the header
+  and as the browser-tab icon, so the brand never crowds the results.
+- **Colour:** teal is the only action colour; red, orange and green mean risk levels only; the caracal's
+  tawny gold stays in the artwork. Warm sand and desert-night surfaces. Every text colour passes WCAG AA
+  (14:1 or better for body text, 5.7:1 or better for teal).
+- **Type:** Readex Pro for the wordmark and headings and IBM Plex Sans Arabic for body text. Both are
+  designed for Arabic and Latin together, so both languages look like one product. Without internet the
+  system font is used.
+- **Arabic:** the whole layout mirrors right to left; website names, links and numbers stay left to right.
 
 ## Security and privacy
 
@@ -342,8 +355,8 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
 | `ml_model.py` | The ML second opinion: turns a website name into letter chunks and counts, and scores it 0–100% with the trained model in `data/ml/model.npz` (numbers only, no code). |
 | `tools/train_ml.py` | Downloads the public training lists, trains the ML model with a fair held-back test, checks it on our UAE data, and saves `data/ml/model.npz` and `data/ml/metrics.json`. |
 | `briefing.py` | The officer briefing (5 lines) for a site or a campaign, built from the rule findings, the campaign and the ML second opinion. No AI service. |
-| `assistant.py` | "Ask Dhab": answers six set questions about a site from our rules, the ML model, campaigns and the database. |
-| `local_llm.py` | Free questions to Ask Dhab, answered by a language model running on this computer with Ollama, from our facts only. Off when Ollama isn't running. |
+| `assistant.py` | "Ask Anaq": answers six set questions about a site from our rules, the ML model, campaigns and the database. |
+| `local_llm.py` | Free questions to Ask Anaq, answered by a language model running on this computer with Ollama, from our facts only. Off when Ollama isn't running. |
 | `i18n.py` | Every screen text in English and Arabic, plus Arabic versions of the scorer's reasons (for display only). |
 | `report.py` | Feature 4b. Builds the takedown report, offered only for MEDIUM and HIGH sites: target, reasons, registration details, the registrar's abuse contact and where to send it (registrar, Google Safe Browsing, UAE eCrime). For sites on free hosting platforms (workers.dev, vercel.app ...) it says to report to the platform instead. |
 | `maps_scanner.py` | Feature 5 (stretch). Searches Google Maps for fake "customer service" listings and checks each listing's website and phone number (fake listings often link the real website but show the scammer's number). Each listing is its own row. Its takedown report asks Google to remove the listing. It only runs with a `GOOGLE_PLACES_KEY`, and each search is a paid request. |

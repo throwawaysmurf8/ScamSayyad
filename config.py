@@ -114,8 +114,15 @@ SHORT_BRANDS = ["rta", "fab", "adcb", "adib", "dib", "cbd", "addc", "icp", "moi"
 # Brands that are also common first names. The brand only counts when the name also has one of these
 # scam words, or the site has another warning sign besides a cheap ending (scorer.score_url step 7).
 NAME_BRANDS = {
-    "salik": ("pay", "toll", "recharge", "account", "fine", "emirate", "online", "payment"),  # "emirate" also matches "emirates"
+    "salik": ("pay", "toll", "recharge", "account", "fine", "emirate", "online", "payment",  # "emirate" = "emirates" too
+              "uae", "ae", "web"),  # short words (3 letters or fewer) must stand alone: salik-ae, salik-web
 }
+# Name patterns that are never the brand: Salikha / Salikhov / Salikov are common first and family names.
+NAME_PATTERNS = [r"salik(h|ov)"]
+# Endings where one machine-made batch of look-alike names was found (1,008 .ph names with certificates
+# issued 24-28 Aug 2026, no registry data). There the brand only counts with a scam word (or Google's list),
+# so the batch shows as a few leads, not hundreds.
+BATCH_ENDINGS = {"ph", "com.ph"}
 
 BRAND_IGNORE_WORDS = [
     "dewalt", "dewan",                                   # DEWA
@@ -137,6 +144,7 @@ URL_KEYWORDS = [
     "fine", "pay", "payment", "refund", "verify", "update", "login", "secure",
     "account", "wallet", "reward", "gift", "unpaid", "toll", "parcel", "delivery",
     "suspend", "kyc", "violation", "penalty", "otp",
+    "track", "package", "service", "customs",  # parcel-scam words (emiratespost.ae-...-track-package)
 ]
 # Urgent wording typical of scam SMS/WhatsApp messages (English + Arabic).
 URGENT_PHRASES = [
@@ -169,6 +177,8 @@ WEIGHTS = {
     "phone_not_uae": 60,       # Maps listing using a UAE brand name with a foreign phone number
                                # (60 = shown by the dashboard's default filter on its own)
     "phone_not_official": 10,  # UAE number, but not one of the brand's known official numbers
+    "real_address_front": 20,  # the real address in front of another domain: emiratesnbd.com-verify-io.bond
+    "bulk_names": 20,          # the same name registered on 3+ different endings: salik-uae.top/.cfd/.icu...
 }
 HIGH_RISK = 70
 MEDIUM_RISK = 40

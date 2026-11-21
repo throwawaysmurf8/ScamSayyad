@@ -184,13 +184,30 @@ def score_listing(name, phone="", website="", age_days=None, safe_browsing_threa
     return {**res, "score": score, "level": level(score), "reasons": reasons}
 
 
-def score_url(url, text="", age_days=None, safe_browsing_threats=None):
+def name_stem(url):
+    """('salik-uae', 'top') for 'https://www.salik-uae.top/x': the name without 'www.' and the ending."""
+    _, host, _, suffix, _ = parse(url)
+    name = host[: -len(suffix) - 1] if suffix and host.endswith("." + suffix) else host
+    return (name[4:] if name.startswith("www.") else name), suffix
+
+
+def name_endings(urls):
+    """How many different endings each name is registered on, from a list of saved URLs."""
+    seen = {}
+    for u in urls:
+        stem, suffix = name_stem(u)
+        seen.setdefault(stem, set()).add(suffix)
+    return {k: len(v) for k, v in seen.items()}
+
+
+def score_url(url, text="", age_days=None, safe_browsing_threats=None, same_name_endings=0):
     """Score one URL.
 
     url        -- full URL ("https://x.com/a") or bare domain ("x.com")
     text       -- optional SMS / message text the link arrived in
     age_days   -- domain age in days, if known (from enrich.py)
     safe_browsing_threats -- list of Google Safe Browsing threat types, if checked
+    same_name_endings -- on how many different endings this same name is saved (bulk registration)
 
     Returns a dict: url, domain, score (0-100), level, reasons (list of strings).
     """
@@ -241,6 +258,12 @@ def score_url(url, text="", age_days=None, safe_browsing_threats=None):
         add(W["no_https"], "No HTTPS (connection is not encrypted)")
     if host.count("-") >= 2 or len(registered) > 30:
         add(W["messy_domain"], "Long or hyphen-heavy domain name, typical of throwaway scam sites")
+    # The real address in front of a different domain: "emiratesnbd.com-verify-io.bond",
+    # "emiratespost.ae-services-track-package.richwalt.com"
+    front = bool(hit) and re.search(re.escape(hit[0]) + r"\.(ae|com|gov)[.-]", host) is not None \
+        and hit[0] not in re.sub(r"[^a-z0-9]", "", registered)
+    if front:
+        add(W["real_address_front"], f"Puts the real '{hit[0]}' address in front of a different domain")
 
     # 4. Scam words in the address
     found = [k for k in config.URL_KEYWORDS if k in (host + rest)]
@@ -267,18 +290,38 @@ def score_url(url, text="", age_days=None, safe_browsing_threats=None):
             add(W["new_domain"], f"Domain is young ({age_days} days old)")
     if safe_browsing_threats:
         add(W["safe_browsing_hit"], "Google Safe Browsing lists it as: " + ", ".join(safe_browsing_threats))
+    if same_name_endings >= 3 and not (hit and name_stem(url)[0] == hit[0]):
+        # (a bare brand name like dubaipolice.top on many endings is often domain speculators or the
+        # brand's own defensive registrations, so it gets no bulk points)
+        add(W["bulk_names"], f"Same name registered on {same_name_endings} different endings (bulk registration)")
 
-    # 7. Brands that are also common first names ("Salik"): the brand only counts when the name has a
-    #    scam word too, or there is another warning sign besides a cheap ending. salikdev.live is
-    #    probably a developer called Salik; salik-pay.top is not.
-    if hit and hit[0] in config.NAME_BRANDS:
-        brand_reason = reasons[0]
+    # 7. When the brand name alone is not evidence, it adds no points. Google's list overrides all of this.
+    if hit and reasons[0].startswith("+") and not safe_browsing_threats:
+        brand = hit[0]
+        name = _as_seen(host) or host
+        name = name[: -len(suffix) - 1] if suffix and name.endswith("." + suffix) else name
+        rest_of_name = re.sub(r"[^a-z0-9]+", " ", name.replace(brand, " "))
+
+        def has_word(words):  # short words (ae, uae, web) must stand alone; longer ones may be inside a word
+            return next((w for w in words if (w in rest_of_name.split() if len(w) <= 3 else w in rest_of_name)), None)
+
+        scam_word = has_word(config.URL_KEYWORDS) or has_word(config.NAME_BRANDS.get(brand, ()))
         others = [r for r in reasons[1:] if "domain ending" not in r]
-        name = host.replace(suffix, "") if suffix else host
-        if not others and not any(w in name for w in config.NAME_BRANDS[hit[0]]):
-            score -= int(brand_reason.split()[0])
-            reasons[0] = (f"'{hit[0]}' here may be a person's name (no scam word and no other warning sign), "
-                          "so it adds no points")
+        platform = next((p for p in config.SHARED_HOSTS if host == p or host.endswith("." + p)), None)
+        why = None
+        if any(re.search(p, name) for p in config.NAME_PATTERNS) and not scam_word:
+            why = "looks like a person's name (Salikha, Salikhov, Salikov...)"
+        elif platform and not scam_word:
+            why = f"is on a personal page of {platform} with no scam word"
+        elif hit[1] == "name" and not front and not scam_word and brand not in re.sub(r"[^a-z0-9]", "", registered):
+            why = f"is only in a subdomain of an unrelated site ({registered}) with no scam word"
+        elif suffix in config.BATCH_ENDINGS and not scam_word:
+            why = "is part of the .ph bulk batch (counted as one lead) with no scam word"
+        elif brand in config.NAME_BRANDS and not scam_word and not others:
+            why = "here may be a person's name (no scam word and no other warning sign)"
+        if why:
+            score -= int(reasons[0].split()[0])
+            reasons[0] = f"'{brand}' {why}, so it adds no points"
 
     score = min(score, 100)
     if not reasons:
@@ -288,7 +331,7 @@ def score_url(url, text="", age_days=None, safe_browsing_threats=None):
 
 # Signs that on their own point to impersonation. Everything else only adds weight.
 STRONG_SIGNS = ("brand name", "Look-alike", "Google Safe Browsing", "punycode", "raw IP address",
-                "Message claims", "Mentions '", "is not a UAE number")
+                "Message claims", "Mentions '", "is not a UAE number", "address in front of")
 
 
 def explain_level(score, lvl, reasons, age_days=None, safe_browsing=None):

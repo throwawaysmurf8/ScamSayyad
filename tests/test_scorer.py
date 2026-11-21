@@ -845,3 +845,54 @@ def test_salik_as_a_first_name_is_not_a_brand_hit():
 def test_salik_emirate_counts_as_a_scam_word():
     from scorer import score_url
     assert score_url("salik-emirate.cfd")["level"] == "MEDIUM" and score_url("salik-emirates.top")["level"] == "MEDIUM"
+
+
+# ---------------------------------------------------------------- Audit rule changes (approved 22 Nov 2026)
+def _brand_counts(r):
+    return any(x.startswith("+") and ("brand name" in x or "Look-alike" in x) for x in r["reasons"])
+
+
+def test_ph_batch_names_count_only_with_a_scam_word():
+    from scorer import score_url
+    assert score_url("emiratespost-meadowlakeregion.com.ph")["level"] == "LOW"
+    assert score_url("emiratespost-rolex-findmypayments.ph")["level"] == "MEDIUM"      # 'pay' is a scam word
+    assert score_url("emiratesnbd-dnb.ph", safe_browsing_threats=["SOCIAL_ENGINEERING"])["level"] != "LOW"
+
+
+def test_same_name_on_three_endings_is_a_bulk_registration():
+    from scorer import name_endings, score_url
+    counts = name_endings(["salik-uae.top", "https://www.salik-uae.cfd/", "salik-uae.icu", "salik-pay.top"])
+    assert counts["salik-uae"] == 3 and counts["salik-pay"] == 1
+    bulk = score_url("salik-uae.top", same_name_endings=3)
+    assert bulk["level"] == "HIGH" and any("bulk registration" in r for r in bulk["reasons"])
+    assert score_url("salik-web.sbs")["level"] == "MEDIUM" and score_url("salik-ae.cfd")["level"] == "MEDIUM"
+    assert not any("bulk" in r for r in score_url("dubaipolice.top", same_name_endings=10)["reasons"])  # bare brand
+
+
+def test_brand_on_a_free_personal_page_needs_a_scam_word():
+    from scorer import score_url
+    assert not _brand_counts(score_url("adpolice-7703.chatgpt.site"))
+    assert not _brand_counts(score_url("emiratesnbd-ai-nonprod.workers.dev"))
+    assert _brand_counts(score_url("emiratesnbd-pay.workers.dev"))
+
+
+def test_brand_only_in_an_unrelated_subdomain_needs_a_scam_word():
+    from scorer import score_url
+    assert score_url("dubaipolice-lp-db.mysql.database.azure.com")["level"] == "LOW"
+    assert score_url("uaepass-choc.staging-api.fill-easy.com")["level"] == "LOW"
+    assert score_url("emiratesnbd.secure-frais.click")["level"] != "LOW"   # 'secure' is a scam word
+
+
+def test_person_name_patterns_are_not_the_brand():
+    from scorer import score_url
+    assert not _brand_counts(score_url("salikha-sharapova-94.top"))
+    assert _brand_counts(score_url("salikov-salik-pay.com"))                    # a real scam next to a name
+
+
+def test_parcel_words_and_real_address_in_front():
+    from scorer import explain_level, score_url
+    r = score_url("emiratespost.ae-all-services-track-package.richwalt.com")
+    assert r["level"] == "HIGH" and any("address in front" in x for x in r["reasons"])
+    assert any("track" in x for x in r["reasons"])
+    why = explain_level(r["score"], r["level"], r["reasons"])
+    assert any("address in front" in t for _, t in why["strong"])           # counted as a strong sign

@@ -208,6 +208,8 @@ def rescore_saved(sites, threats_by_url=None):
     Keeps their registration facts and first-seen time. Returns how many changed score."""
     import db
 
+    from scorer import name_endings, name_stem
+    endings = name_endings(u for u in db.known_urls() if "#place=" not in u)
     changed = 0
     for s in sites:
         threats = threats_by_url.get(s["url"]) if threats_by_url else _stored_threats(s["safe_browsing"])
@@ -220,7 +222,8 @@ def rescore_saved(sites, threats_by_url=None):
             res = score_listing(name, "" if phone == "?" else phone, website, s["age_days"], threats)
             res["url"] = s["url"]
         else:
-            res = score_url(s["url"], s["text"] or "", age_days=s["age_days"], safe_browsing_threats=threats)
+            res = score_url(s["url"], s["text"] or "", age_days=s["age_days"], safe_browsing_threats=threats,
+                            same_name_endings=endings.get(name_stem(s["url"])[0], 0))
         res.update({k: s[k] for k in ("created", "age_days", "registrar", "abuse_email", "text")})
         res["safe_browsing"] = "not configured" if threats is None else (", ".join(threats) or "clean")
         changed += res["score"] != s["score"]
@@ -281,12 +284,13 @@ def test_safe_browsing_key():
     return "The key was accepted, but Google did not flag its test address. Try again later."
 
 
-def check(url, text="", cached_info=None):
+def check(url, text="", cached_info=None, same_name_endings=0):
     """Score a URL with online facts. Pass cached_info to skip a repeat domain look-up."""
     domain = parse(url)[2]
     info = cached_info if cached_info is not None else domain_info(domain)
     threats = safe_browsing(url)
-    result = score_url(url, text, age_days=info.get("age_days"), safe_browsing_threats=threats)
+    result = score_url(url, text, age_days=info.get("age_days"), safe_browsing_threats=threats,
+                       same_name_endings=same_name_endings)
     result.update({
         "created": info.get("created"),
         "age_days": info.get("age_days"),
@@ -305,9 +309,12 @@ def check_and_save(url, text="", source="manual", query="", lookup=True):
     """
     import db  # imported here so scorer/enrich still work without the database
 
+    from scorer import name_endings, name_stem
     domain = parse(url)[2]
     cached = db.cached_domain(domain)
-    result, info = check(url, text, cached_info=cached if cached is not None else (None if lookup else {}))
+    endings = name_endings([u for u in db.known_urls() if "#place=" not in u] + [url]).get(name_stem(url)[0], 0)
+    result, info = check(url, text, cached_info=cached if cached is not None else (None if lookup else {}),
+                         same_name_endings=endings)
     if cached is None and info:
         db.cache_domain(domain, info)
     db.save(result, source, query)

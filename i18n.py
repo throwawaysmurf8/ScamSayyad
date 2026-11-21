@@ -156,6 +156,16 @@ S = {
     "side_off_public": ("Anaq's chat is off on this public demo right now. Each site's card still has "
                         "Ask Anaq's ready-made questions.",
                         "محادثة عناق متوقفة حالياً في هذا العرض العام. وما زالت أسئلة «اسأل عناق» الجاهزة متاحة في بطاقة كل موقع."),
+    "side_saved_note": ("On this public demo, Anaq shows answers it prepared earlier on the officer's computer. "
+                        "Typed questions work on the officer's version.",
+                        "في هذا العرض العام، يعرض عناق إجابات أعدّها مسبقاً على جهاز الضابط. "
+                        "الأسئلة المكتوبة متاحة في نسخة الضابط."),
+    "side_saved_label": ("AI-generated draft, prepared by the local model on the officer's computer — "
+                         "not an official police answer",
+                         "مسودة مولّدة بالذكاء الاصطناعي، أعدّها النموذج المحلي على جهاز الضابط — "
+                         "ليست إجابة رسمية من الشرطة"),
+    "side_saved_missing": ("No prepared answer for the current data yet.",
+                           "لا توجد إجابة مُعدّة للبيانات الحالية بعد."),
     "side_cap_day": ("Anaq has answered today's quota of questions on this public demo. Please come back tomorrow.",
                      "أجاب عناق عن الحد اليومي من الأسئلة في هذا العرض العام. يُرجى العودة غداً."),
     "side_cap_visitor": ("You've reached the question limit for this visit. Reload the page later to ask more.",

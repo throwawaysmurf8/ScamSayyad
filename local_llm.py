@@ -94,6 +94,13 @@ def overview_facts(sites, campaign_list, selected=None, selected_campaign=None):
     return data
 
 
+def saved_key(question, data, lang):
+    """Where a prepared side-panel answer is saved (made on this computer, shown on the public demo).
+    Tied to the exact facts, so answers made from older data never show next to newer data."""
+    blob = json.dumps(data, sort_keys=True, ensure_ascii=False, default=str)
+    return hashlib.sha256(f"side|{lang}|{question}|{blob}".encode()).hexdigest()
+
+
 def chat(question, history, data, lang="en"):
     """Side-panel conversation: answer `question` from `data`, remembering the last few exchanges."""
     question = " ".join((question or "").split())[:300]

@@ -672,6 +672,9 @@ def side_assistant():
     face.image(ANAQ_AVATAR, width=48)
     head.markdown(f"**{T('side_title')}**")
     head.caption(T("side_sub"))
+    if config.PUBLIC_MODE and not ai.chat_available():
+        saved_answers()
+        return
     selected = st.session_state.get("selected_site")
     st.caption(T("side_about_site", site=hostname(selected["url"])) if selected else T("side_about_all"))
     cloud = config.PUBLIC_MODE and ai.chat_available()  # the public site has no local model
@@ -710,6 +713,23 @@ def side_assistant():
     if history and st.button(T("side_clear"), icon=":material/refresh:"):
         st.session_state["anaq_chat"] = []
         st.rerun()
+
+
+def saved_answers():
+    """Public demo without a cloud AI: Anaq's answers to the starter questions, written earlier by the
+    local model on the officer's computer (tools/make_public_answers.py) and shipped in the snapshot."""
+    st.caption(T("side_saved_note"))
+    picked = st.pills(T("side_try"), [T("side_q1"), T("side_q2")], key=f"side_saved_{LANG}")
+    if not picked:
+        return
+    sites = db.all_sites()
+    answer = db.ai_get(local_llm.saved_key(picked, local_llm.overview_facts(sites, campaigns.find(sites)), LANG))
+    with st.chat_message("user", avatar=":material/person:"):
+        st.text(picked)
+    if answer:
+        anaq_says(answer, f"**{T('side_saved_label')}**")
+    else:
+        st.info(T("side_saved_missing"), icon=":material/info:")
 
 
 with st.sidebar:

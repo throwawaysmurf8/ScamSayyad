@@ -668,3 +668,12 @@ def test_saved_local_briefing_still_shows_offline_and_on_public_site(monkeypatch
     assert ai.site_briefing(_flagged_site()) == "Saved briefing."
     monkeypatch.setattr(config, "PUBLIC_MODE", True)                          # public demo
     assert ai.site_briefing(_flagged_site()) == "Saved briefing."
+
+
+def test_prepared_public_answers_match_only_the_same_data():
+    import local_llm
+    data = {"sites_checked": 3, "by_risk_level": {"HIGH": 1}}
+    key = local_llm.saved_key("Summarise today's biggest threats", data, "en")
+    assert key == local_llm.saved_key("Summarise today's biggest threats", dict(data), "en")
+    assert key != local_llm.saved_key("Summarise today's biggest threats", data, "ar")      # per language
+    assert key != local_llm.saved_key("Summarise today's biggest threats", {**data, "sites_checked": 4}, "en")

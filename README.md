@@ -162,7 +162,10 @@ To publish it:
 4. Click **Deploy**.
 
 To refresh the public results later, copy `data/scamshield.db` over `data/public_snapshot.db`
-(removing demo rows), then push to GitHub; the site updates by itself.
+(removing demo rows), run `.venv/Scripts/python tools/make_public_answers.py` (with Ollama running) so
+the local model prepares Anaq's starter answers and campaign briefings for the public site, then push to
+GitHub; the site updates by itself. The public site never runs a model itself: it only shows these saved
+AI drafts (or, if a `GEMINI_API_KEY` secret is added, answers typed questions with Gemini, capped per day).
 
 ---
 

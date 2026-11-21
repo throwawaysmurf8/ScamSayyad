@@ -745,3 +745,21 @@ def test_briefings_fall_back_to_claude_when_the_local_model_is_off(monkeypatch, 
     assert sent[0]["thinking"] == {"type": "disabled"}
     assert ai.site_briefing(_flagged_site()) == "Brand: Salik."   # saved, shown again without a new call
     assert len(sent) == 1
+
+
+def test_ml_answer_explains_why_rules_and_ml_differ():
+    """Rules 100 vs ML ~50: the answer splits the rule points into what the ML can't see and the name."""
+    import assistant
+    import ml_model
+    if not ml_model.available():
+        pytest.skip("no ML model file")
+    site = {"url": "https://dubaipolice.click/", "score": 100, "level": "HIGH", "source": "cert log",
+            "safe_browsing": "SOCIAL_ENGINEERING",
+            "reasons": ["+35 Uses the brand name 'dubaipolice' but is not an official dubaipolice domain",
+                        "+15 Cheap / frequently abused domain ending (.click)",
+                        "+50 Google Safe Browsing lists it as: SOCIAL_ENGINEERING"]}
+    text = assistant.answer("why_ml", site)
+    assert "Google's phishing list +50" in text                  # evidence the ML never sees
+    assert "50 points come from the name itself" in text
+    assert "Bottom line" in text and "Google already confirms it" in text
+    assert "قائمة Google للتصيّد +50" in assistant.answer("why_ml", site, lang="ar")

@@ -19,6 +19,23 @@ if _env_file.exists():
             _k, _v = _line.split("=", 1)
             os.environ.setdefault(_k.strip(), _v.strip().strip("\"'"))  # allow KEY="value" too
 
+# On Streamlit Community Cloud the keys come from the app's Secrets. Top-level secrets already arrive as
+# environment variables; this also accepts keys placed under a [section] heading in the Secrets box.
+_KEY_NAMES = ("GOOGLE_SAFE_BROWSING_KEY", "GOOGLE_PLACES_KEY", "GEMINI_API_KEY", "ANTHROPIC_API_KEY", "SCAMSHIELD_PUBLIC")
+try:
+    import streamlit as _st
+
+    def _from_secrets(section):
+        for _name, _value in section.items():
+            if hasattr(_value, "items"):
+                _from_secrets(_value)
+            elif _name.upper() in _KEY_NAMES and str(_value).strip():
+                os.environ.setdefault(_name.upper(), str(_value).strip())
+
+    _from_secrets(_st.secrets)
+except Exception:  # no secrets file (normal on the officer's computer) or no Streamlit
+    pass
+
 SAFE_BROWSING_KEY = os.environ.get("GOOGLE_SAFE_BROWSING_KEY", "")
 PLACES_KEY = os.environ.get("GOOGLE_PLACES_KEY", "")
 

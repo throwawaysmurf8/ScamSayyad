@@ -58,3 +58,12 @@ svg = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="24 -10 112 172" role="i
 with open(OUT, "w", encoding="utf-8") as f:
     f.write(svg)
 print("wrote", OUT)
+
+# Avatar for the AI assistant: the same head, cropped square on a soft sand disc.
+avatar_path = OUT.replace(".svg", "_avatar.svg")
+avatar = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="14 -8 132 132" role="img" '
+          'aria-label="Anaq, the ScamSayyad assistant">\n  <circle cx="80" cy="58" r="66" fill="#F4E4CC"/>\n  '
+          + "\n  ".join(parts[2:]) + "\n</svg>\n")  # parts[2:] = ears, head and face (no shoulders)
+with open(avatar_path, "w", encoding="utf-8") as f:
+    f.write(avatar)
+print("wrote", avatar_path)

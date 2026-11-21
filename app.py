@@ -147,16 +147,25 @@ def show_local_briefing(text):
             f"solid #0B6B63;padding:.4rem .8rem'>{html.escape(text)}</div>")
 
 
+ANAQ_AVATAR = str(config.ROOT / "assets" / "caracal_avatar.svg")  # the AI assistant's face
+
+
+def anaq_says(text, label):
+    """One answer from Anaq, as a chat bubble with the caracal's face. Plain text, never links."""
+    with st.chat_message("assistant", avatar=ANAQ_AVATAR):
+        st.caption(label)
+        st.html(f"<div dir='{'rtl' if LANG == 'ar' else 'ltr'}' style='white-space:pre-wrap'>{html.escape(text)}</div>")
+
+
 def ask_anaq(site, campaign, sites):
     """'Ask Anaq': set questions about this site, answered exactly from our data (rules + ML)."""
     labels = {k: v[1 if LANG == "ar" else 0] for k, v in assistant.QUESTIONS.items()}
     choice = st.pills(T("ask_pick"), list(labels), format_func=labels.get, key=f"ask_{site['url']}_{LANG}",
                       label_visibility="collapsed")
     if choice:
-        st.caption(f":material/model_training: **{T('ask_label')}**")
-        text = assistant.answer(choice, site, campaign, sites, LANG)
-        st.html(f"<div dir='{'rtl' if LANG == 'ar' else 'ltr'}' style='white-space:pre-wrap;border-inline-start:3px "
-                f"solid #0B6B63;padding:.4rem .8rem'>{html.escape(text)}</div>")  # plain text, never links
+        with st.chat_message("user", avatar=":material/person:"):
+            st.markdown(labels[choice])
+        anaq_says(assistant.answer(choice, site, campaign, sites, LANG), f"**{T('ask_label')}**")
     if not llm_ready():
         st.caption(T("ask_free"))
         return
@@ -166,11 +175,11 @@ def ask_anaq(site, campaign, sites):
         asked = st.form_submit_button(T("ask_btn"), icon=":material/forum:")
     if asked and question.strip():
         try:
+            with st.chat_message("user", avatar=":material/person:"):
+                st.text(question.strip())  # typed by the officer: shown as plain text
             with st.spinner(T("ask_thinking")):
                 text = local_llm.ask(question, site, campaign, sites, LANG)
-            st.caption(f":material/smart_toy: **{local_llm.LABEL[LANG].format(model=config.OLLAMA_MODEL)}**")
-            st.html(f"<div dir='{'rtl' if LANG == 'ar' else 'ltr'}' style='white-space:pre-wrap;border-inline-start:3px "
-                    f"solid #6B4FBB;padding:.4rem .8rem'>{html.escape(text)}</div>")  # AI text: plain, never links
+            anaq_says(text, f"**{local_llm.LABEL[LANG].format(model=config.OLLAMA_MODEL)}**")
         except local_llm.LLMError as e:
             st.error(T("ask_failed", err=str(e)), icon=":material/error:")
 
@@ -442,7 +451,9 @@ def render_dashboard():
                     st.markdown(f":material/assignment: **{T('briefing_title')}**")
                     ai_briefing_block("site", key=f"ai_site_{site['url']}", site=site, campaign=in_campaign)
             with st.container(border=True):
-                st.markdown(f":material/pets: **{T('ask_title')}**")
+                face, head = st.columns([1, 9], vertical_alignment="center")
+                face.image(ANAQ_AVATAR, width=34)
+                head.markdown(f"**{T('ask_title')}**")
                 ask_anaq(site, in_campaign, sites)
             with st.container(border=True):
                 st.markdown(T("report_title"))

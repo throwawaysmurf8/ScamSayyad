@@ -1,4 +1,4 @@
-# ScamShield UAE
+# ScamSayyad · صيّاد الاحتيال (ScamShield UAE)
 
 A proactive scam hunter for UAE police. Instead of waiting for victims to paste links,
 it **goes looking** for fraudulent websites that impersonate Dubai Police, RTA, Salik,
@@ -202,6 +202,12 @@ To refresh the public results later, copy `data/scamshield.db` over `data/public
 | 3. Search scanner | Working | `ddgs` library (Bing results) | No |
 | 4. Police dashboard + one-click takedown report | Working | Local SQLite file | No |
 | 5. Google Maps fake-listing scan (stretch) | Working with a key (tested live 21 Nov 2026). Checks each listing's website **and phone number**; one row per listing | Google Places API | Key + billing account (paid per search) |
+| 6. ML second opinion (0–100% per website name) | Working: catches 70% of phishing, 6% false alarms; 4/4 Google-confirmed UAE scams | Trained on PhiUSIIL (UCI) + Tranco incl. 718 UAE sites | No |
+| 7. Officer briefings + Arabic takedown reports | Working, built on this computer from rules + ML | Built in | No |
+| 8. Ask Anaq (the caracal assistant): 6 set questions | Working, answers calculated exactly from our data | Built in | No |
+| 9. Ask Anaq: free questions | Working with Ollama installed (local model qwen2.5:7b, offline) | Ollama on this computer | No (free, ~4.7 GB download) |
+| 10. English / Arabic dashboard | Working, full right-to-left layout | Built in | No |
+| 11. Gemini AI briefings | Built, **off** (Google refused the keys tried) | Google Gemini API | Key |
 
 ### Honest limitations
 

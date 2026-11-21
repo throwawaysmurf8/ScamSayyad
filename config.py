@@ -27,6 +27,10 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 # found, put the current "Flash-Lite" model name in .env as GEMINI_MODEL=...
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite")
 
+# Free questions to "Ask Dhab": a language model running on this computer with Ollama (local_llm.py).
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434")
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b")
+
 # --- Public demo (Streamlit Community Cloud) ---------------------------------
 # Set SCAMSHIELD_PUBLIC = "1" in the cloud app's Secrets. The public site then:
 #   * shows a read-only copy of the results (data/public_snapshot.db, refreshed by hand);

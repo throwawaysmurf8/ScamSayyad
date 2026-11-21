@@ -19,6 +19,7 @@ import config
 import ct_watcher
 import db
 import i18n
+import local_llm
 import maps_scanner
 import ml_model
 import report
@@ -147,7 +148,28 @@ def ask_dhab(site, campaign, sites):
         text = assistant.answer(choice, site, campaign, sites, LANG)
         st.html(f"<div dir='{'rtl' if LANG == 'ar' else 'ltr'}' style='white-space:pre-wrap;border-inline-start:3px "
                 f"solid #0B6B63;padding:.4rem .8rem'>{html.escape(text)}</div>")  # plain text, never links
-    st.caption(T("ask_free"))
+    if not llm_ready():
+        st.caption(T("ask_free"))
+        return
+    # Free questions: answered by the local language model, from our facts only.
+    with st.form(key=f"ask_form_{site['url']}_{LANG}", clear_on_submit=False, border=False):
+        question = st.text_input(T("ask_own"), placeholder=T("ask_own_ph"), max_chars=300)
+        asked = st.form_submit_button(T("ask_btn"), icon=":material/forum:")
+    if asked and question.strip():
+        try:
+            with st.spinner(T("ask_thinking")):
+                text = local_llm.ask(question, site, campaign, sites, LANG)
+            st.caption(f":material/smart_toy: **{local_llm.LABEL[LANG].format(model=config.OLLAMA_MODEL)}**")
+            st.html(f"<div dir='{'rtl' if LANG == 'ar' else 'ltr'}' style='white-space:pre-wrap;border-inline-start:3px "
+                    f"solid #6B4FBB;padding:.4rem .8rem'>{html.escape(text)}</div>")  # AI text: plain, never links
+        except local_llm.LLMError as e:
+            st.error(T("ask_failed", err=str(e)), icon=":material/error:")
+
+
+@st.cache_data(ttl=20, show_spinner=False)
+def llm_ready():
+    """Is the local language model running? (checked at most every 20 seconds)"""
+    return local_llm.available()
 
 
 def ai_briefing_block(kind, key, **args):

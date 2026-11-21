@@ -76,9 +76,18 @@ disagree with the rules? Why did the rules give this score? Which other sites lo
 What would change the risk level? What should I do first? How sure can we be?* Every answer is
 calculated from our data (`assistant.py`), so it is exact and explainable. Because the ML is a simple
 linear model, it can show which parts of a name pushed it towards "scam" or "safe" (`ml_model.explain`),
-and "similar sites" compares names by their shared letter chunks (`ml_model.similar`). Questions typed
-freely in your own words would need a language model (an LLM): Gemini, or a free model run on this
-laptop with a tool such as Ollama.
+and "similar sites" compares names by their shared letter chunks (`ml_model.similar`). Below them, **"Or ask your own question"** takes free questions, answered by a language model that runs
+**on this computer** with Ollama (`local_llm.py`). It gets only our facts (rule findings, campaign, ML
+opinion and explanation, similar names), never a link to open, never changes a score, and every answer is
+labelled "AI-generated draft — officer review required". Answers are saved, so repeats are instant. If
+Ollama isn't running, only the set questions show.
+
+To set it up on another computer (free, offline, no key):
+1. Install Ollama from https://ollama.com (or `winget install Ollama.Ollama`).
+2. Download the model once (about 4.7 GB): `ollama pull qwen2.5:7b`. Another model can be set in `.env`
+   as `OLLAMA_MODEL=...`.
+3. Restart the dashboard. The first question after a break takes up to a minute while the model loads;
+   after that answers take seconds (faster with an NVIDIA graphics card).
 
 ## AI briefings with Gemini (optional, currently off)
 
@@ -173,7 +182,7 @@ To refresh the public results later, copy `data/scamshield.db` over `data/public
 
 | Feature | Status | Data source | Key needed? |
 |---|---|---|---|
-| 1. Scoring engine: brand look-alikes, cheap domain endings, short links, no HTTPS, scam words, urgent SMS wording | Working, 45 automated tests | Built in | No |
+| 1. Scoring engine: brand look-alikes, cheap domain endings, short links, no HTTPS, scam words, urgent SMS wording | Working, 48 automated tests | Built in | No |
 | 1b. Domain age, registrar, abuse e-mail | Working | RDAP (rdap.org); UAE WHOIS (whois.nic.ae) for .ae | No |
 | 1c. Google Safe Browsing | Working, tested live with a real key (`enrich.py --test-key`); skipped cleanly without a key | Google Safe Browsing v4 | Free key |
 | 2. New-domain watcher | Working | crt.sh certificate logs | No |
@@ -334,6 +343,7 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
 | `tools/train_ml.py` | Downloads the public training lists, trains the ML model with a fair held-back test, checks it on our UAE data, and saves `data/ml/model.npz` and `data/ml/metrics.json`. |
 | `briefing.py` | The officer briefing (5 lines) for a site or a campaign, built from the rule findings, the campaign and the ML second opinion. No AI service. |
 | `assistant.py` | "Ask Dhab": answers six set questions about a site from our rules, the ML model, campaigns and the database. |
+| `local_llm.py` | Free questions to Ask Dhab, answered by a language model running on this computer with Ollama, from our facts only. Off when Ollama isn't running. |
 | `i18n.py` | Every screen text in English and Arabic, plus Arabic versions of the scorer's reasons (for display only). |
 | `report.py` | Feature 4b. Builds the takedown report, offered only for MEDIUM and HIGH sites: target, reasons, registration details, the registrar's abuse contact and where to send it (registrar, Google Safe Browsing, UAE eCrime). For sites on free hosting platforms (workers.dev, vercel.app ...) it says to report to the platform instead. |
 | `maps_scanner.py` | Feature 5 (stretch). Searches Google Maps for fake "customer service" listings and checks each listing's website and phone number (fake listings often link the real website but show the scammer's number). Each listing is its own row. Its takedown report asks Google to remove the listing. It only runs with a `GOOGLE_PLACES_KEY`, and each search is a paid request. |

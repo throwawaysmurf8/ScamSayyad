@@ -511,3 +511,55 @@ def test_ask_dhab_does_not_use_ml_for_maps_listings_or_official_sites(monkeypatc
     assert "phone" in assistant.answer("why_ml", listing)
     official = score_url("https://www.dubaipolice.gov.ae")
     assert "official" in assistant.answer("why_ml", official)
+
+
+# ---------------------------------------------------------------- Free questions (local LLM), with a fake model
+def _fake_llm(monkeypatch, tmp_path, answer="It belongs to the same registrar group as the other salik-pay sites."):
+    import local_llm
+    monkeypatch.setattr(config, "DB_PATH", tmp_path / "test.db")
+    sent = []
+
+    def fake_call(question, data, lang):
+        sent.append((question, data, lang))
+        return answer
+    monkeypatch.setattr(local_llm, "_call", fake_call)
+    return local_llm, sent
+
+
+def test_free_question_uses_only_our_facts_and_is_saved(monkeypatch, tmp_path):
+    llm, sent = _fake_llm(monkeypatch, tmp_path)
+    _tiny_model(monkeypatch, tmp_path)
+    site = _flagged_site(); before = dict(site)
+    a1 = llm.ask("Is this the same gang?", site, sites=[dict(_flagged_site(), url="https://salik-pay.xyz/")])
+    a2 = llm.ask("is   this the same gang?", site, sites=[dict(_flagged_site(), url="https://salik-pay.xyz/")])
+    assert a1 == a2 and len(sent) == 1                       # asked once, then answered from the database
+    q, data, lang = sent[0]
+    assert data["risk_score"] == site["score"] and "ml_second_opinion" in data
+    assert "/fine?id=1" not in json_dumps(data)               # only the website name, never the full link
+    assert site == before                                      # nothing about the site changes
+
+
+def json_dumps(x):
+    import json
+    return json.dumps(x, default=str)
+
+
+def test_free_question_off_when_ollama_is_not_running(monkeypatch):
+    import requests
+    import local_llm
+    monkeypatch.setattr(requests, "get", lambda *a, **k: (_ for _ in ()).throw(requests.ConnectionError()))
+    assert local_llm.available() is False
+    monkeypatch.setattr(config, "PUBLIC_MODE", True)
+    assert local_llm.available() is False                     # never on the public demo
+
+
+def test_free_question_errors_are_plain_messages(monkeypatch, tmp_path):
+    import pytest
+    import requests
+    import local_llm
+    monkeypatch.setattr(config, "DB_PATH", tmp_path / "test.db")
+    monkeypatch.setattr(requests, "post", lambda *a, **k: (_ for _ in ()).throw(requests.ConnectionError()))
+    with pytest.raises(local_llm.LLMError, match="Is Ollama running"):
+        local_llm.ask("why?", _flagged_site())
+    with pytest.raises(local_llm.LLMError):
+        local_llm.ask("   ", _flagged_site())

@@ -140,11 +140,17 @@ S = {
                            "بالحقائق نفسها، دون الحاجة إلى الذكاء الاصطناعي."),
     "briefing_title": ("Officer briefing", "ملخص للضابط"),
     "ask_title": ("Ask Dhab", "اسأل ضب"),
+    "ask_own": ("Or ask your own question", "أو اطرح سؤالك الخاص"),
+    "ask_own_ph": ("e.g. Is this part of the same campaign as the Salik sites?", "مثلاً: هل هذا جزء من حملة مواقع سالك نفسها؟"),
+    "ask_btn": ("Ask", "اسأل"),
+    "ask_thinking": ("Dhab is thinking (local model, only our facts are used)...",
+                     "ضب يفكّر (نموذج محلي، تُستخدم حقائقنا فقط)..."),
+    "ask_failed": ("Dhab could not answer: {err}", "تعذّر على ضب الإجابة: {err}"),
     "ask_pick": ("Pick a question", "اختر سؤالاً"),
     "ask_label": ("Answer calculated from our data (rules + ML), no AI service", "إجابة محسوبة من بياناتنا (قواعد + تعلّم آلي)، دون خدمة ذكاء اصطناعي"),
-    "ask_free": ("Questions in your own words would need a language model (LLM); these set questions are answered "
-                 "exactly from our data.",
-                 "الأسئلة بصيغتك الخاصة تحتاج إلى نموذج لغوي (LLM)؛ أما هذه الأسئلة الجاهزة فتُجاب بدقة من بياناتنا."),
+    "ask_free": ("Free questions need the local language model (Ollama). It is not running, so only the set "
+                 "questions are available.",
+                 "الأسئلة الحرة تحتاج إلى النموذج اللغوي المحلي (Ollama). إنه غير مشغّل، لذلك تتوفر الأسئلة الجاهزة فقط."),
     "translating": ("Translating the report with Gemini...", "جارٍ ترجمة التقرير عبر Gemini..."),
 
     # --- AI ---------------------------------------------------------------------

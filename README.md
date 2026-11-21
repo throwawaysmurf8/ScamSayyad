@@ -143,10 +143,14 @@ can get an AI Arabic version below it).
 
 ## Public demo: ScamSayyad on Streamlit Community Cloud
 
-The public site is called **ScamSayyad** (صيّاد الاحتيال, "scam hunter"; *sayyad* is Arabic for hunter). The public site is a **read-only showcase**: it shows a
-copy of real results (`data/public_snapshot.db`) and lets visitors try "Check a link" without
-saving anything. Hunting, the paid Google Maps scan and the demo-data buttons are switched off,
-and a banner says it's a hackathon prototype, not an official police service.
+The public site is called **ScamSayyad** (صيّاد الاحتيال, "scam hunter"; *sayyad* is Arabic for hunter). The public site starts from a copy of
+real results (`data/public_snapshot.db`) and lets visitors try "Check a link" without saving anything.
+Visitors can also run the hunters and the Google Maps scan, within daily limits for the whole site
+(20 hunts, 3 Maps scans; `limits.py`). Their results go into a working copy (`data/public_live.db`) that
+everyone sees and that resets when the cloud app restarts. Anaq's chat (Claude Haiku 5.5, if a key is set)
+allows 10 questions per visit and 100 a day. A banner says it's a hackathon prototype, not an official
+police service. The in-app limits are soft (they reset on a restart): also set a daily quota on the Places
+API in Google Cloud and a spend limit in the Anthropic console.
 
 To publish it:
 1. Put this folder on GitHub (Git ignores `.env`, the working database and local files).
@@ -157,8 +161,9 @@ To publish it:
    ```
    SCAMSHIELD_PUBLIC = "1"
    GOOGLE_SAFE_BROWSING_KEY = "your key"   # optional; leave out to skip Google checks
+   GOOGLE_PLACES_KEY = "your key"          # optional; lets visitors run the capped Maps scan
+   ANTHROPIC_API_KEY = "your key"          # optional; Anaq answers typed questions (Claude Haiku 5.5)
    ```
-   Never add the Google Maps key there: the public site can't use it.
 4. Click **Deploy**.
 
 To refresh the public results later, copy `data/scamshield.db` over `data/public_snapshot.db`
@@ -186,7 +191,7 @@ AI drafts (or, if a `GEMINI_API_KEY` secret is added, answers typed questions wi
 
 - **Only this computer can open the dashboard** (`run.bat` starts it with
   `--server.address localhost`). There is no login, so don't remove that on shared Wi-Fi. The
-  public demo is a separate, read-only version (see above). The
+  public demo is a separate, capped version (see above). The
   Streamlit "Deploy" button is hidden for the same reason.
 - **What leaves this computer:** a link checked in "Check a link" is sent to Google Safe
   Browsing (if a key is set) and its domain name to the public registries (rdap.org, or

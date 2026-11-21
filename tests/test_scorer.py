@@ -599,8 +599,9 @@ def test_public_site_chat_uses_gemini_with_caps(monkeypatch, tmp_path):
     import ai
     monkeypatch.setattr(config, "PUBLIC_MODE", True)
     monkeypatch.setattr(config, "GEMINI_API_KEY", "fake-key-for-tests")
-    monkeypatch.setattr(config, "GEMINI_DAILY_CAP", 2)
-    monkeypatch.setattr(ai, "USAGE_FILE", tmp_path / "usage.json")
+    import limits
+    monkeypatch.setattr(config, "CHAT_DAILY_CAP", 2)
+    monkeypatch.setattr(limits, "FILE", tmp_path / "usage.json")
     assert ai.available() is False and ai.chat_available() is True  # no briefings publicly, chat yes
     sent = []
 
@@ -711,3 +712,10 @@ def test_side_chat_uses_claude_haiku_low_effort(monkeypatch, tmp_path):
     monkeypatch.setattr(anthropic, "Anthropic", Refuses)
     with pytest.raises(ai.AIError, match="declined"):
         ai.chat("?", [], {})
+
+
+def test_daily_limits_stop_at_the_cap(monkeypatch, tmp_path):
+    import limits
+    monkeypatch.setattr(limits, "FILE", tmp_path / "usage.json")
+    assert [limits.take("maps", 3) for _ in range(4)] == [True, True, True, False]  # 4th scan refused
+    assert limits.take("hunts", 20)                                                # other limits unaffected

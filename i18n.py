@@ -22,7 +22,7 @@ S = {
     "src_maps": ("Google Maps", "خرائط Google"),
     "src_ai": ("AI briefings", "ملخصات الذكاء الاصطناعي"),
     "off_no_key": ("off", "متوقف"),
-    "public_badge": ("Public demo: read-only", "نسخة عامة: للقراءة فقط"),
+    "public_badge": ("Public demo", "نسخة عامة"),
     "public_banner": ("**Hackathon prototype, not an official Dubai Police or UAE government service.** Sites "
                       "listed here are automated, unverified leads, not confirmed scams. Do not visit them. To "
                       "report a scam, use the official UAE eCrime platform (ecrime.ae).",
@@ -224,10 +224,12 @@ S = {
                     "ستظهر هنا النتيجة والأسباب وبيانات تسجيل النطاق."),
 
     # --- Hunt ---------------------------------------------------------------------
-    "hunt_public": ("Hunting is switched off in this public demo, so visitors can't run up costs or change the data. "
-                    "The Dashboard shows real results from earlier hunts; try **Check a link** to score any link yourself.",
-                    "البحث متوقف في النسخة العامة حتى لا يرفع الزوار التكاليف أو يغيّروا البيانات. تعرض لوحة المتابعة "
-                    "نتائج حقيقية من عمليات بحث سابقة؛ جرّب **فحص رابط** لتقييم أي رابط بنفسك."),
+    "hunt_public": ("Public demo: anyone can run a hunt, up to {hunts} hunts and {maps} Google Maps scans a day "
+                    "for the whole site. New results show on the Dashboard for everyone, and reset when the site restarts.",
+                    "نسخة عامة: يمكن لأي زائر تشغيل البحث، حتى {hunts} عملية بحث و{maps} فحوصات لخرائط Google يومياً "
+                    "للموقع كله. تظهر النتائج الجديدة في لوحة المتابعة للجميع، وتُمسح عند إعادة تشغيل الموقع."),
+    "hunt_cap": ("Today's limit ({n}) is reached on the public demo. Please try again tomorrow.",
+                 "تم بلوغ الحد اليومي ({n}) في النسخة العامة. يُرجى المحاولة غداً."),
     "watcher_title": (":material/new_releases: New-domain watcher", ":material/new_releases: مراقب النطاقات الجديدة"),
     "watcher_note": ("Searches public certificate logs (crt.sh) for recently created websites whose names start with "
                      "a UAE brand. crt.sh can be slow or down; saved snapshots are used when it is.",

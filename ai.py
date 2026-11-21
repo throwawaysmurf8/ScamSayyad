@@ -68,9 +68,6 @@ class DailyCapReached(AIError):
     """The public site has used up today's side-panel questions."""
 
 
-USAGE_FILE = config.ROOT / "data" / "gemini_usage.json"  # today's question count (not committed)
-
-
 def engine():
     """Which model writes briefings and reports: Gemini (if a key is set), otherwise the local model
     on this computer (if Ollama is running). Empty on the public demo or when neither is there."""
@@ -108,20 +105,10 @@ one caveat that matters. Use a short dash list only when listing several sites o
 
 
 def _count_question():
-    """Count one chat question for today; refuse once the daily cap is reached (resets at midnight)."""
-    today = datetime.date.today().isoformat()
-    try:
-        used = json.loads(USAGE_FILE.read_text(encoding="utf-8")).get(today, 0)
-    except (OSError, ValueError, AttributeError):
-        used = 0
-    if not config.PUBLIC_MODE:
-        return  # the officer's own computer: no cap
-    if used >= config.GEMINI_DAILY_CAP:
-        raise DailyCapReached(f"Today's {config.GEMINI_DAILY_CAP} questions are used up.")
-    try:
-        USAGE_FILE.write_text(json.dumps({today: used + 1}), encoding="utf-8")
-    except OSError:
-        pass
+    """On the public site, count one chat question for today; refuse once the daily cap is reached."""
+    import limits
+    if config.PUBLIC_MODE and not limits.take("questions", config.CHAT_DAILY_CAP):
+        raise DailyCapReached(f"Today's {config.CHAT_DAILY_CAP} questions are used up.")
 
 
 def chat(question, history, data, lang="en"):

@@ -20,6 +20,7 @@ import config
 import ct_watcher
 import db
 import i18n
+import limits
 import local_llm
 import maps_scanner
 import ml_model
@@ -332,15 +333,15 @@ head, status = st.columns([3, 2], vertical_alignment="center")
 with status:
     st.segmented_control("Language / اللغة", ["English", "العربية"], default="English", key="lang_choice",
                          label_visibility="collapsed")
+    badges = [_source_badge(T("src_ct"), True), _source_badge(T("src_search"), True),
+              _source_badge(T("src_sb"), config.SAFE_BROWSING_KEY),
+              _source_badge(T("src_maps"), config.PLACES_KEY),
+              _source_badge(T("src_ml"), ml_model.available())]
     if config.PUBLIC_MODE:
-        st.markdown(" ".join([f":gray-badge[:material/lock: {T('public_badge')}]",
-                              _source_badge(T("src_sb"), config.SAFE_BROWSING_KEY)]))
+        badges.insert(0, f":gray-badge[:material/public: {T('public_badge')}]")
     else:
-        st.markdown(" ".join([_source_badge(T("src_ct"), True), _source_badge(T("src_search"), True),
-                              _source_badge(T("src_sb"), config.SAFE_BROWSING_KEY),
-                              _source_badge(T("src_maps"), config.PLACES_KEY),
-                              _source_badge(T("src_ml"), ml_model.available()),
-                              _source_badge(T("src_ai"), ai.available())]))
+        badges.append(_source_badge(T("src_ai"), ai.available()))
+    st.markdown(" ".join(badges))
 if LANG == "ar":
     st.html(RTL_CSS)
 with head:
@@ -498,51 +499,62 @@ with tab_check:
             st.info(T("check_empty"), icon=":material/arrow_back:")
 
 # ----------------------------------------------------------------------------- Hunt
+def allowed_today(kind, cap):
+    """On the public demo, count one run against today's limit; say so and refuse once it's used up."""
+    if not config.PUBLIC_MODE or limits.take(kind, cap):
+        return True
+    st.info(T("hunt_cap", n=cap), icon=":material/hourglass_empty:")
+    return False
+
+
 with tab_hunt:
     if config.PUBLIC_MODE:
-        st.info(T("hunt_public"), icon=":material/lock:")
-    else:
-        with st.container(border=True):
-            st.subheader(T("watcher_title"))
-            st.caption(T("watcher_note"))
-            prefixes = st.multiselect(T("prefixes"), config.CT_PREFIXES, default=["salik", "emiratespost", "emiratesnbd."])
-            days = st.slider(T("days_slider"), 1, 90, config.CT_RECENT_DAYS)
-            if st.button(T("run_watcher"), type="primary", icon=":material/play_arrow:", disabled=not prefixes):
-                with st.status(T("watcher_running"), expanded=True) as s:
-                    res = ct_watcher.run(prefixes, days, log=st.write)
-                    s.update(label=T("watcher_done", n=len(res)), state="complete")
+        st.info(T("hunt_public", hunts=config.PUBLIC_HUNTS_PER_DAY, maps=config.PUBLIC_MAPS_PER_DAY),
+                icon=":material/info:")
+    with st.container(border=True):
+        st.subheader(T("watcher_title"))
+        st.caption(T("watcher_note"))
+        prefixes = st.multiselect(T("prefixes"), config.CT_PREFIXES, default=["salik", "emiratespost", "emiratesnbd."])
+        days = st.slider(T("days_slider"), 1, 90, config.CT_RECENT_DAYS)
+        if (st.button(T("run_watcher"), type="primary", icon=":material/play_arrow:", disabled=not prefixes)
+                and allowed_today("hunts", config.PUBLIC_HUNTS_PER_DAY)):
+            with st.status(T("watcher_running"), expanded=True) as s:
+                res = ct_watcher.run(prefixes, days, log=st.write)
+                s.update(label=T("watcher_done", n=len(res)), state="complete")
 
-        with st.container(border=True):
-            st.subheader(T("search_title"))
-            st.caption(T("search_note"))
-            queries = st.multiselect(T("queries"), config.SEARCH_QUERIES, default=config.SEARCH_QUERIES[:2])
-            extra = st.text_input(T("extra_query"))
-            if st.button(T("run_search"), type="primary", icon=":material/play_arrow:",
-                         disabled=not (queries or extra.strip())):
-                with st.status(T("searching"), expanded=True) as s:
-                    res = search_scanner.run(queries + ([extra.strip()] if extra.strip() else []), log=st.write)
-                    s.update(label=T("search_done", n=len(res)), state="complete")
+    with st.container(border=True):
+        st.subheader(T("search_title"))
+        st.caption(T("search_note"))
+        queries = st.multiselect(T("queries"), config.SEARCH_QUERIES, default=config.SEARCH_QUERIES[:2])
+        extra = st.text_input(T("extra_query"), max_chars=100)
+        if (st.button(T("run_search"), type="primary", icon=":material/play_arrow:",
+                      disabled=not (queries or extra.strip()))
+                and allowed_today("hunts", config.PUBLIC_HUNTS_PER_DAY)):
+            with st.status(T("searching"), expanded=True) as s:
+                res = search_scanner.run(queries + ([extra.strip()] if extra.strip() else []), log=st.write)
+                s.update(label=T("search_done", n=len(res)), state="complete")
 
-        with st.container(border=True):
-            st.subheader(T("maps_title"))
-            if config.PLACES_KEY:
-                st.caption(T("maps_note"))
-                if st.button(T("run_maps"), type="primary", icon=":material/play_arrow:"):
-                    with st.status(T("maps_running"), expanded=True) as s:
-                        res = maps_scanner.run(log=st.write)
-                        s.update(label=T("maps_done", n=len(res)), state="complete")
-            else:
-                st.caption(T("maps_off"))
+    with st.container(border=True):
+        st.subheader(T("maps_title"))
+        if config.PLACES_KEY:
+            st.caption(T("maps_note"))
+            if (st.button(T("run_maps"), type="primary", icon=":material/play_arrow:")
+                    and allowed_today("maps", config.PUBLIC_MAPS_PER_DAY)):
+                with st.status(T("maps_running"), expanded=True) as s:
+                    res = maps_scanner.run(log=st.write)
+                    s.update(label=T("maps_done", n=len(res)), state="complete")
+        else:
+            st.caption(T("maps_off"))
 
-        with st.container(border=True):
-            st.subheader(T("demo_title"))
-            st.caption(T("demo_note"))
-            d1, d2, _ = st.columns([1, 1, 2])
-            if d1.button(T("demo_load"), width="stretch"):
-                st.success(T("demo_added", n=load_samples()))
-            if d2.button(T("demo_remove"), width="stretch"):
-                db.delete_samples()
-                st.success(T("demo_removed"))
+    with st.container(border=True):
+        st.subheader(T("demo_title"))
+        st.caption(T("demo_note"))
+        d1, d2, _ = st.columns([1, 1, 2])
+        if d1.button(T("demo_load"), width="stretch"):
+            st.success(T("demo_added", n=load_samples()))
+        if d2.button(T("demo_remove"), width="stretch"):
+            db.delete_samples()
+            st.success(T("demo_removed"))
 
 # ----------------------------------------------------------------------------- About
 W = config.WEIGHTS
@@ -688,7 +700,7 @@ def side_assistant():
         with st.chat_message("user", avatar=":material/person:"):
             st.text(q)
         anaq_says(a, f"**{label}**")
-    if cloud and config.PUBLIC_MODE and st.session_state.get("anaq_asked", 0) >= config.GEMINI_SESSION_CAP:
+    if cloud and config.PUBLIC_MODE and st.session_state.get("anaq_asked", 0) >= config.CHAT_PER_VISITOR:
         st.info(T("side_cap_visitor"), icon=":material/hourglass_empty:")
         return
     starters = [T("side_q1"), T("side_q2")] + ([T("side_q3")] if selected else [])

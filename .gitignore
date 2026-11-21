@@ -19,4 +19,5 @@ ScamShield_pitch.pdf
 
 # Downloaded training lists (large; re-download with tools/train_ml.py --download)
 data/ml/raw/
-data/gemini_usage.json
+data/usage_today.json
+data/public_live.db

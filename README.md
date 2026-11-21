@@ -131,9 +131,10 @@ The public site is called **Athar Al Anaq** (أثر العناق, "the caracal's
 and the **Google Maps scan are on, with a daily limit** shared by all visitors (each hunter 20 runs a
 day, the Maps scan 5 runs a day = 20 Google requests), so no visitor can run up costs. New finds join
 that site's Dashboard until the app restarts. The free-text search box and the demo-data buttons are
-hidden, and the AI keys (Claude, Gemini) are switched off there even if they are in the Secrets.
-The Maps scan needs `GOOGLE_PLACES_KEY` in the app's Secrets. Anaq's side panel
-shows answers prepared earlier by the local model. A banner says it's a hackathon prototype, not an
+hidden. Anaq's side chat answers with **Claude Haiku 5.5**, capped at 10 questions per visitor and 100 a
+day for everyone (`ANTHROPIC_API_KEY` in the Secrets); Gemini stays off. The local llama model (Ollama)
+runs only on the laptop, so the public site shows the briefings it wrote earlier.
+The Maps scan needs `GOOGLE_PLACES_KEY` in the app's Secrets. A banner says it's a hackathon prototype, not an
 official police service. The officer's laptop keeps every feature.
 
 To publish it:

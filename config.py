@@ -70,14 +70,15 @@ OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b")
 #   * the hunters and the Google Maps scan run, but only a few times a day (PUBLIC_HUNTS_PER_DAY,
 #     PUBLIC_MAPS_PER_DAY), so visitors can't run up costs; the free-text search box and demo-data buttons
 #     are hidden;
-#   * the AI keys are switched off (Claude, Gemini): Anaq's side panel shows answers prepared earlier by
-#     the local model (tools/make_public_answers.py);
+#   * Anaq's side panel answers with Claude Haiku 5.5, capped (CHAT_PER_VISITOR per visitor, CHAT_DAILY_CAP
+#     a day for everyone); Gemini stays off. Without a Claude key it shows answers prepared earlier by the
+#     local model (tools/make_public_answers.py). Briefings on the public site are the saved ones;
 #   * visitors can still try "Check a link" (free; nothing is saved).
 # The officer's laptop keeps everything.
 PUBLIC_MODE = os.environ.get("SCAMSHIELD_PUBLIC", "") == "1"
 if PUBLIC_MODE:
     DB_PATH = ROOT / "data" / "public_snapshot.db"
-    ANTHROPIC_API_KEY = GEMINI_API_KEY = ""
+    GEMINI_API_KEY = ""
 
 # --- Official domains (never flagged) --------------------------------------
 # Matched on the *registered* domain, so "www.rta.ae" and "fines.rta.ae" are official,

@@ -8,7 +8,7 @@ import re
 
 S = {
     # --- Header ---------------------------------------------------------------
-    "tagline": ("The scam hunter for the UAE. *Athar al-Anaq* (أثر العناق) means \"the caracal's tracks\": our mascot "
+    "tagline": ("The scam hunter for the UAE. *Athar Al Anaq* (أثر العناق) means \"the caracal's tracks\": our mascot "
                 "**Anaq** (عناق الأرض), the desert's sharp-eared hunter, follows the trail scammers leave.",
                 "صائد المواقع الاحتيالية في الإمارات. تميمتنا **عناق** (عناق الأرض)، الصيّاد الصحراوي حادّ السمع، "
                 "يتتبّع الأثر الذي يتركه المحتالون."),

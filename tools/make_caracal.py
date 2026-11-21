@@ -1,4 +1,4 @@
-"""Draws Anaq (عناق), the Atharalanaq mascot: an Arabian caracal, the desert's sharp-eared hunter.
+"""Draws Anaq (عناق), the Athar Al Anaq mascot: an Arabian caracal, the desert's sharp-eared hunter.
 
 Run:  .venv/Scripts/python tools/make_caracal.py assets/caracal.svg
 
@@ -53,7 +53,7 @@ parts = [
 ]
 
 svg = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="24 -10 112 172" role="img" '
-       'aria-label="Anaq, the Atharalanaq mascot: an Arabian caracal with black-tufted ears">\n  '
+       'aria-label="Anaq, the Athar Al Anaq mascot: an Arabian caracal with black-tufted ears">\n  '
        + "\n  ".join(parts) + "\n</svg>\n")
 with open(OUT, "w", encoding="utf-8") as f:
     f.write(svg)
@@ -62,7 +62,7 @@ print("wrote", OUT)
 # Avatar for the AI assistant: the same head, cropped square on a soft sand disc.
 avatar_path = OUT.replace(".svg", "_avatar.svg")
 avatar = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="14 -8 132 132" role="img" '
-          'aria-label="Anaq, the Atharalanaq assistant">\n  <circle cx="80" cy="58" r="66" fill="#F4E4CC"/>\n  '
+          'aria-label="Anaq, the Athar Al Anaq assistant">\n  <circle cx="80" cy="58" r="66" fill="#F4E4CC"/>\n  '
           + "\n  ".join(parts[2:]) + "\n</svg>\n")  # parts[2:] = ears, head and face (no shoulders)
 with open(avatar_path, "w", encoding="utf-8") as f:
     f.write(avatar)

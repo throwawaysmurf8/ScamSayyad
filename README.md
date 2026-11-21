@@ -1,4 +1,4 @@
-# Atharalanaq · أثر العناق (ScamShield UAE)
+# Athar Al Anaq · أثر العناق (ScamShield UAE)
 
 A proactive scam hunter built for the **ScamShield AI hackathon (42 Abu Dhabi × Abu Dhabi Police)**. Instead of waiting for victims to paste links,
 it **goes looking** for fraudulent websites that impersonate Abu Dhabi Police, Dubai Police, RTA,
@@ -24,7 +24,7 @@ To re-check every saved MEDIUM/HIGH site with Google Safe Browsing (needs the ke
 
 **Always on (optional):** `start_hidden.vbs` starts the dashboard in the background with no window. A
 shortcut to it in the Windows Startup folder (`shell:startup`) starts it at every log-in, so
-http://localhost:8501 is always ready (the "Atharalanaq" desktop shortcut opens it). To stop it, end
+http://localhost:8501 is always ready (the "Athar Al Anaq" desktop shortcut opens it). To stop it, end
 `pythonw.exe` in Task Manager, or delete the Startup shortcut.
 
 To run the automated tests:
@@ -124,9 +124,9 @@ can get an AI Arabic version below it).
 
 ---
 
-## Public demo: Atharalanaq on Streamlit Community Cloud
+## Public demo: Athar Al Anaq on Streamlit Community Cloud
 
-The public site is called **Atharalanaq** (أثر العناق, *Athar al-Anaq*, "the caracal's tracks": our mascot Anaq follows the trail scammers leave). The public site is a **read-only showcase**: it shows a copy of real results
+The public site is called **Athar Al Anaq** (أثر العناق, "the caracal's tracks": our mascot Anaq follows the trail scammers leave). The public site is a **read-only showcase**: it shows a copy of real results
 (`data/public_snapshot.db`) and lets visitors try "Check a link" without saving anything. The hunters,
 the Google Maps scan and the demo-data buttons are hidden, and every paid key (Places, Claude, Gemini)
 is switched off there even if it is in the Secrets, so no visitor can run up costs. Anaq's side panel

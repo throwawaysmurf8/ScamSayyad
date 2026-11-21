@@ -1,4 +1,4 @@
-"""Atharalanaq / ScamShield police dashboard (Streamlit), in English and Arabic.
+"""Athar Al Anaq / ScamShield police dashboard (Streamlit), in English and Arabic.
 
 Start it with run.bat, or:  .venv\\Scripts\\python -m streamlit run app.py --server.address localhost
 
@@ -30,7 +30,7 @@ from enrich import check, check_and_save
 from report import code_span, escape_md
 from scorer import decode_punycode, explain_level, parse, score_url
 
-st.set_page_config(page_title="Atharalanaq · أثر العناق", page_icon=str(Path(__file__).parent / "assets" / "caracal.svg"), layout="wide",
+st.set_page_config(page_title="Athar Al Anaq · أثر العناق", page_icon=str(Path(__file__).parent / "assets" / "caracal.svg"), layout="wide",
                    initial_sidebar_state="expanded")
 
 # Each risk level gets a color AND a shape, so it never relies on color alone.
@@ -349,7 +349,7 @@ with head:
     # Our mascot Anaq, the Arabian caracal (our own drawing, assets/caracal.svg). Shown once, small:
     # the brand defers to the content.
     mascot.image(str(config.ROOT / "assets" / "caracal.svg"), width=78)
-    title.html(f"{BRAND_CSS}<div class='ss-brand'><span class='ss-name'>Atharalanaq</span>"
+    title.html(f"{BRAND_CSS}<div class='ss-brand'><span class='ss-name'>Athar Al Anaq</span>"
                f"<span class='ss-name-ar'>أثر العناق</span></div>")
     title.markdown(T("tagline"))
 st.caption(T("subtitle"))

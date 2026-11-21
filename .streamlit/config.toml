@@ -14,7 +14,7 @@ gatherUsageStats = false
 # internet with no login.
 toolbarMode = "minimal"
 
-# Look and feel (Atharalanaq): desert colours. Follows the computer's light/dark setting.
+# Look and feel (Athar Al Anaq): desert colours. Follows the computer's light/dark setting.
 # - Light = sand by day, dark = the desert at night. Plain colours only, no pictures.
 # - Date-palm brown (light) / dune gold (dark) is the ONLY action colour; red / orange / green are kept
 #   for risk levels only, so a colour never means two things.

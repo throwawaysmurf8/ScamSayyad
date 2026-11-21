@@ -349,7 +349,7 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
 | File | What it does |
 |---|---|
 | `config.py` | All the settings in one place: official domains (allowlist), brand names, risky domain endings, scam words, urgent phrases, the points for each signal, and the searches and brand prefixes the hunters use. It also reads API keys from `.env`. |
-| `scorer.py` | The scoring engine. It takes a URL (and optional SMS text) and returns a score, a risk level and a list of reasons. It never uses the internet, which keeps it fast and easy to test. Try `python scorer.py "http://dubaipol1ce-fines.xyz/pay"`. |
+| `scorer.py` | The scoring engine. It takes a URL (and optional SMS text) and returns a score, a risk level and a list of reasons. It never uses the internet, which keeps it fast and easy to test. Try `python scorer.py "http://adpol1ce-fines.xyz/pay"`. |
 | `enrich.py` | The online look-ups: domain age, registrar and abuse e-mail (RDAP, or UAE WHOIS for .ae) and Google Safe Browsing. `check_and_save()` is the single pipeline every hunter uses: look up the domain, score it, save it. |
 | `db.py` | Saves results in `data/scamshield.db` (SQLite, built into Python). Each URL is stored once and its **first-seen** time is never overwritten. Domain look-ups are cached so the registry isn't asked twice. |
 | `ct_watcher.py` | Feature 2. Searches the crt.sh certificate logs for new websites whose names start with a UAE brand, then scores them. Run it alone with `python ct_watcher.py`. |
@@ -384,12 +384,12 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
 
 1. **The problem.** Scam SMS messages send UAE residents to fake police, Salik and bank
    sites. Most tools wait for a victim to report a link. ScamShield hunts for them first.
-2. **Check a link.** Paste `http://dubaipol1ce-fines.xyz/pay` with the message
-   *"Dubai Police: unpaid fine. Pay within 24 hours to avoid penalty."* It scores
-   **100/100 HIGH**, and each reason is shown. Then paste `https://www.dubaipolice.gov.ae`:
+2. **Check a link.** Paste `http://adpol1ce-fines.xyz/pay` with the message
+   *"Abu Dhabi Police: unpaid traffic fine. Pay within 24 hours to avoid penalty."* It scores
+   **100/100 HIGH**, and each reason is shown. Then paste `https://www.adpolice.gov.ae`:
    it scores **0**, because it's on the official allowlist.
-3. **Hunt: new-domain watcher.** Run it with the default prefixes (`salik`, `emiratespost`,
-   `emiratesnbd.`; about 30 seconds each). Explain that every HTTPS site leaves a public
+3. **Hunt: new-domain watcher.** Run it with the default prefixes (`adpolice`, `salik`,
+   `emiratespost`; about 30 seconds each). Explain that every HTTPS site leaves a public
    certificate record, so look-alike domains can be found without waiting for a victim. On
    the Dashboard, filter Source to "cert log" and point at the `emiratespost-xx.top` cluster:
    same name pattern, same registrar, same week. That looks like one parcel-scam campaign (a

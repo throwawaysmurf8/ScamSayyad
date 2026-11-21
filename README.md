@@ -60,9 +60,9 @@ it) onto the GitHub website uploads `.env` too, so delete or move `.env` before 
 
 ---
 
-## Public demo: Sayyad on Streamlit Community Cloud
+## Public demo: ScamSayyad on Streamlit Community Cloud
 
-*Sayyad* (صيّاد) is Arabic for "hunter". The public site is a **read-only showcase**: it shows a
+The public site is called **ScamSayyad** (صيّاد الاحتيال, "scam hunter"; *sayyad* is Arabic for hunter). The public site is a **read-only showcase**: it shows a
 copy of real results (`data/public_snapshot.db`) and lets visitors try "Check a link" without
 saving anything. Hunting, the paid Google Maps scan and the demo-data buttons are switched off,
 and a banner says it's a hackathon prototype, not an official police service.
@@ -70,7 +70,7 @@ and a banner says it's a hackathon prototype, not an official police service.
 To publish it:
 1. Put this folder on GitHub (Git ignores `.env`, the working database and local files).
 2. Go to https://share.streamlit.io, sign in with GitHub, and click **Create app**.
-3. Pick the repository, branch `main`, main file `app.py`. Under **App URL**, type `sayyad-uae`
+3. Pick the repository, branch `main`, main file `app.py`. Under **App URL**, type `scamsayyad`
    (or another free name). Under **Advanced settings**, pick Python 3.12 or newer and paste into
    **Secrets**:
    ```

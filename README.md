@@ -22,6 +22,11 @@ To re-check every saved MEDIUM/HIGH site with Google Safe Browsing (needs the ke
 .venv\Scripts\python enrich.py --recheck
 ```
 
+**Always on (optional):** `start_hidden.vbs` starts the dashboard in the background with no window. A
+shortcut to it in the Windows Startup folder (`shell:startup`) starts it at every log-in, so
+http://localhost:8501 is always ready (a "ScamSayyad" desktop shortcut opens it). To stop it, end
+`pythonw.exe` in Task Manager, or delete the Startup shortcut.
+
 To run the automated tests:
 
 ```

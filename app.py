@@ -61,6 +61,9 @@ RTL_CSS = """<style>
 [data-testid="stMainBlockContainer"], [data-testid="stSidebarContent"] { direction: rtl; }
 [data-testid="stMainBlockContainer"] pre, [data-testid="stMainBlockContainer"] code,
 [data-testid="stDataFrame"], .ss-host, .ss-ltr { direction: ltr; text-align: left; }
+/* The English | العربية switch is one joined shape: flipping it to RTL swaps the halves but not their
+   rounded corners, so it looks split. Keep it left to right in both languages. */
+.st-key-lang_choice [data-testid="stButtonGroup"] { direction: ltr; }
 </style>"""
 
 # --- Language -------------------------------------------------------------------------

@@ -1,0 +1,25 @@
+url,text,expected
+https://www.dubaipolice.gov.ae/app/services/fine-payment,,legit
+https://fines.dubaipolice.gov.ae,,legit
+https://www.rta.ae,,legit
+https://www.salik.ae/en/recharge,,legit
+https://www.dewa.gov.ae/en/consumer/billing,,legit
+https://www.emiratesnbd.com/en,,legit
+https://www.bankfab.com,,legit
+https://u.ae/en/information-and-services,,legit
+https://www.emiratespost.ae,,legit
+https://www.google.com/maps,,legit
+https://en.wikipedia.org/wiki/Dubai_Police_Force,,legit
+https://www.amazon.ae,,legit
+http://dubaipol1ce-fines.xyz/pay,Dubai Police: You have an unpaid fine of AED 1500. Pay within 24 hours to avoid penalty.,scam
+https://dubaipolice.gov.ae.pay-fine.top/login,Final notice: your traffic violation will be blocked. Click the link immediately.,scam
+http://salik-recharge-now.online/toll,Salik: your account will be suspended. Recharge immediately.,scam
+https://rta-fines-ae.click/payment,RTA: Outstanding fine detected. Act now to avoid legal action.,scam
+https://dewa-bill-refund.site/verify,DEWA: you are eligible for a refund. Verify your account today only.,scam
+http://emiratespost-parcel.info/delivery,Emirates Post: your parcel is on hold. Pay AED 12 delivery fee.,scam
+https://emiratesnbd-secure-login.xyz/account,Your Emirates NBD card is suspended. Verify your details within 24 hours.,scam
+https://xn--dubaiplice-u9b.com/pay,,scam
+http://45.137.21.9/dubaipolice/fine,,scam
+https://bit.ly/3xDubaiFine,Dubai Police fine unpaid. Pay immediately: ,scam
+https://dubaipolise.com/fines,,scam
+http://adcb-kyc-update.icu/login,ADCB: KYC update required or account will be blocked.,scam

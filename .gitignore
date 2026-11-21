@@ -1,0 +1,18 @@
+.venv/
+__pycache__/
+.pytest_cache/
+
+# The working database stays private; data/public_snapshot.db is the copy the public demo shows.
+data/scamshield.db
+
+# Secret API keys: never upload these. Only the empty template (.env.example) is shared.
+.env
+.env.*
+*.env
+!.env.example
+.streamlit/secrets.toml
+
+# Local-only files
+.claude/
+ScamShield_for_Claude.md
+ScamShield_pitch.pdf

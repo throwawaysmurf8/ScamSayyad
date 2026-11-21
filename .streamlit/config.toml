@@ -1,0 +1,39 @@
+# Streamlit settings for this project.
+[server]
+headless = true          # skip Streamlit's first-run e-mail prompt (run.bat opens the browser itself)
+port = 8501
+# Security: run.bat starts the dashboard with --server.address localhost, so on your computer
+# only you can open it (anyone on the same Wi-Fi could otherwise use it with no login). It is set
+# there, not here, because Streamlit Cloud reads this file too and must serve the public demo.
+
+[browser]
+gatherUsageStats = false
+
+[client]
+# Hides Streamlit's "Deploy" button, which could publish this dashboard to the public
+# internet with no login.
+toolbarMode = "minimal"
+
+# Look and feel. Follows the computer's light/dark setting.
+# Teal is the "action" color; red / orange / green are kept for risk levels only,
+# so a color never means two things. All text colors pass WCAG AA (4.5:1) on their background.
+[theme]
+baseRadius = "0.5rem"
+codeFont = "monospace"   # domains and URLs show in monospace, like evidence labels
+showWidgetBorder = true
+
+[theme.light]
+primaryColor = "#0B6B63"             # teal, 6.4:1 on white
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#EEF3F2"
+textColor = "#14201F"                # 16.7:1
+borderColor = "#D5DDDC"
+dataframeHeaderBackgroundColor = "#EEF3F2"
+
+[theme.dark]
+primaryColor = "#5CC8BB"             # teal, 9.2:1 on the dark background
+backgroundColor = "#0E1416"
+secondaryBackgroundColor = "#172124"
+textColor = "#E6ECEB"                # 15.5:1
+borderColor = "#2A3638"
+dataframeHeaderBackgroundColor = "#172124"

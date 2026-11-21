@@ -3,7 +3,7 @@
 Start it with run.bat, or:  .venv\\Scripts\\python -m streamlit run app.py --server.address localhost
 
 This file only draws the screens; all the real work happens in the other modules.
-Screen text lives in i18n.py (English + Arabic). AI briefings come from ai.py (local model, or Gemini with a key).
+Screen text lives in i18n.py (English + Arabic). AI answers come from ai.py and local_llm.py (local model, or Claude Haiku 5.5 with a key).
 """
 import csv
 from pathlib import Path
@@ -578,11 +578,15 @@ ABOUT = {
 **HIGH** ≥ {config.HIGH_RISK} · **MEDIUM** ≥ {config.MEDIUM_RISK}. Official domains and all `.gov.ae` sites score 0.
 
 **Officer briefings:** each flagged site and campaign gets a 5-line briefing (brand, domains, likely tactic,
-confidence, first action), built on this computer from the rule findings and the ML second opinion. No AI service is
-used and no score is changed. The takedown report can add an Arabic version below the English one, built from templates.
+confidence, first action), built on this computer from the rule findings and the ML second opinion. An **AI briefing**
+button adds a draft from the local model (or Claude Haiku 5.5 if it's off). No score is ever changed. The takedown report
+can add an Arabic version below the English one, built from templates.
+
+**Anaq, the side-panel assistant:** ask anything about today's leads. Claude Haiku 5.5 answers from our facts only
+(never opens a site, never changes a score), tersely and cheaply; every answer is labelled an AI draft.
 
 **Data sources:** RDAP + UAE WHOIS (domain age), crt.sh (certificate logs), Bing via `ddgs` (search),
-Google Safe Browsing, Google Places and Gemini (optional keys).
+Google Safe Browsing, Google Places and Anthropic Claude (optional keys).
 
 ### Future plans
 - **A machine-learning model that learns new scam patterns.** It would be trained on sites Google has confirmed
@@ -611,11 +615,15 @@ Google Safe Browsing, Google Places and Gemini (optional keys).
 **عالية** ≥ {config.HIGH_RISK} · **متوسطة** ≥ {config.MEDIUM_RISK}. النطاقات الرسمية وجميع مواقع `.gov.ae` نتيجتها 0.
 
 **ملخصات الضابط:** يحصل كل موقع مشبوه وكل حملة على ملخص من 5 أسطر (العلامة، النطاقات، الأسلوب المرجّح، درجة
-الثقة، الإجراء الأول)، يُبنى على هذا الجهاز من نتائج القواعد ورأي التعلّم الآلي، دون خدمة ذكاء اصطناعي ودون تغيير أي نتيجة.
+الثقة، الإجراء الأول)، يُبنى على هذا الجهاز من نتائج القواعد ورأي التعلّم الآلي. ويضيف زر «ملخص بالذكاء الاصطناعي» مسودة من
+النموذج المحلي (أو Claude Haiku 5.5 إن كان متوقفاً)، دون تغيير أي نتيجة.
 ويمكن إضافة نسخة عربية من تقرير الإزالة أسفل النسخة الإنجليزية، تُبنى من قوالب ثابتة.
 
 **مصادر البيانات:** RDAP و UAE WHOIS (عمر النطاق)، crt.sh (سجلات الشهادات)، Bing عبر `ddgs` (البحث)،
-Google Safe Browsing و Google Places و Gemini (مفاتيح اختيارية).
+Google Safe Browsing و Google Places و Anthropic Claude (مفاتيح اختيارية).
+
+**عناق، المساعد الجانبي:** اسأل أي شيء عن مؤشرات اليوم. يجيب Claude Haiku 5.5 من حقائقنا فقط (لا يفتح أي موقع ولا يغيّر أي
+نتيجة)، بإيجاز وتكلفة منخفضة، وكل إجابة موسومة كمسودة ذكاء اصطناعي.
 
 ### خطط مستقبلية
 - **نموذج تعلّم آلي يتعلّم أنماط احتيال جديدة.** يُدرَّب على مواقع أكدت Google أنها تصيّد احتيالي، وعلى مؤشرات أكد
@@ -678,8 +686,8 @@ with tab_dash:
 # ----------------------------------------------------------------------------- Anaq, the side-panel assistant
 def side_assistant():
     """Anaq on the side: chat about the whole dashboard, or the site selected in the table.
-    Answers come from the local language model (Ollama) on the officer's computer, or from Gemini on the
-    public demo (with daily and per-visitor caps). Either way the model sees only our facts."""
+    Answers come from Claude Haiku 5.5 when its key is set (on the public demo with daily and per-visitor caps),
+    otherwise the local language model (Ollama). Either way the model sees only our facts."""
     face, head = st.columns([1, 4], vertical_alignment="center")
     face.image(ANAQ_AVATAR, width=48)
     head.markdown(f"**{T('side_title')}**")

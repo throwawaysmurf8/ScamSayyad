@@ -81,53 +81,36 @@ disagree with the rules? Why did the rules give this score? Which other sites lo
 What would change the risk level? What should I do first? How sure can we be?* Every answer is
 calculated from our data (`assistant.py`), so it is exact and explainable. Because the ML is a simple
 linear model, it can show which parts of a name pushed it towards "scam" or "safe" (`ml_model.explain`),
-and "similar sites" compares names by their shared letter chunks (`ml_model.similar`). Below them, **"Or ask your own question"** takes free questions, answered by a language model that runs
-**on this computer** with Ollama (`local_llm.py`). It gets only our facts (rule findings, campaign, ML
-opinion and explanation, similar names), never a link to open, never changes a score, and every answer is
-labelled "AI-generated draft — officer review required". Answers are saved, so repeats are instant. If
-Ollama isn't running, only the set questions show.
+and "similar sites" compares names by their shared letter chunks (`ml_model.similar`).
 
-To set it up on another computer (free, offline, no key):
+Anaq also sits in the **side panel** as a chat assistant about the whole dashboard (or the site you
+selected). Free questions are answered by a language model:
+
+| Where | Side-panel chat | Briefings and Arabic report |
+|---|---|---|
+| Officer's computer | **Claude Haiku 5.5** if `ANTHROPIC_API_KEY` is set, otherwise the local model | Local model (Ollama, free, nothing leaves the PC); **Claude Haiku 5.5** if Ollama is off |
+| Public site | **Claude Haiku 5.5** (10 questions per visitor, 100 a day for everyone) | Saved ones only |
+
+Whichever model answers, the rules are the same: it gets only our facts (rule findings, campaigns, ML
+opinion, similar names), never a link to open and no tools, so it never visits a site; it never changes
+a score; and every answer is labelled "AI-generated draft". Briefings are saved, so repeats are instant
+and free.
+
+**Claude runs as cheaply as possible** (`ai._call_claude`): low effort, thinking switched off (these are
+short look-ups in facts we supply, so hidden reasoning only added cost), a terse "chisle" style (answer
+first, at most 80 words, every decisive fact kept) and compact data. Measured on a real question: output
+fell from 1,448 to 247 tokens and the reply time from 6.7 s to 1.7 s, about $0.0004 a question.
+
+The local model (free, offline, no key), to set up on another computer:
 1. Install Ollama from https://ollama.com (or `winget install Ollama.Ollama`).
 2. Download the model once (about 4.7 GB): `ollama pull qwen2.5:7b`. Another model can be set in `.env`
    as `OLLAMA_MODEL=...`.
-3. Restart the dashboard. The first question after a break takes up to a minute while the model loads;
-   after that answers take seconds (faster with an NVIDIA graphics card).
+3. Restart the dashboard. The first question after a break can take a while as the model loads; after
+   that answers take seconds (faster with an NVIDIA graphics card).
 
-## AI briefings with Gemini (optional, currently off)
-
-On each flagged site, and on each possible campaign, an **AI briefing** button asks Google's Gemini
-for a 5-line summary for an officer: the brand being imitated, how many domains, the likely scam
-tactic, how confident we are, and the first action to take. The takedown panel can also add an
-**Arabic version** of the report, below the English one. Rules:
-
-- **Only our facts.** Gemini receives the score, reasons, registrar, dates and domain names already
-  in the database. It gets no links to open and no web-search tools, so it never visits a site.
-- **Scores don't change.** The AI's text is only shown. Scoring stays rule-based and explainable.
-- **Saved once.** Each answer is saved in the database (`ai_cache` table), so the same briefing is
-  never paid for twice and still shows when the internet is slow.
-- **Labelled.** Everything the AI writes says "AI-generated draft — officer review required".
-- **Optional.** Without a key (or if Gemini fails) the buttons are hidden, a message says why, and
-  everything else works. The public demo never uses the key.
-
-### Getting a Gemini API key (in your Google Cloud project "scamshield")
-
-1. Go to https://console.cloud.google.com and pick the **scamshield** project at the top.
-2. Open **APIs & Services → Library**, search for **Generative Language API** (Gemini API), and
-   click **Enable**.
-3. Open **APIs & Services → Credentials → Create credentials → API key**. Copy it.
-4. Click **Edit API key** → **API restrictions → Restrict key** → tick only **Generative Language
-   API** → **Save**. A leaked key then can't be used for anything else.
-5. Turn on billing alerts: **Billing → Budgets & alerts → Create budget**, for example 10 USD a
-   month with e-mail alerts at 50%, 90% and 100%. Keep it on.
-6. Open `.env` in Notepad and add a new line: `GEMINI_API_KEY=` followed by the key (no spaces or
-   quotes). Never put the key in code, chats, screenshots or slides.
-7. Restart the dashboard (close the `run.bat` window and start it again). The header badge
-   "AI briefings" turns green.
-
-The model is set in `config.py` (`GEMINI_MODEL`, a fast low-cost "Flash-Lite" model). Google renames
-models over time: if Gemini answers "model not found", put the current Flash-Lite name in `.env` as
-`GEMINI_MODEL=...`.
+Claude: create a key at console.anthropic.com (API keys; a few dollars of credit is plenty) and put it in
+`.env` as `ANTHROPIC_API_KEY=...`. Gemini support is still in the code (`GEMINI_API_KEY`) but unused:
+Google's free-trial credit doesn't cover it.
 
 ---
 
@@ -170,7 +153,7 @@ To refresh the public results later, copy `data/scamshield.db` over `data/public
 (removing demo rows), run `.venv/Scripts/python tools/make_public_answers.py` (with Ollama running) so
 the local model prepares Anaq's starter answers and campaign briefings for the public site, then push to
 GitHub; the site updates by itself. The public site never runs a model itself: it only shows these saved
-AI drafts (or, if a `GEMINI_API_KEY` secret is added, answers typed questions with Gemini, capped per day).
+AI drafts, and with an `ANTHROPIC_API_KEY` secret, answers typed questions with Claude Haiku 5.5 (capped per day).
 
 ---
 
@@ -208,7 +191,7 @@ AI drafts (or, if a `GEMINI_API_KEY` secret is added, answers typed questions wi
 
 | Feature | Status | Data source | Key needed? |
 |---|---|---|---|
-| 1. Scoring engine: brand look-alikes, cheap domain endings, short links, no HTTPS, scam words, urgent SMS wording | Working, 48 automated tests | Built in | No |
+| 1. Scoring engine: brand look-alikes, cheap domain endings, short links, no HTTPS, scam words, urgent SMS wording | Working, 57 automated tests | Built in | No |
 | 1b. Domain age, registrar, abuse e-mail | Working | RDAP (rdap.org); UAE WHOIS (whois.nic.ae) for .ae | No |
 | 1c. Google Safe Browsing | Working, tested live with a real key (`enrich.py --test-key`); skipped cleanly without a key | Google Safe Browsing v4 | Free key |
 | 2. New-domain watcher | Working | crt.sh certificate logs | No |
@@ -218,9 +201,10 @@ AI drafts (or, if a `GEMINI_API_KEY` secret is added, answers typed questions wi
 | 6. ML second opinion (0–100% per website name) | Working: catches 70% of phishing, 6% false alarms; 4/4 Google-confirmed UAE scams | Trained on PhiUSIIL (UCI) + Tranco incl. 718 UAE sites | No |
 | 7. Officer briefings + Arabic takedown reports | Working, built on this computer from rules + ML | Built in | No |
 | 8. Ask Anaq (the caracal assistant): 6 set questions | Working, answers calculated exactly from our data | Built in | No |
-| 9. Ask Anaq: free questions | Working with Ollama installed (local model qwen2.5:7b, offline) | Ollama on this computer | No (free, ~4.7 GB download) |
+| 9. Anaq side-panel chat + free questions | Working: Claude Haiku 5.5 (public site and this computer), local qwen2.5:7b as the free option | Anthropic API; Ollama | Key (~$0.0004 a question); local is free |
 | 10. English / Arabic dashboard | Working, full right-to-left layout | Built in | No |
-| 11. Gemini AI briefings | Built, **off** (Google refused the keys tried) | Google Gemini API | Key |
+| 11. AI briefings + Arabic report by AI | Working: local model, Claude Haiku 5.5 if the local model is off | Ollama; Anthropic API | No / key |
+| 12. Public site with capped hunters and chat | Working at scamsayyad.streamlit.app | Streamlit Community Cloud | Free |
 
 ### Honest limitations
 
@@ -370,12 +354,14 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
 | `ct_watcher.py` | Feature 2. Searches the crt.sh certificate logs for new websites whose names start with a UAE brand, then scores them. Run it alone with `python ct_watcher.py`. |
 | `search_scanner.py` | Feature 3. Runs risky searches ("pay Dubai Police fine") and scores every result. Run it alone with `python search_scanner.py "your search"`. |
 | `campaigns.py` | Groups flagged sites into "possible campaigns": 3+ domains imitating the same brand, from the same registrar, registered within 14 days of each other. Shown at the bottom of the Dashboard. |
-| `ai.py` | AI briefings and the Arabic report, from Google's Gemini. Sends only facts already in the database, never opens websites, never changes scores, saves every answer so it is never paid for twice, and labels everything as an AI draft. Off without `GEMINI_API_KEY`. |
+| `ai.py` | AI briefings, the Arabic report and the side-panel chat by cloud model: Claude Haiku 5.5 (low effort, thinking off, terse style), or Gemini if its key is set; briefings use the local model first. Sends only facts already in the database, never opens websites, never changes scores, saves every briefing so it is never paid for twice, and labels everything as an AI draft. |
 | `ml_model.py` | The ML second opinion: turns a website name into letter chunks and counts, and scores it 0–100% with the trained model in `data/ml/model.npz` (numbers only, no code). |
 | `tools/train_ml.py` | Downloads the public training lists, trains the ML model with a fair held-back test, checks it on our UAE data, and saves `data/ml/model.npz` and `data/ml/metrics.json`. |
 | `briefing.py` | The officer briefing (5 lines) for a site or a campaign, built from the rule findings, the campaign and the ML second opinion. No AI service. |
 | `assistant.py` | "Ask Anaq": answers six set questions about a site from our rules, the ML model, campaigns and the database. |
-| `local_llm.py` | Free questions to Ask Anaq, answered by a language model running on this computer with Ollama, from our facts only. Off when Ollama isn't running. |
+| `local_llm.py` | The local language model (Ollama, on this computer): free questions, the facts every model is given (`overview_facts`, `facts`), the shared rules (`SYSTEM`) and the prepared public answers (`saved_key`). |
+| `limits.py` | Daily limits on the public site (questions, each hunter, Maps scans), counted in a small file. |
+| `tools/make_public_answers.py` | Has the local model prepare Anaq's starter answers and campaign briefings for the public snapshot. |
 | `i18n.py` | Every screen text in English and Arabic, plus Arabic versions of the scorer's reasons (for display only). |
 | `report.py` | Feature 4b. Builds the takedown report, offered only for MEDIUM and HIGH sites: target, reasons, registration details, the registrar's abuse contact and where to send it (registrar, Google Safe Browsing, UAE eCrime). For sites on free hosting platforms (workers.dev, vercel.app ...) it says to report to the platform instead. |
 | `maps_scanner.py` | Feature 5 (stretch). Searches Google Maps for fake "customer service" listings and checks each listing's website and phone number (fake listings often link the real website but show the scammer's number). Each listing is its own row. Its takedown report asks Google to remove the listing. It only runs with a `GOOGLE_PLACES_KEY`, and each search is a paid request. |
@@ -387,7 +373,7 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
 | `.streamlit/config.toml` | Streamlit settings. It skips Streamlit's first-run e-mail prompt, which would otherwise freeze `run.bat`, and sets the colors for light and dark mode (teal for actions; red, orange and green only for risk levels). |
 | `requirements.txt` | The exact library versions this was tested with. |
 | `.env.example` | Template for the optional API keys. Copy it to `.env`. |
-| `pytest.ini`, `tests/__init__.py` | Tell pytest where to find the code. |
+| `pytest.ini`, `tests/__init__.py`, `tests/conftest.py` | Tell pytest where to find the code; `conftest.py` blanks the real API keys so tests never make paid calls. |
 | `.claude/launch.json` | Lets Claude Code start the dashboard for previews. Teammates can ignore it. |
 | `.gitignore` | Keeps the virtual environment, database and keys out of Git. |
 

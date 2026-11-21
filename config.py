@@ -31,6 +31,12 @@ GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite")
 GEMINI_DAILY_CAP = int(os.environ.get("GEMINI_DAILY_CAP", "200"))  # questions per day, whole site
 GEMINI_SESSION_CAP = int(os.environ.get("GEMINI_SESSION_CAP", "15"))  # questions per visitor
 
+# Anaq's side-panel chat with Claude Haiku (Anthropic API). Optional: with ANTHROPIC_API_KEY set, the chat
+# uses Claude on this computer and on the public demo; without it, the local model / Gemini as before.
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+CLAUDE_MODEL = os.environ.get("ANAQ_CLAUDE_MODEL", "claude-haiku-5-5")
+CLAUDE_EFFORT = os.environ.get("ANAQ_CLAUDE_EFFORT", "low")  # low = fast, short answers
+
 # Free questions to "Ask Anaq": a language model running on this computer with Ollama (local_llm.py).
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b")

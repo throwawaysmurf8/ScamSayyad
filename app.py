@@ -677,17 +677,18 @@ def side_assistant():
         return
     selected = st.session_state.get("selected_site")
     st.caption(T("side_about_site", site=hostname(selected["url"])) if selected else T("side_about_all"))
-    cloud = config.PUBLIC_MODE and ai.chat_available()  # the public site has no local model
+    # Claude (if its key is set) everywhere; Gemini only on the public site, which has no local model
+    cloud = bool(config.ANTHROPIC_API_KEY) or (config.PUBLIC_MODE and ai.chat_available())
     if not (llm_ready() or cloud):
         st.info(T("side_off_public") if config.PUBLIC_MODE else T("side_off"), icon=":material/info:")
         return
-    label = T("side_cloud_label") if cloud else local_llm.LABEL[LANG].format(model=config.OLLAMA_MODEL)
+    label = T("side_cloud_label", model=ai.chat_model_name()) if cloud else local_llm.LABEL[LANG].format(model=config.OLLAMA_MODEL)
     history = st.session_state.setdefault("anaq_chat", [])  # [(question, answer), ...]
     for q, a in history:
         with st.chat_message("user", avatar=":material/person:"):
             st.text(q)
         anaq_says(a, f"**{label}**")
-    if cloud and st.session_state.get("anaq_asked", 0) >= config.GEMINI_SESSION_CAP:
+    if cloud and config.PUBLIC_MODE and st.session_state.get("anaq_asked", 0) >= config.GEMINI_SESSION_CAP:
         st.info(T("side_cap_visitor"), icon=":material/hourglass_empty:")
         return
     starters = [T("side_q1"), T("side_q2")] + ([T("side_q3")] if selected else [])

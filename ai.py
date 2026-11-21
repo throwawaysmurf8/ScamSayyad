@@ -93,8 +93,18 @@ def available():
 
 
 def chat_available():
-    """True when Gemini can answer side-panel chat questions (used on the public site)."""
-    return bool(config.GEMINI_API_KEY)
+    """True when a cloud model (Claude, else Gemini) can answer side-panel chat questions."""
+    return bool(config.ANTHROPIC_API_KEY or config.GEMINI_API_KEY)
+
+
+def chat_model_name():
+    return "Claude Haiku 5.5" if config.ANTHROPIC_API_KEY else "Google Gemini"
+
+
+# Claude's answers follow a terse "maximum signal, minimum words" style (like the chisle skill).
+STYLE = """Style: maximum signal, minimum words. Lead with the answer. Short fragments are fine.
+No greetings, filler or hedging. Keep every decisive fact: domain names, scores, levels, dates, and the
+one caveat that matters. Use a short dash list only when listing several sites or campaigns."""
 
 
 def _count_question():
@@ -104,6 +114,8 @@ def _count_question():
         used = json.loads(USAGE_FILE.read_text(encoding="utf-8")).get(today, 0)
     except (OSError, ValueError, AttributeError):
         used = 0
+    if not config.PUBLIC_MODE:
+        return  # the officer's own computer: no cap
     if used >= config.GEMINI_DAILY_CAP:
         raise DailyCapReached(f"Today's {config.GEMINI_DAILY_CAP} questions are used up.")
     try:
@@ -113,15 +125,17 @@ def _count_question():
 
 
 def chat(question, history, data, lang="en"):
-    """Side-panel conversation with Gemini, using the same rules and facts as the local model.
-    Nothing is saved to the database (the public site's data is read-only)."""
+    """Side-panel conversation with Claude Haiku (or Gemini), using the same rules and facts as the
+    local model. Nothing is saved to the database (the public site's data is read-only)."""
     import local_llm
     question = " ".join((question or "").split())[:300]
     if not question:
         raise AIError("Please type a question.")
     if not chat_available():
-        raise AIError("The cloud AI is off: no Gemini key.")
+        raise AIError("The cloud AI is off: no API key.")
     _count_question()
+    if config.ANTHROPIC_API_KEY:
+        return _call_claude(local_llm.prompt(question, data, lang), history[-3:], local_llm.SYSTEM + "\n" + STYLE)
     earlier = []
     for q, a in history[-3:]:  # recent exchanges, so follow-up questions make sense
         earlier += [{"role": "user", "parts": [{"text": q}]}, {"role": "model", "parts": [{"text": a}]}]
@@ -163,6 +177,35 @@ def campaign_facts(c):
         "registered_from": c["first"], "registered_to": c["last"], "domain_endings": c["endings"],
         "highest_risk_score": c["top_score"], "websites": c["websites"][:30],
     }
+
+
+def _call_claude(prompt, history, system):
+    """One request to Claude (Anthropic API). Raises AIError with a plain message (never shows the key)."""
+    import anthropic
+    client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY, timeout=60.0, max_retries=1)
+    messages = []
+    for q, a in history:  # recent exchanges, so follow-up questions make sense
+        messages += [{"role": "user", "content": q}, {"role": "assistant", "content": a}]
+    messages.append({"role": "user", "content": prompt})
+    try:
+        r = client.messages.create(model=config.CLAUDE_MODEL, max_tokens=2000, system=system,
+                                   output_config={"effort": config.CLAUDE_EFFORT}, messages=messages)
+    except anthropic.AuthenticationError:
+        raise AIError("Claude rejected the API key (check ANTHROPIC_API_KEY).") from None
+    except anthropic.PermissionDeniedError:
+        raise AIError("The API key isn't allowed to use this model.") from None
+    except anthropic.RateLimitError:
+        raise AIError("Claude is busy or the account's limit is reached. Try again in a minute.") from None
+    except anthropic.APIStatusError as e:
+        raise AIError(f"Claude returned an error (HTTP {e.status_code}).") from None
+    except anthropic.APIConnectionError:
+        raise AIError("Could not reach Claude. Check the internet connection.") from None
+    if r.stop_reason == "refusal":
+        raise AIError("Claude declined to answer this question.")
+    text = "".join(b.text for b in r.content if b.type == "text").strip()
+    if not text:
+        raise AIError("Claude returned an empty answer.")
+    return text
 
 
 def _call_local(prompt, max_tokens, system):

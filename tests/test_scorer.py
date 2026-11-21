@@ -677,3 +677,37 @@ def test_prepared_public_answers_match_only_the_same_data():
     assert key == local_llm.saved_key("Summarise today's biggest threats", dict(data), "en")
     assert key != local_llm.saved_key("Summarise today's biggest threats", data, "ar")      # per language
     assert key != local_llm.saved_key("Summarise today's biggest threats", {**data, "sites_checked": 4}, "en")
+
+
+def test_side_chat_uses_claude_haiku_low_effort(monkeypatch, tmp_path):
+    """With an Anthropic key, Anaq's chat goes to Claude Haiku 5.5 at low effort (faked here)."""
+    import types
+    import anthropic
+    import ai
+    monkeypatch.setattr(config, "ANTHROPIC_API_KEY", "fake-key-for-tests")
+    monkeypatch.setattr(config, "PUBLIC_MODE", False)
+    sent = []
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            self.messages = types.SimpleNamespace(create=lambda **k: sent.append(k) or types.SimpleNamespace(
+                stop_reason="end_turn", content=[types.SimpleNamespace(type="text", text="salik campaign first.")]))
+
+    monkeypatch.setattr(anthropic, "Anthropic", FakeClient)
+    assert ai.chat_available() and ai.chat_model_name() == "Claude Haiku 5.5"
+    answer = ai.chat("Which campaign first?", [("Hi?", "Hello.")], {"sites_checked": 3})
+    assert answer == "salik campaign first."
+    k = sent[0]
+    assert k["model"] == "claude-haiku-5-5" and k["output_config"] == {"effort": "low"}
+    assert "untrusted" in k["system"] and "maximum signal" in k["system"]      # same rules + terse style
+    assert [m["role"] for m in k["messages"]] == ["user", "assistant", "user"]  # remembers the last answer
+    assert "fake-key-for-tests" not in str(k)
+
+    class Refuses(FakeClient):
+        def __init__(self, **kwargs):
+            self.messages = types.SimpleNamespace(create=lambda **k: types.SimpleNamespace(
+                stop_reason="refusal", content=[]))
+
+    monkeypatch.setattr(anthropic, "Anthropic", Refuses)
+    with pytest.raises(ai.AIError, match="declined"):
+        ai.chat("?", [], {})

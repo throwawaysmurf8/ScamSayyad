@@ -65,8 +65,9 @@ OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b")
 
 # --- Public demo (Streamlit Community Cloud) ---------------------------------
-# Set SCAMSHIELD_PUBLIC = "1" in the cloud app's Secrets. The public site is READ-ONLY:
-#   * it shows a copy of real results (data/public_snapshot.db, refreshed by hand) and never writes to it;
+# Set SCAMSHIELD_PUBLIC = "1" in the cloud app's Secrets. On the public site:
+#   * it starts from a copy of real results (data/public_snapshot.db, refreshed by hand); "Check a link"
+#     never saves, and only the capped hunters add finds (lost when the app restarts);
 #   * the hunters and the Google Maps scan run, but only a few times a day (PUBLIC_HUNTS_PER_DAY,
 #     PUBLIC_MAPS_PER_DAY), so visitors can't run up costs; the free-text search box and demo-data buttons
 #     are hidden;

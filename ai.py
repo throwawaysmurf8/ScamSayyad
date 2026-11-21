@@ -117,7 +117,7 @@ def _count_question():
 
 def chat(question, history, data, lang="en"):
     """Side-panel conversation with Claude Haiku (or Gemini), using the same rules and facts as the
-    local model. Nothing is saved to the database (the public site's data is read-only)."""
+    local model. Nothing is saved to the database."""
     import local_llm
     question = " ".join((question or "").split())[:300]
     if not question:

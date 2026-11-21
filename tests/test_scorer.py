@@ -778,18 +778,27 @@ def test_listing_with_an_official_website_always_scores_zero():
     assert score_listing("Dubai Police Fines", "+91 95177 56947", "https://dubaipolice-fines.top/")["score"] >= 70
 
 
-def test_public_site_is_read_only(monkeypatch):
-    """Public demo: no hunt / Maps / demo-data buttons, no Anaq chat box (no paid calls); the laptop has them."""
+def test_public_site_hunts_with_daily_limits(monkeypatch):
+    """Public demo: the hunters and the Maps scan are on but capped per day; no free-text search, no
+    demo-data buttons, no Anaq chat box. The laptop has everything."""
+    import limits
     from streamlit.testing.v1 import AppTest
     monkeypatch.setattr(config, "PUBLIC_MODE", True)
+    monkeypatch.setattr(config, "PLACES_KEY", "test-key")
     at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120).run()
     assert not at.exception, [e.value for e in at.exception]
     labels = {b.label for b in at.button}
-    assert not labels & {"Run watcher", "Run search scan", "Run Maps scan", "Load demo data", "Remove demo data"}
+    assert {"Run watcher", "Run search scan", "Run Maps scan"} <= labels
+    assert not labels & {"Load demo data", "Remove demo data"}
+    assert not [t for t in at.text_input if "search" in t.label.lower()]
     assert len(at.chat_input) == 0
+    # Once today's limit is used up, pressing the button runs nothing and says so.
+    monkeypatch.setattr(limits, "take", lambda name, cap: False)
+    next(b for b in at.button if b.label == "Run Maps scan").click().run()
+    assert any("limit" in i.value for i in at.info)
     monkeypatch.setattr(config, "PUBLIC_MODE", False)
     at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120).run()
-    assert {"Run watcher", "Run search scan"} <= {b.label for b in at.button}
+    assert {"Run watcher", "Run search scan", "Load demo data"} <= {b.label for b in at.button}
 
 
 def test_registrar_spellings_are_merged_before_grouping():

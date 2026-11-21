@@ -126,10 +126,13 @@ can get an AI Arabic version below it).
 
 ## Public demo: Athar Al Anaq on Streamlit Community Cloud
 
-The public site is called **Athar Al Anaq** (أثر العناق, "the caracal's tracks": our mascot Anaq follows the trail scammers leave). The public site is a **read-only showcase**: it shows a copy of real results
-(`data/public_snapshot.db`) and lets visitors try "Check a link" without saving anything. The hunters,
-the Google Maps scan and the demo-data buttons are hidden, and every paid key (Places, Claude, Gemini)
-is switched off there even if it is in the Secrets, so no visitor can run up costs. Anaq's side panel
+The public site is called **Athar Al Anaq** (أثر العناق, "the caracal's tracks": our mascot Anaq follows the trail scammers leave). It starts from a copy of real results
+(`data/public_snapshot.db`) and lets visitors try "Check a link" without saving anything. The hunters
+and the **Google Maps scan are on, with a daily limit** shared by all visitors (each hunter 20 runs a
+day, the Maps scan 5 runs a day = 20 Google requests), so no visitor can run up costs. New finds join
+that site's Dashboard until the app restarts. The free-text search box and the demo-data buttons are
+hidden, and the AI keys (Claude, Gemini) are switched off there even if they are in the Secrets.
+The Maps scan needs `GOOGLE_PLACES_KEY` in the app's Secrets. Anaq's side panel
 shows answers prepared earlier by the local model. A banner says it's a hackathon prototype, not an
 official police service. The officer's laptop keeps every feature.
 

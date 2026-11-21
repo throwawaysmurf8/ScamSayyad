@@ -23,7 +23,7 @@ S = {
     "src_maps": ("Google Maps", "خرائط Google"),
     "src_ai": ("AI briefings", "ملخصات الذكاء الاصطناعي"),
     "off_no_key": ("off", "متوقف"),
-    "public_badge": ("Public demo: read-only", "نسخة عامة: للقراءة فقط"),
+    "public_badge": ("Public demo", "نسخة عامة"),
     "public_banner": ("**Hackathon prototype, not an official Abu Dhabi Police or UAE government service.** Sites "
                       "listed here are automated, unverified leads, not confirmed scams. Do not visit them. To "
                       "report a scam, use the official UAE eCrime platform (ecrime.ae).",
@@ -227,10 +227,10 @@ S = {
                     "ستظهر هنا النتيجة والأسباب وبيانات تسجيل النطاق."),
 
     # --- Hunt ---------------------------------------------------------------------
-    "hunt_public": ("This public demo is read-only: hunting and the Google Maps scan run on the officer's computer. "
-                    "The Dashboard shows real results from earlier hunts; try **Check a link** to score any link yourself.",
-                    "هذه النسخة العامة للقراءة فقط: البحث وفحص خرائط Google يعملان على جهاز الضابط. تعرض لوحة المتابعة "
-                    "نتائج حقيقية من عمليات بحث سابقة؛ جرّب **فحص رابط** لتقييم أي رابط بنفسك."),
+    "hunt_public": ("On this public demo each hunter runs up to {n} times a day and the Google Maps scan {m} times "
+                    "a day, shared by all visitors. New finds join the Dashboard for everyone.",
+                    "في هذه النسخة العامة يعمل كل باحث حتى {n} مرة يومياً، وفحص خرائط Google حتى {m} مرات يومياً، "
+                    "مشتركة بين جميع الزوار. تظهر النتائج الجديدة في لوحة المتابعة للجميع."),
     "hunt_cap": ("Today's limit ({n}) is reached on the public demo. Please try again tomorrow.",
                  "تم بلوغ الحد اليومي ({n}) في النسخة العامة. يُرجى المحاولة غداً."),
     "watcher_title": (":material/new_releases: New-domain watcher", ":material/new_releases: مراقب النطاقات الجديدة"),

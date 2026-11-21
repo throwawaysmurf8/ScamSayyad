@@ -481,7 +481,7 @@ with tab_check:
     with form:
         st.subheader(T("check_title"))
         st.caption(T("check_note"))
-        url = st.text_input(T("check_input"), placeholder="http://dubaipol1ce-fines.xyz/pay")
+        url = st.text_input(T("check_input"), placeholder="http://adpol1ce-fines.xyz/pay")
         msg = st.text_area(T("check_msg"), placeholder="Abu Dhabi Police: unpaid traffic fine. Pay within 24 hours...")
         go = st.button(T("check_btn"), type="primary", icon=":material/search:", disabled=not url.strip())
     with result:

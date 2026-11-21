@@ -187,7 +187,7 @@ AI drafts, and with an `ANTHROPIC_API_KEY` secret, answers typed questions with 
 
 | Feature | Status | Data source | Key needed? |
 |---|---|---|---|
-| 1. Scoring engine: brand look-alikes, cheap domain endings, short links, no HTTPS, scam words, urgent SMS wording | Working, 57 automated tests | Built in | No |
+| 1. Scoring engine: brand look-alikes, cheap domain endings, short links, no HTTPS, scam words, urgent SMS wording | Working, 71 automated tests | Built in | No |
 | 1b. Domain age, registrar, abuse e-mail | Working | RDAP (rdap.org); UAE WHOIS (whois.nic.ae) for .ae | No |
 | 1c. Google Safe Browsing | Working, tested live with a real key (`enrich.py --test-key`); skipped cleanly without a key | Google Safe Browsing v4 | Free key |
 | 2. New-domain watcher | Working | crt.sh certificate logs | No |
@@ -201,6 +201,23 @@ AI drafts, and with an `ANTHROPIC_API_KEY` secret, answers typed questions with 
 | 10. English / Arabic dashboard | Working, full right-to-left layout | Built in | No |
 | 11. AI briefings + Arabic report by AI | Working: local model, Claude Haiku 5.5 if the local model is off | Ollama; Anthropic API | No / key |
 | 12. Public site with capped hunters and chat | Working at scamsayyad.streamlit.app | Streamlit Community Cloud | Free |
+
+### Audit of every site (22 Nov 2026)
+
+`tools/audit_sites.py` sorts every saved site into likely scam, likely false positive or unclear (it
+reads only; the result goes to `data/audit.csv`, which is not committed). The first run found the
+false-alarm patterns, and these rules were added (`scorer.score_url`, step 7, and two new signals):
+
+- The brand alone adds no points, unless the name also has a scam word, on free personal-page
+  platforms (workers.dev, chatgpt.site...), in a subdomain of an unrelated company's site
+  (`...mysql.database.azure.com`), in the `.ph` batch, for names like Salikha / Salikhov / Salikov,
+  and for "Salik" as a first name (it also counts with another warning sign).
+- New signs: the real address in front of another domain (`emiratespost.ae-...track-package...`,
+  +20, strong) and the same name registered on 3+ endings (+20, not for a bare brand name).
+- Parcel words (track, package, service, customs) are scam words.
+
+Result: 66 HIGH, 144 MEDIUM, 1,615 LOW of 1,825 unique sites; no site in a known false-positive
+pattern is flagged; 202 of 269 likely scams are flagged (the rest score just under 40).
 
 ### Honest limitations
 
@@ -249,15 +266,17 @@ AI drafts, and with an `ANTHROPIC_API_KEY` secret, answers typed questions with 
   The watcher caps look-ups per run, so `python enrich.py --fill-registration` fills in the rest
   slowly (one look-up every 3 seconds, slower after failures; safe to stop and re-run). On 21 Nov
   2026 it found 63 of 87 domains, raising coverage from 67 to 131 flagged sites, and grouping went
-  from 4 to 9 possible campaigns. The biggest: 24 Salik domains from one registrar (WebNic) in
-  2 weeks across 7 cheap endings, and 16 Emirates Post `.top` domains plus 9 `salik-toll*.top`
-  domains from the same Hong Kong registrar (Dominet).
+  from 4 to 9 possible campaigns. The biggest: 25 Salik domains from one registrar (WebNic) in
+  2 weeks across 7 cheap endings, and 16 Emirates Post `.top` domains plus 11 `salik-toll*.top`
+  domains from the same Hong Kong registrar (Dominet). Registrar spellings ("WebNic.cc", "Web Commerce
+  Communications Ltd." ...) are merged before grouping.
 - **Why the rest has no registration details:**
-  - **360 `.ph` domains** (Philippines) such as `emiratesnbd-deloitte-findmypayments.ph`. The `.ph`
+  - **1,008 `.ph` names** (Philippines) such as `emiratesnbd-deloitte-findmypayments.ph`. The `.ph`
     registry has no RDAP and its WHOIS server does not answer, so they are skipped
     (`NO_REGISTRY_DATA` in `config.py`). They pair UAE brands with unrelated ones (Rolex, USPS,
-    Deloitte...), which looks like one bulk-generated batch, but without registrar data they
-    can't be grouped.
+    Deloitte...), with certificates from the same five days: one bulk-generated batch. Without
+    registrar data they can't be grouped, so the brand there only counts with a scam word
+    (`BATCH_ENDINGS`): 42 stay flagged, instead of 360.
   - **24 domains** such as `salik-ae.cfd` return "not found" from their own registry: they are no
     longer registered, most likely already taken down or expired.
 - **Google Maps: no fake listings found so far.** On 21 Nov 2026 the Maps searches returned 24

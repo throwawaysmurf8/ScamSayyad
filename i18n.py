@@ -11,9 +11,9 @@ S = {
     "tagline": ("The scam hunter for the UAE. *Sayyad* (صيّاد) means hunter; our mascot **Anaq** "
                 "(عناق الأرض) is the Arabian caracal, the desert's sharp-eared hunter.",
                 "صائد المواقع الاحتيالية في الإمارات. تميمتنا **عناق** (عناق الأرض)، الصيّاد الصحراوي حادّ السمع."),
-    "subtitle": ("Built for Abu Dhabi Police. Hunts for websites impersonating UAE police, government and banks. Scores are leads for "
+    "subtitle": ("Built for the ScamShield AI hackathon (42 Abu Dhabi × Abu Dhabi Police). Hunts for websites impersonating UAE police, government and banks. Scores are leads for "
                  "officer review, not verdicts. Suspicious pages are never opened.",
-                 "صُمّم لشرطة أبوظبي. يبحث عن المواقع التي تنتحل صفة الشرطة والجهات الحكومية والبنوك في الإمارات. النتائج مؤشرات "
+                 "صُمّم لهاكاثون ScamShield AI (‏42 أبوظبي × شرطة أبوظبي). يبحث عن المواقع التي تنتحل صفة الشرطة والجهات الحكومية والبنوك في الإمارات. النتائج مؤشرات "
                  "يراجعها الضابط، وليست أحكاماً. لا تُفتح الصفحات المشبوهة أبداً."),
     "language": ("Language", "اللغة"),
     "src_ct": ("Certificate logs", "سجلات الشهادات"),
@@ -22,7 +22,7 @@ S = {
     "src_maps": ("Google Maps", "خرائط Google"),
     "src_ai": ("AI briefings", "ملخصات الذكاء الاصطناعي"),
     "off_no_key": ("off", "متوقف"),
-    "public_badge": ("Public demo", "نسخة عامة"),
+    "public_badge": ("Public demo: read-only", "نسخة عامة: للقراءة فقط"),
     "public_banner": ("**Hackathon prototype, not an official Abu Dhabi Police or UAE government service.** Sites "
                       "listed here are automated, unverified leads, not confirmed scams. Do not visit them. To "
                       "report a scam, use the official UAE eCrime platform (ecrime.ae).",
@@ -226,10 +226,10 @@ S = {
                     "ستظهر هنا النتيجة والأسباب وبيانات تسجيل النطاق."),
 
     # --- Hunt ---------------------------------------------------------------------
-    "hunt_public": ("Public demo: anyone can run a hunt, up to {hunts} runs of each hunter and {maps} Google Maps scans a day "
-                    "for the whole site. New results show on the Dashboard for everyone, and reset when the site restarts.",
-                    "نسخة عامة: يمكن لأي زائر تشغيل البحث، حتى {hunts} تشغيلاً لكل أداة بحث و{maps} فحوصات لخرائط Google يومياً "
-                    "للموقع كله. تظهر النتائج الجديدة في لوحة المتابعة للجميع، وتُمسح عند إعادة تشغيل الموقع."),
+    "hunt_public": ("This public demo is read-only: hunting and the Google Maps scan run on the officer's computer. "
+                    "The Dashboard shows real results from earlier hunts; try **Check a link** to score any link yourself.",
+                    "هذه النسخة العامة للقراءة فقط: البحث وفحص خرائط Google يعملان على جهاز الضابط. تعرض لوحة المتابعة "
+                    "نتائج حقيقية من عمليات بحث سابقة؛ جرّب **فحص رابط** لتقييم أي رابط بنفسك."),
     "hunt_cap": ("Today's limit ({n}) is reached on the public demo. Please try again tomorrow.",
                  "تم بلوغ الحد اليومي ({n}) في النسخة العامة. يُرجى المحاولة غداً."),
     "watcher_title": (":material/new_releases: New-domain watcher", ":material/new_releases: مراقب النطاقات الجديدة"),
@@ -279,6 +279,8 @@ def t(key, lang, **values):
 _PATTERNS = [
     (r"Uses the brand name '(.+?)' but is not an official (.+?) domain", "يستخدم اسم العلامة '{0}' لكنه ليس نطاقاً رسمياً لـ {1}"),
     (r"Look-alike spelling of '(.+?)'", "تهجئة شبيهة بـ '{0}'"),
+    (r"'(.+?)' here may be a person's name \(no scam word and no other warning sign\), so it adds no points",
+     "قد يكون '{0}' هنا اسم شخص (لا كلمة احتيال ولا علامة تحذير أخرى)، لذلك لا يضيف نقاطاً"),
     (r"Mentions '(.+?)' in the page address on a non-official site", "يذكر '{0}' في عنوان الصفحة على موقع غير رسمي"),
     (r"Uses punycode \(xn--\), which can disguise look-alike letters", "يستخدم ترميز punycode ‏(xn--) الذي قد يخفي حروفاً شبيهة"),
     (r"Uses a raw IP address instead of a domain name", "يستخدم عنوان IP مباشرة بدلاً من اسم نطاق"),

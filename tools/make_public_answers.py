@@ -26,7 +26,7 @@ from i18n import S  # noqa: E402
 if not local_llm.available():
     sys.exit("Start Ollama first: the local model must be running.")
 
-sites = db.all_sites()
+sites = db.unique_sites()
 found = campaigns.find(sites)
 data = local_llm.overview_facts(sites, found)
 for lang, i in (("en", 0), ("ar", 1)):

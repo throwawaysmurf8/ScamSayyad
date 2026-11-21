@@ -1,6 +1,6 @@
 # ScamSayyad · صيّاد الاحتيال (ScamShield UAE)
 
-A proactive scam hunter built for **Abu Dhabi Police**. Instead of waiting for victims to paste links,
+A proactive scam hunter built for the **ScamShield AI hackathon (42 Abu Dhabi × Abu Dhabi Police)**. Instead of waiting for victims to paste links,
 it **goes looking** for fraudulent websites that impersonate Abu Dhabi Police, Dubai Police, RTA,
 Salik, DEWA, Emirates Post and UAE banks (ADCB, FAB, ADIB, Emirates NBD...), scores each one from 0 to 100 with plain-English
 reasons, and produces a takedown report an officer can send in one click.
@@ -126,14 +126,12 @@ can get an AI Arabic version below it).
 
 ## Public demo: ScamSayyad on Streamlit Community Cloud
 
-The public site is called **ScamSayyad** (صيّاد الاحتيال, "scam hunter"; *sayyad* is Arabic for hunter). The public site starts from a copy of
-real results (`data/public_snapshot.db`) and lets visitors try "Check a link" without saving anything.
-Visitors can also run the hunters and the Google Maps scan, within daily limits for the whole site
-(20 hunts, 6 Maps scans = 18 Google requests; `limits.py`). Their results go into a working copy (`data/public_live.db`) that
-everyone sees and that resets when the cloud app restarts. Anaq's chat (Claude Haiku 5.5, if a key is set)
-allows 10 questions per visit and 100 a day for all visitors combined. A banner says it's a hackathon prototype, not an official
-police service. The in-app limits are soft (they reset on a restart): also set a daily quota on the Places
-API in Google Cloud and a spend limit in the Anthropic console.
+The public site is called **ScamSayyad** (صيّاد الاحتيال, "scam hunter"; *sayyad* is Arabic for hunter). The public site is a **read-only showcase**: it shows a copy of real results
+(`data/public_snapshot.db`) and lets visitors try "Check a link" without saving anything. The hunters,
+the Google Maps scan and the demo-data buttons are hidden, and every paid key (Places, Claude, Gemini)
+is switched off there even if it is in the Secrets, so no visitor can run up costs. Anaq's side panel
+shows answers prepared earlier by the local model. A banner says it's a hackathon prototype, not an
+official police service. The officer's laptop keeps every feature.
 
 To publish it:
 1. Put this folder on GitHub (Git ignores `.env`, the working database and local files).
@@ -144,8 +142,6 @@ To publish it:
    ```
    SCAMSHIELD_PUBLIC = "1"
    GOOGLE_SAFE_BROWSING_KEY = "your key"   # optional; leave out to skip Google checks
-   GOOGLE_PLACES_KEY = "your key"          # optional; lets visitors run the capped Maps scan
-   ANTHROPIC_API_KEY = "your key"          # optional; Anaq answers typed questions (Claude Haiku 5.5)
    ```
 4. Click **Deploy**.
 

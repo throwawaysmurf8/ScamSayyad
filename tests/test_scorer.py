@@ -776,3 +776,72 @@ def test_listing_with_an_official_website_always_scores_zero():
     assert score_listing("Abu Dhabi Police", "+44 20 7946 0000", "https://www.adpolice.gov.ae/")["score"] == 0
     # A brand listing with a foreign phone and a NON-official website is still flagged
     assert score_listing("Dubai Police Fines", "+91 95177 56947", "https://dubaipolice-fines.top/")["score"] >= 70
+
+
+def test_public_site_is_read_only(monkeypatch):
+    """Public demo: no hunt / Maps / demo-data buttons, no Anaq chat box (no paid calls); the laptop has them."""
+    from streamlit.testing.v1 import AppTest
+    monkeypatch.setattr(config, "PUBLIC_MODE", True)
+    at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120).run()
+    assert not at.exception, [e.value for e in at.exception]
+    labels = {b.label for b in at.button}
+    assert not labels & {"Run watcher", "Run search scan", "Run Maps scan", "Load demo data", "Remove demo data"}
+    assert len(at.chat_input) == 0
+    monkeypatch.setattr(config, "PUBLIC_MODE", False)
+    at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120).run()
+    assert {"Run watcher", "Run search scan"} <= {b.label for b in at.button}
+
+
+def test_registrar_spellings_are_merged_before_grouping():
+    import campaigns
+    names = ["Web Commerce Communications Limited dba WebNic.cc", "Web Commerce Communications Ltd.",
+             "Web Commerce Communication Ltd.", "Hosting Concepts B.V. d/b/a Registrar.eu", "Registrar.eu",
+             "Dynadot Inc", "Dynadot, LLC", "Sav.com, LLC - 44", "Sav.com, LLC - 7", "GoDaddy.com, LLC"]
+    k = campaigns.registrar_keys(names)
+    assert len({k[n] for n in names[:3]}) == 1
+    assert k["Registrar.eu"] == k["Hosting Concepts B.V. d/b/a Registrar.eu"]
+    assert k["Dynadot Inc"] == k["Dynadot, LLC"] and k["Sav.com, LLC - 44"] == k["Sav.com, LLC - 7"]
+    assert k["GoDaddy.com, LLC"] != k["Dynadot Inc"]
+    site = lambda d, reg, day: {"domain": d, "url": f"https://{d}/", "score": 60, "source": "cert log", "registrar": reg,
+                                "created": f"2025-10-{day:02d}", "reasons": ["+35 Uses the brand name 'salik' but is not an official salik domain"]}
+    found = campaigns.find([site("salik-a.top", names[0], 1), site("salik-b.top", names[1], 3), site("salik-c.top", names[2], 5)])
+    assert len(found) == 1 and len(found[0]["domains"]) == 3        # one campaign, not three spellings
+
+
+def test_www_and_bare_domain_count_as_one_site(monkeypatch, tmp_path):
+    import db
+    from scorer import score_url
+    monkeypatch.setattr(config, "DB_PATH", tmp_path / "test.db")
+    for url, src in (("www.salik-pay.top", "cert log"), ("salik-pay.top", "cert log"),
+                     ("https://salik-pay.top/", "search"), ("https://www.dubaipolice.gov.ae/#place=p1", "maps"),
+                     ("https://www.dubaipolice.gov.ae/#place=p2", "maps")):
+        db.save(score_url(url.split("#")[0]) | {"url": url}, source=src)
+    assert len(db.all_sites()) == 5
+    urls = sorted(s["url"] for s in db.unique_sites())
+    assert len(urls) == 3                                   # salik-pay.top once; the two Maps listings stay apart
+    assert sum("salik-pay.top" in u for u in urls) == 1
+
+
+def test_punycode_that_shows_a_normal_word_is_not_a_brand_hit():
+    from scorer import score_url
+    saglik = score_url("xn--salik-l1a.com")                       # shows as sağlik.com (Turkish: health)
+    assert not any("brand" in r for r in saglik["reasons"]) and saglik["level"] == "LOW"
+    homograph = "xn--" + "sаlik".encode("punycode").decode() + ".top"  # Cyrillic 'а': looks exactly like salik
+    assert any("'salik'" in r for r in score_url(homograph)["reasons"])
+    bank = score_url("www.xn--emiratesnbdubi-xib.com")           # shows as emiratesnbdubåi.com
+    assert any("'emiratesnbd'" in r for r in bank["reasons"])
+
+
+def test_salik_as_a_first_name_is_not_a_brand_hit():
+    from scorer import score_url
+    assert score_url("salikdev.live")["level"] == "LOW"                 # a developer called Salik
+    assert score_url("salikahmed.com")["score"] == 0
+    assert score_url("salik-pay.top")["level"] in ("MEDIUM", "HIGH")    # scam word: still flagged
+    assert score_url("mysalik-toll.xyz")["level"] in ("MEDIUM", "HIGH")
+    young = score_url("salikdev.live", age_days=5)                       # another warning sign: counts again
+    assert any("'salik'" in r and r.startswith("+") for r in young["reasons"])
+
+
+def test_salik_emirate_counts_as_a_scam_word():
+    from scorer import score_url
+    assert score_url("salik-emirate.cfd")["level"] == "MEDIUM" and score_url("salik-emirates.top")["level"] == "MEDIUM"

@@ -86,6 +86,24 @@ def all_sites():
     return out
 
 
+def site_key(url):
+    """One key per website: 'https://www.example.com/' and 'example.com' are the same site.
+    Maps listings keep their '#place=...' so each listing stays its own row."""
+    from scorer import parse
+    _, host, _, _, rest = parse(url)
+    place = url.split("#", 1)[1] if "#" in url else ""
+    return (host[4:] if host.startswith("www.") else host, rest.rstrip("?").rstrip("/"), place)
+
+
+def unique_sites():
+    """all_sites() with duplicates of the same website merged (for the table and every count):
+    the row with the highest score is kept, and on a tie the one seen first."""
+    best = {}
+    for s in sorted(all_sites(), key=lambda s: (-s["score"], s.get("first_seen") or "")):
+        best.setdefault(site_key(s["url"]), s)
+    return sorted(best.values(), key=lambda s: (-s["score"], s.get("first_seen") or ""), reverse=False)
+
+
 def known_urls():
     with connect() as con:
         return {r[0] for r in con.execute("SELECT url FROM sites")}

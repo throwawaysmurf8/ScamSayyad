@@ -3,7 +3,6 @@
 To change how the scorer behaves, edit this file -- not the logic in scorer.py.
 """
 import os
-import shutil
 from pathlib import Path
 
 ROOT = Path(__file__).parent
@@ -66,20 +65,17 @@ OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b")
 
 # --- Public demo (Streamlit Community Cloud) ---------------------------------
-# Set SCAMSHIELD_PUBLIC = "1" in the cloud app's Secrets. The public site then:
-#   * starts from a copy of real results (data/public_snapshot.db, refreshed by hand);
-#   * lets visitors run the hunters and the Google Maps scan, within the daily limits above. Their results
-#     go into a working copy (data/public_live.db), so the committed snapshot stays clean, and they
-#     disappear when the cloud app restarts;
-#   * lets visitors try "Check a link" without saving anything.
+# Set SCAMSHIELD_PUBLIC = "1" in the cloud app's Secrets. The public site is READ-ONLY:
+#   * it shows a copy of real results (data/public_snapshot.db, refreshed by hand) and never writes to it;
+#   * the hunters, the Google Maps scan and the demo-data buttons are hidden;
+#   * every paid key is switched off (Places, Claude, Gemini), so no visitor can run up costs: Anaq's side
+#     panel shows answers prepared earlier by the local model (tools/make_public_answers.py);
+#   * visitors can still try "Check a link" (free; nothing is saved).
+# The officer's laptop keeps everything.
 PUBLIC_MODE = os.environ.get("SCAMSHIELD_PUBLIC", "") == "1"
 if PUBLIC_MODE:
-    _snapshot = ROOT / "data" / "public_snapshot.db"
-    DB_PATH = ROOT / "data" / "public_live.db"
-    if _snapshot.exists() and (not DB_PATH.exists() or _snapshot.stat().st_mtime > DB_PATH.stat().st_mtime):
-        shutil.copyfile(_snapshot, DB_PATH)  # a newer snapshot was deployed: start again from it
-    # The Gemini key stays: on the public site it powers ONLY Anaq's side-panel chat, within the caps
-    # below. Briefings and reports stay off there (ai.available() is False in public mode).
+    DB_PATH = ROOT / "data" / "public_snapshot.db"
+    PLACES_KEY = ANTHROPIC_API_KEY = GEMINI_API_KEY = ""
 
 # --- Official domains (never flagged) --------------------------------------
 # Matched on the *registered* domain, so "www.rta.ae" and "fines.rta.ae" are official,
@@ -115,6 +111,12 @@ SHORT_BRANDS = ["rta", "fab", "adcb", "adib", "dib", "cbd", "addc", "icp", "moi"
 # before brand matching, so "dewalt-tools.com" is not DEWA and "salikov.dev" is not Salik.
 # Found in our own certificate-log results; mostly surnames (Salikhov, Salikova...).
 # A scam word next to them still counts: "salikov-salik-pay.com" is still flagged.
+# Brands that are also common first names. The brand only counts when the name also has one of these
+# scam words, or the site has another warning sign besides a cheap ending (scorer.score_url step 7).
+NAME_BRANDS = {
+    "salik": ("pay", "toll", "recharge", "account", "fine", "emirate", "online", "payment"),  # "emirate" also matches "emirates"
+}
+
 BRAND_IGNORE_WORDS = [
     "dewalt", "dewan",                                   # DEWA
     "salikov", "salikh", "salikshah", "salikahmad",      # Salik: people's names

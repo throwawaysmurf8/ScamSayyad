@@ -362,7 +362,7 @@ tab_dash, tab_check, tab_hunt, tab_about = st.tabs([T("tab_dash"), T("tab_check"
 
 # ----------------------------------------------------------------------------- Dashboard
 def render_dashboard():
-    sites = db.all_sites()
+    sites = db.unique_sites()
     if not sites:
         st.info(T("no_sites"))
         return
@@ -508,53 +508,53 @@ def allowed_today(kind, cap):
 
 
 with tab_hunt:
-    if config.PUBLIC_MODE:
-        st.info(T("hunt_public", hunts=config.PUBLIC_HUNTS_PER_DAY, maps=config.PUBLIC_MAPS_PER_DAY),
-                icon=":material/info:")
-    with st.container(border=True):
-        st.subheader(T("watcher_title"))
-        st.caption(T("watcher_note"))
-        prefixes = st.multiselect(T("prefixes"), config.CT_PREFIXES, default=["adpolice", "salik", "emiratespost"])
-        days = st.slider(T("days_slider"), 1, 90, config.CT_RECENT_DAYS)
-        if (st.button(T("run_watcher"), type="primary", icon=":material/play_arrow:", disabled=not prefixes)
-                and allowed_today("watcher", config.PUBLIC_HUNTS_PER_DAY)):
-            with st.status(T("watcher_running"), expanded=True) as s:
-                res = ct_watcher.run(prefixes, days, log=st.write)
-                s.update(label=T("watcher_done", n=len(res)), state="complete")
+    if config.PUBLIC_MODE:  # read-only: no hunts, no paid Maps scan, no demo-data buttons
+        st.info(T("hunt_public"), icon=":material/lock:")
+    else:
+        with st.container(border=True):
+            st.subheader(T("watcher_title"))
+            st.caption(T("watcher_note"))
+            prefixes = st.multiselect(T("prefixes"), config.CT_PREFIXES, default=["adpolice", "salik", "emiratespost"])
+            days = st.slider(T("days_slider"), 1, 90, config.CT_RECENT_DAYS)
+            if (st.button(T("run_watcher"), type="primary", icon=":material/play_arrow:", disabled=not prefixes)
+                    and allowed_today("watcher", config.PUBLIC_HUNTS_PER_DAY)):
+                with st.status(T("watcher_running"), expanded=True) as s:
+                    res = ct_watcher.run(prefixes, days, log=st.write)
+                    s.update(label=T("watcher_done", n=len(res)), state="complete")
 
-    with st.container(border=True):
-        st.subheader(T("search_title"))
-        st.caption(T("search_note"))
-        queries = st.multiselect(T("queries"), config.SEARCH_QUERIES, default=config.SEARCH_QUERIES[:2])
-        extra = st.text_input(T("extra_query"), max_chars=100)
-        if (st.button(T("run_search"), type="primary", icon=":material/play_arrow:",
-                      disabled=not (queries or extra.strip()))
-                and allowed_today("search", config.PUBLIC_HUNTS_PER_DAY)):
-            with st.status(T("searching"), expanded=True) as s:
-                res = search_scanner.run(queries + ([extra.strip()] if extra.strip() else []), log=st.write)
-                s.update(label=T("search_done", n=len(res)), state="complete")
+        with st.container(border=True):
+            st.subheader(T("search_title"))
+            st.caption(T("search_note"))
+            queries = st.multiselect(T("queries"), config.SEARCH_QUERIES, default=config.SEARCH_QUERIES[:2])
+            extra = st.text_input(T("extra_query"), max_chars=100)
+            if (st.button(T("run_search"), type="primary", icon=":material/play_arrow:",
+                          disabled=not (queries or extra.strip()))
+                    and allowed_today("search", config.PUBLIC_HUNTS_PER_DAY)):
+                with st.status(T("searching"), expanded=True) as s:
+                    res = search_scanner.run(queries + ([extra.strip()] if extra.strip() else []), log=st.write)
+                    s.update(label=T("search_done", n=len(res)), state="complete")
 
-    with st.container(border=True):
-        st.subheader(T("maps_title"))
-        if config.PLACES_KEY:
-            st.caption(T("maps_note"))
-            if (st.button(T("run_maps"), type="primary", icon=":material/play_arrow:")
-                    and allowed_today("maps", config.PUBLIC_MAPS_PER_DAY)):
-                with st.status(T("maps_running"), expanded=True) as s:
-                    res = maps_scanner.run(log=st.write)
-                    s.update(label=T("maps_done", n=len(res)), state="complete")
-        else:
-            st.caption(T("maps_off"))
+        with st.container(border=True):
+            st.subheader(T("maps_title"))
+            if config.PLACES_KEY:
+                st.caption(T("maps_note"))
+                if (st.button(T("run_maps"), type="primary", icon=":material/play_arrow:")
+                        and allowed_today("maps", config.PUBLIC_MAPS_PER_DAY)):
+                    with st.status(T("maps_running"), expanded=True) as s:
+                        res = maps_scanner.run(log=st.write)
+                        s.update(label=T("maps_done", n=len(res)), state="complete")
+            else:
+                st.caption(T("maps_off"))
 
-    with st.container(border=True):
-        st.subheader(T("demo_title"))
-        st.caption(T("demo_note"))
-        d1, d2, _ = st.columns([1, 1, 2])
-        if d1.button(T("demo_load"), width="stretch"):
-            st.success(T("demo_added", n=load_samples()))
-        if d2.button(T("demo_remove"), width="stretch"):
-            db.delete_samples()
-            st.success(T("demo_removed"))
+        with st.container(border=True):
+            st.subheader(T("demo_title"))
+            st.caption(T("demo_note"))
+            d1, d2, _ = st.columns([1, 1, 2])
+            if d1.button(T("demo_load"), width="stretch"):
+                st.success(T("demo_added", n=load_samples()))
+            if d2.button(T("demo_remove"), width="stretch"):
+                db.delete_samples()
+                st.success(T("demo_removed"))
 
 # ----------------------------------------------------------------------------- About
 W = config.WEIGHTS
@@ -720,7 +720,7 @@ def side_assistant():
             st.text(question)
         try:
             with st.spinner(T("side_thinking_cloud", model=ai.chat_model_name()) if cloud else T("ask_thinking")):
-                sites = db.all_sites()
+                sites = db.unique_sites()
                 data = local_llm.overview_facts(sites, campaigns.find(sites), selected,
                                                 st.session_state.get("selected_campaign"))
                 answer = (ai.chat if cloud else local_llm.chat)(question, history, data, LANG)
@@ -743,7 +743,7 @@ def saved_answers():
     picked = st.pills(T("side_try"), [T("side_q1"), T("side_q2")], key=f"side_saved_{LANG}")
     if not picked:
         return
-    sites = db.all_sites()
+    sites = db.unique_sites()
     answer = db.ai_get(local_llm.saved_key(picked, local_llm.overview_facts(sites, campaigns.find(sites)), LANG))
     with st.chat_message("user", avatar=":material/person:"):
         st.text(picked)

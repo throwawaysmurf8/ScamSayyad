@@ -62,10 +62,32 @@ def decode_punycode(host):
         return None
 
 
+# Letters from other alphabets that look like Latin ones (Cyrillic / Greek homographs).
+_CONFUSABLE = str.maketrans("аеорсуххіјӏԁѕкмтнвαεικνορτυχ", "aeopcyxxijldskmthbaeikvoptux")
+
+
+def _as_seen(host):
+    """For a punycode name, what a victim reads, in plain letters: 'xn--salik-l1a.com' -> 'saglik.com',
+    'xn--slik-5cd.ae' (Cyrillic а) -> 'salik.ae'. None if the name isn't punycode."""
+    import unicodedata
+    shown = decode_punycode(host)
+    if not shown:
+        return None
+    shown = unicodedata.normalize("NFKD", shown.lower().translate(_CONFUSABLE))
+    return "".join(c for c in shown if not unicodedata.combining(c)).replace("ı", "i")
+
+
 def _brand_hits(host, registered):
     """Return (brand, how) for the first imitated brand found in the hostname, else None."""
     if not host:
         return None
+    seen = _as_seen(host)
+    if seen is not None:
+        # Judge a punycode name by what it shows: 'sağlik' (Turkish for 'health') is a normal word, not
+        # 'salik', even though its raw form 'xn--salik-l1a' contains the brand. Only an exact brand in
+        # the shown name counts (no near-miss spellings), so homographs like 'sаlik' are still caught.
+        hit = _brand_hits(seen, registered)
+        return hit if hit and hit[1] == "name" else None
     # Look at everything except the public suffix, e.g. "dubaipolice.gov.ae.pay-fine" for
     # "dubaipolice.gov.ae.pay-fine.xyz"; the brand can hide in a subdomain.
     suffix = _extract(host).suffix
@@ -245,6 +267,18 @@ def score_url(url, text="", age_days=None, safe_browsing_threats=None):
             add(W["new_domain"], f"Domain is young ({age_days} days old)")
     if safe_browsing_threats:
         add(W["safe_browsing_hit"], "Google Safe Browsing lists it as: " + ", ".join(safe_browsing_threats))
+
+    # 7. Brands that are also common first names ("Salik"): the brand only counts when the name has a
+    #    scam word too, or there is another warning sign besides a cheap ending. salikdev.live is
+    #    probably a developer called Salik; salik-pay.top is not.
+    if hit and hit[0] in config.NAME_BRANDS:
+        brand_reason = reasons[0]
+        others = [r for r in reasons[1:] if "domain ending" not in r]
+        name = host.replace(suffix, "") if suffix else host
+        if not others and not any(w in name for w in config.NAME_BRANDS[hit[0]]):
+            score -= int(brand_reason.split()[0])
+            reasons[0] = (f"'{hit[0]}' here may be a person's name (no scam word and no other warning sign), "
+                          "so it adds no points")
 
     score = min(score, 100)
     if not reasons:

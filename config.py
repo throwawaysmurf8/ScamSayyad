@@ -34,7 +34,7 @@ try:
     _from_secrets(_st.secrets)
     if os.environ.get("SCAMSHIELD_PUBLIC") == "1":  # names only, never values: shows in the cloud app's log
         import sys
-        print("[ScamSayyad] secret names found:", sorted(_st.secrets.keys()),
+        print("[Atharalanaq] secret names found:", sorted(_st.secrets.keys()),
               "| keys loaded:", {n: bool(os.environ.get(n)) for n in _KEY_NAMES}, file=sys.stderr)
 except Exception:  # no secrets file (normal on the officer's computer) or no Streamlit
     pass

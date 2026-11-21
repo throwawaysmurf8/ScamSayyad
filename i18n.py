@@ -8,9 +8,10 @@ import re
 
 S = {
     # --- Header ---------------------------------------------------------------
-    "tagline": ("The scam hunter for the UAE. *Sayyad* (صيّاد) means hunter; our mascot **Anaq** "
-                "(عناق الأرض) is the Arabian caracal, the desert's sharp-eared hunter.",
-                "صائد المواقع الاحتيالية في الإمارات. تميمتنا **عناق** (عناق الأرض)، الصيّاد الصحراوي حادّ السمع."),
+    "tagline": ("The scam hunter for the UAE. *Athar al-Anaq* (أثر العناق) means \"the caracal's tracks\": our mascot "
+                "**Anaq** (عناق الأرض), the desert's sharp-eared hunter, follows the trail scammers leave.",
+                "صائد المواقع الاحتيالية في الإمارات. تميمتنا **عناق** (عناق الأرض)، الصيّاد الصحراوي حادّ السمع، "
+                "يتتبّع الأثر الذي يتركه المحتالون."),
     "subtitle": ("Built for the ScamShield AI hackathon (42 Abu Dhabi × Abu Dhabi Police). Hunts for websites impersonating UAE police, government and banks. Scores are leads for "
                  "officer review, not verdicts. Suspicious pages are never opened.",
                  "صُمّم لهاكاثون ScamShield AI (‏42 أبوظبي × شرطة أبوظبي). يبحث عن المواقع التي تنتحل صفة الشرطة والجهات الحكومية والبنوك في الإمارات. النتائج مؤشرات "

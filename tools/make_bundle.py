@@ -18,7 +18,7 @@ keep = [f for f in files if not f.startswith(("data/", "assets/", ".devcontainer
         and (Path(f).suffix in LANG or Path(f).name in LANG)]
 keep.sort(key=lambda f: (f != "README.md", f.count("/"), f))
 
-parts = ["# ScamSayyad (ScamShield UAE) - full project in one file\n\n"
+parts = ["# Atharalanaq (ScamShield UAE) - full project in one file\n\n"
          "Hackathon MVP for ScamShield AI (42 Abu Dhabi + UAE police). Every source file is below, each under its "
          "own heading. The README comes first. API keys, the databases, the trained model file, images and saved "
          "snapshots are not included.\n"]

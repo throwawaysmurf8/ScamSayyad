@@ -1,4 +1,4 @@
-"""ScamSayyad / ScamShield police dashboard (Streamlit), in English and Arabic.
+"""Atharalanaq / ScamShield police dashboard (Streamlit), in English and Arabic.
 
 Start it with run.bat, or:  .venv\\Scripts\\python -m streamlit run app.py --server.address localhost
 
@@ -30,7 +30,7 @@ from enrich import check, check_and_save
 from report import code_span, escape_md
 from scorer import decode_punycode, explain_level, parse, score_url
 
-st.set_page_config(page_title="ScamSayyad · صيّاد الاحتيال", page_icon=str(Path(__file__).parent / "assets" / "caracal.svg"), layout="wide",
+st.set_page_config(page_title="Atharalanaq · أثر العناق", page_icon=str(Path(__file__).parent / "assets" / "caracal.svg"), layout="wide",
                    initial_sidebar_state="expanded")
 
 # Each risk level gets a color AND a shape, so it never relies on color alone.
@@ -45,7 +45,7 @@ LEVELS = {
 # One color per level that reads on BOTH the light and the dark theme (at least 3.9:1 on each).
 HOST_HEADING_CSS = """<style>
 .ss-host { font-size: 1.35rem; font-weight: 600; margin: .25rem 0 .5rem; word-break: break-all; direction: ltr; }
-.ss-HIGH { color: #E53935; } .ss-MEDIUM { color: #C06A00; } .ss-LOW { color: #2E8B3E; }
+.ss-HIGH { color: #E53935; } .ss-MEDIUM { color: #B05F00; } .ss-LOW { color: #2E8B3E; }
 </style>"""
 
 # Wordmark: the brand's one custom moment (Readex Pro is designed for Arabic and Latin together).
@@ -138,7 +138,7 @@ def show_ai_text(text):
     rtl = any("؀" <= ch <= "ۿ" for ch in text)
     st.caption(f":material/smart_toy: **{ai.LABEL['ar' if rtl else 'en']}**")
     st.html(f"<div dir='{'rtl' if rtl else 'ltr'}' style='white-space:pre-wrap;border-inline-start:3px solid "
-            f"#0B6B63;padding:.4rem .8rem;margin-bottom:.3rem'>{html.escape(text)}</div>")
+            f"#B07A4A;padding:.4rem .8rem;margin-bottom:.3rem'>{html.escape(text)}</div>")
     st.caption(T("ai_note"))
 
 
@@ -146,7 +146,7 @@ def show_local_briefing(text):
     """A briefing built on this computer from rules + ML: plain text, labelled, never rendered as links."""
     st.caption(f":material/model_training: **{briefing.LABEL[LANG]}**")
     st.html(f"<div dir='{'rtl' if LANG == 'ar' else 'ltr'}' style='white-space:pre-wrap;border-inline-start:3px "
-            f"solid #0B6B63;padding:.4rem .8rem'>{html.escape(text)}</div>")
+            f"solid #B07A4A;padding:.4rem .8rem'>{html.escape(text)}</div>")
 
 
 ANAQ_AVATAR = str(config.ROOT / "assets" / "caracal_avatar.svg")  # the AI assistant's face
@@ -349,8 +349,8 @@ with head:
     # Our mascot Anaq, the Arabian caracal (our own drawing, assets/caracal.svg). Shown once, small:
     # the brand defers to the content.
     mascot.image(str(config.ROOT / "assets" / "caracal.svg"), width=78)
-    title.html(f"{BRAND_CSS}<div class='ss-brand'><span class='ss-name'>ScamSayyad</span>"
-               f"<span class='ss-name-ar'>صيّاد الاحتيال</span></div>")
+    title.html(f"{BRAND_CSS}<div class='ss-brand'><span class='ss-name'>Atharalanaq</span>"
+               f"<span class='ss-name-ar'>أثر العناق</span></div>")
     title.markdown(T("tagline"))
 st.caption(T("subtitle"))
 

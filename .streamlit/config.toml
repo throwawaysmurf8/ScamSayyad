@@ -14,12 +14,13 @@ gatherUsageStats = false
 # internet with no login.
 toolbarMode = "minimal"
 
-# Look and feel (ScamSayyad). Follows the computer's light/dark setting.
-# - Teal is the ONLY action colour; red / orange / green are kept for risk levels only, and the caracal's
-#   tawny gold lives only in the mascot artwork, so a colour never means two things.
+# Look and feel (Atharalanaq): desert colours. Follows the computer's light/dark setting.
+# - Light = sand by day, dark = the desert at night. Plain colours only, no pictures.
+# - Date-palm brown (light) / dune gold (dark) is the ONLY action colour; red / orange / green are kept
+#   for risk levels only, so a colour never means two things.
 # - Readex Pro (headings) and IBM Plex Sans Arabic (body) are designed for Arabic AND Latin, so English
 #   and Arabic look like one product. If the fonts can't load (offline), the system font is used.
-# - Every text colour passes WCAG AA: light 15.6-17.6:1, dark 14.0-15.7:1; teal 5.7-9.3:1.
+# - Every text colour passes WCAG AA: light 12.8-14.8:1, dark 13.7-15.1:1; action colour 5.4-9.7:1.
 [theme]
 baseRadius = "0.75rem"
 buttonRadius = "0.6rem"
@@ -29,17 +30,17 @@ codeFont = "monospace"   # domains and URLs show in monospace, like evidence lab
 showWidgetBorder = true
 
 [theme.light]
-primaryColor = "#0B6B63"             # teal: 6.4:1 on white, 5.7:1 on sand
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F4F1EA" # warm sand, from the caracal's desert
-textColor = "#17191C"                # 17.6:1
-borderColor = "#E2DDD2"
-dataframeHeaderBackgroundColor = "#F4F1EA"
+primaryColor = "#8A4B1F"             # date-palm brown: 6.2:1 on sand, 5.4:1 on dune
+backgroundColor = "#FAF5EC"          # pale sand
+secondaryBackgroundColor = "#F0E4CF" # dune
+textColor = "#2B1F14"                # dark earth: 14.8:1
+borderColor = "#DCCBAE"
+dataframeHeaderBackgroundColor = "#F0E4CF"
 
 [theme.dark]
-primaryColor = "#5CC8BB"             # teal: 9.3:1 on the night background
-backgroundColor = "#0F1315"          # desert night
-secondaryBackgroundColor = "#191F22"
-textColor = "#E9ECEB"                # 15.7:1
-borderColor = "#2B3438"
-dataframeHeaderBackgroundColor = "#191F22"
+primaryColor = "#E2B574"             # dune gold: 9.7:1 on the night background
+backgroundColor = "#18130F"          # desert night
+secondaryBackgroundColor = "#241C15"
+textColor = "#F1E7D6"                # moonlit sand: 15.1:1
+borderColor = "#3C3026"
+dataframeHeaderBackgroundColor = "#241C15"

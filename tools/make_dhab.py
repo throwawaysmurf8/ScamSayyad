@@ -1,4 +1,4 @@
-"""Run:  .venvScriptspython toolsmake_dhab.py assetsdhab.svg
+"""Run:  .venv/Scripts/python tools/make_dhab.py assets/dhab.svg
 
 Draws Dhab, the ScamSayyad mascot: an Arabian spiny-tailed lizard seen from above,
 legs splayed, holding a magnifying glass in its front foot. Writes assets/dhab.svg."""

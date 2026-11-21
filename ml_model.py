@@ -74,6 +74,17 @@ def available():
     return _load() is not None
 
 
+def examples():
+    """How many public examples the model learned from (for the dashboard), from data/ml/metrics.json."""
+    import json
+    path = MODEL_PATH.parent / "metrics.json"
+    try:
+        e = json.loads(path.read_text(encoding="utf-8"))["examples"]
+        return e["phishing"] + e["safe"]
+    except (OSError, KeyError, ValueError):
+        return 0
+
+
 def score_hosts(urls_or_hosts):
     """ML scores (0-100) for many websites at once, or None for each if there is no model."""
     model = _load()

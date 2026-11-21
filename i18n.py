@@ -78,6 +78,18 @@ S = {
     "col_age_help": ("'unknown' when the registry did not say", "«غير معروف» عندما لا يذكر السجل التاريخ"),
     "col_first": ("First seen", "أول ظهور"), "col_url": ("Full URL", "الرابط الكامل"),
     "col_ml": ("ML second opinion", "رأي ثانٍ (تعلّم آلي)"),
+    "src_ml": ("ML second opinion", "رأي ثانٍ (تعلّم آلي)"),
+    "card_ml": ("ML also flags", "التعلّم الآلي يشير أيضاً"),
+    "card_ml_help": ("Of the real sites shown, how many the machine-learning model also finds scam-like (50% or "
+                     "more). It reads only the website name and never changes the rule score.",
+                     "من المواقع الحقيقية المعروضة، كم موقعاً يراه نموذج التعلّم الآلي مشبوهاً أيضاً (50٪ أو أكثر). "
+                     "يقرأ اسم الموقع فقط ولا يغيّر نتيجة القواعد."),
+    "ml_table_note": (":material/model_training: **ML second opinion** column: a machine-learning model trained on "
+                      "{n:,} public examples rates how scam-like each website name looks (0–100%). It agrees with the "
+                      "rules on **{agree}%** of the sites shown. The rule score stays the main verdict.",
+                      ":material/model_training: عمود **الرأي الثاني (تعلّم آلي)**: نموذج تعلّم آلي مدرَّب على {n:,} مثالاً "
+                      "عاماً يقيّم مدى تشابه اسم كل موقع مع أسماء الاحتيال (0–100٪). يتفق مع القواعد في **{agree}٪** من "
+                      "المواقع المعروضة. تبقى نتيجة القواعد هي الحكم الرئيسي."),
     "col_ml_help": ("How scam-like the website NAME looks to a machine-learning model trained on public phishing "
                     "data (0–100%). A second opinion only: it never changes the rule-based score.",
                     "مدى تشابه اسم الموقع مع مواقع الاحتيال وفق نموذج تعلّم آلي مدرَّب على بيانات تصيّد عامة (0–100٪). "

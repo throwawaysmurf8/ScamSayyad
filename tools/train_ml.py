@@ -7,7 +7,9 @@ Training data (free public lists; only the LISTS are downloaded, no website in t
   * PhiUSIIL Phishing URL dataset, UCI Machine Learning Repository, CC BY 4.0:
     ~101k phishing + ~135k legitimate URLs. Credit: Prasad, A. & Chandra, S. (2024). PhiUSIIL
     Phishing URL (Website) [Dataset]. UCI ML Repository. https://doi.org/10.1016/j.cose.2023.103545
-  * Tranco top sites list (https://tranco-list.eu), top 100,000, as extra safe examples.
+  * Tranco top sites list (https://tranco-list.eu), top 100,000, as extra safe examples, PLUS every
+    UAE (.ae) site in Tranco's full top 1 million, so the model learns what normal UAE names look
+    like. The official UAE sites in config.py are left out on purpose: they are the fair UAE test.
     Non-commercial use with credit to Tranco and its sources (Le Pochat et al., NDSS 2019).
   OpenPhish is NOT used: its terms forbid security operations and building products from its feed.
 
@@ -57,12 +59,21 @@ def load_lists():
                 host = ml_model.host_of(row["URL"])
                 if host:
                     (safe if row["label"].strip() == "1" else phish).add(host)  # dataset: 1 = legitimate
+    import config
+    official = {ml_model.host_of(d) for d in config.OFFICIAL_DOMAINS}
+    uae = 0
     with zipfile.ZipFile(RAW / "tranco.zip") as z:
         with z.open(z.namelist()[0]) as f:
             for i, line in enumerate(io.TextIOWrapper(f, encoding="utf-8")):
-                if i >= TRANCO_TOP:
-                    break
-                safe.add(ml_model.host_of(line.strip().split(",", 1)[1]))
+                host = ml_model.host_of(line.strip().split(",", 1)[1])
+                if i < TRANCO_TOP:
+                    safe.add(host)
+                elif host.endswith(".ae"):      # UAE context: genuine .ae sites from the whole top 1M
+                    safe.add(host)
+                    uae += 1
+    held_out = {h for h in safe if h in official or any(h.endswith("." + o) for o in official)}
+    safe -= held_out                            # official UAE sites stay unseen: they are the fair UAE test
+    print(f"UAE context: {uae:,} extra .ae sites from Tranco's top 1M; {len(held_out)} official sites kept out")
     both = phish & safe  # a name in both lists is ambiguous: leave it out
     phish, safe = phish - both, safe - both
     print(f"examples: {len(phish):,} phishing, {len(safe):,} safe ({len(both):,} ambiguous left out)")
@@ -132,7 +143,8 @@ def main():
         "held_back_test": held_back, "uae_check": uae_check(ml_model.score_hosts),
         "seconds": round(time.time() - t0), "threshold": 50,
         "sources": ["PhiUSIIL Phishing URL dataset (UCI ML Repository, CC BY 4.0), Prasad & Chandra 2024",
-                    f"Tranco top {TRANCO_TOP:,} sites (tranco-list.eu), Le Pochat et al. NDSS 2019"],
+                    f"Tranco top {TRANCO_TOP:,} sites plus all .ae sites in its top 1M (tranco-list.eu), "
+                    "Le Pochat et al. NDSS 2019"],
     }
     (OUT / "metrics.json").write_text(json.dumps(metrics, indent=2, ensure_ascii=False), encoding="utf-8")
     print(json.dumps({k: v for k, v in metrics.items() if k != "uae_check"}, indent=2))

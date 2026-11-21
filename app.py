@@ -283,6 +283,7 @@ with status:
         st.markdown(" ".join([_source_badge(T("src_ct"), True), _source_badge(T("src_search"), True),
                               _source_badge(T("src_sb"), config.SAFE_BROWSING_KEY),
                               _source_badge(T("src_maps"), config.PLACES_KEY),
+                              _source_badge(T("src_ml"), ml_model.available()),
                               _source_badge(T("src_ai"), ai.available())]))
 if LANG == "ar":
     st.html(RTL_CSS)
@@ -322,13 +323,17 @@ def render_dashboard():
 
     # The cards count exactly the REAL sites the table shows (same slider and sources). Never demo rows.
     shown_real = real[(real.score >= min_score) & real.source.isin(chosen)]
+    shown_ml = [None if is_official(r) else m for r, m in zip(shown_real.reasons, ml_for(list(shown_real.url)))]
     with cards:
-        c1, c2, c3, c4 = st.columns(4)
+        c1, c2, c3, c4, c5 = st.columns(5) if ml_model.available() else (*st.columns(4), None)
         c1.metric(f":red[▲] {T('card_high')}", int((shown_real.level == "HIGH").sum()), border=True)
         c2.metric(f":orange[◆] {T('card_medium')}", int((shown_real.level == "MEDIUM").sum()), border=True)
         c3.metric(T("card_google"), int(shown_real.safe_browsing.fillna("").str.contains("_").sum()),
                   border=True, help=T("card_google_help"))
         c4.metric(T("card_shown"), len(shown_real), border=True)
+        if c5 is not None:
+            c5.metric(f":material/model_training: {T('card_ml')}", sum(1 for m in shown_ml if m is not None and m >= 50),
+                      border=True, help=T("card_ml_help"))
         st.caption(T("cards_note", min_score=min_score, total=len(real)))
 
     view = df[(df.score >= min_score) & (df.source.isin(chosen) | (is_demo & show_samples))]
@@ -350,6 +355,10 @@ def render_dashboard():
     else:
         table = table[["score", "level", "ml", "host", "brand", "why", "source", "age_days", "first_seen", "url"]]
 
+    if ml_model.available():
+        pairs = [(s >= config.MEDIUM_RISK, m >= 50) for s, m in zip(shown_real.score, shown_ml) if m is not None]
+        agree = round(100 * sum(a == b for a, b in pairs) / len(pairs)) if pairs else 0
+        st.caption(T("ml_table_note", n=ml_model.examples(), agree=agree))
     st.markdown(T("n_match", n=len(view)))
     event = st.dataframe(
         table, hide_index=True, width="stretch", height=420, on_select="rerun", selection_mode="single-row",

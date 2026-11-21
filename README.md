@@ -285,17 +285,19 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
   score**. It is hidden for official, allowlisted sites, and disappears if `data/ml/model.npz` is missing.
   - **Training data (lists only; no site in them is opened):** the PhiUSIIL Phishing URL dataset
     (UCI ML Repository, CC BY 4.0; Prasad & Chandra 2024, https://doi.org/10.1016/j.cose.2023.103545)
-    and the Tranco top 100,000 sites (tranco-list.eu; non-commercial, credit to Tranco and its sources,
-    Le Pochat et al., NDSS 2019). OpenPhish is not used: its terms forbid security operations and
+    and the Tranco top 100,000 sites plus all 718 UAE (.ae) sites in its top million, so it learns what
+    normal UAE names look like (tranco-list.eu; non-commercial, credit to Tranco and its sources,
+    Le Pochat et al., NDSS 2019). The official UAE sites are kept out of training so they stay a fair test.
+    No public UAE *phishing* list with a licence that allows this was found. OpenPhish is not used: its terms forbid security operations and
     building products from its feed. URLhaus needs an account and lists mostly malware downloads.
   - **Fair test (21 Nov 2026):** 20% of sites were held back, grouped by domain so the model never saw
-    them. It **caught 67% of phishing sites** (8,817 of 13,209) and **wrongly flagged 5.9% of safe sites**
-    (2,618 of 44,643). Fair, not great: it only sees the name, and many phishing pages live on
+    them. It **caught 70% of phishing sites** (10,213 of 14,625) and **wrongly flagged 6.0% of safe sites**
+    (2,705 of 44,892). Fair, not great: it only sees the name, and many phishing pages live on
     normal-looking names (hacked sites, free hosting).
-  - **On our UAE data:** it flagged all 4 Google-confirmed phishing sites (58–100%) and 10 of 12 sample
-    scams (it missed the punycode name and the bit.ly link, which the rules catch). But it also gave 4 of
-    27 official UAE sites 50% or more (salik.ae, darb.ae, etihadwe.ae, emiratesnbd.com), so it is shown
-    only as a second opinion.
+  - **On our UAE data:** it flagged all 4 Google-confirmed phishing sites (54–100%) and 9 of 12 sample
+    scams (it missed the punycode name, the bit.ly link and dubaipolise.com, which the rules catch). Adding
+    the UAE sites cut false alarms on official UAE sites from 4 of 27 to **1 of 27** (only emiratesnbd.com
+    still scores 50%+), and the dashboard hides the ML score on official sites anyway.
   - **Retrain:** `.venv\Scripts\python -I tools/train_ml.py --download` (about 2 minutes, no GPU).
     Results go to `data/ml/metrics.json`; the "How it works" tab shows them.
 - **Planned: a deep-learning model trained on UAE-specific, officer-confirmed data**, so it learns local

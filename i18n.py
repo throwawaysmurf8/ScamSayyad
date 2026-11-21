@@ -13,7 +13,7 @@ S = {
                 "صائد المواقع الاحتيالية في الإمارات. تميمتنا **عناق** (عناق الأرض)، الصيّاد الصحراوي حادّ السمع."),
     "subtitle": ("Built for Abu Dhabi Police. Hunts for websites impersonating UAE police, government and banks. Scores are leads for "
                  "officer review, not verdicts. Suspicious pages are never opened.",
-                 "يبحث عن المواقع التي تنتحل صفة الشرطة والجهات الحكومية والبنوك في الإمارات. النتائج مؤشرات "
+                 "صُمّم لشرطة أبوظبي. يبحث عن المواقع التي تنتحل صفة الشرطة والجهات الحكومية والبنوك في الإمارات. النتائج مؤشرات "
                  "يراجعها الضابط، وليست أحكاماً. لا تُفتح الصفحات المشبوهة أبداً."),
     "language": ("Language", "اللغة"),
     "src_ct": ("Certificate logs", "سجلات الشهادات"),

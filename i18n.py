@@ -139,6 +139,12 @@ S = {
                            "يبقى التقرير الإنجليزي أولاً، ويُضاف التقرير نفسه بالعربية أسفله. يُبنى من قوالب ثابتة "
                            "بالحقائق نفسها، دون الحاجة إلى الذكاء الاصطناعي."),
     "briefing_title": ("Officer briefing", "ملخص للضابط"),
+    "ask_title": ("Ask Dhab", "اسأل ضب"),
+    "ask_pick": ("Pick a question", "اختر سؤالاً"),
+    "ask_label": ("Answer calculated from our data (rules + ML), no AI service", "إجابة محسوبة من بياناتنا (قواعد + تعلّم آلي)، دون خدمة ذكاء اصطناعي"),
+    "ask_free": ("Questions in your own words would need a language model (LLM); these set questions are answered "
+                 "exactly from our data.",
+                 "الأسئلة بصيغتك الخاصة تحتاج إلى نموذج لغوي (LLM)؛ أما هذه الأسئلة الجاهزة فتُجاب بدقة من بياناتنا."),
     "translating": ("Translating the report with Gemini...", "جارٍ ترجمة التقرير عبر Gemini..."),
 
     # --- AI ---------------------------------------------------------------------

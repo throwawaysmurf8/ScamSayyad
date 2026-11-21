@@ -99,3 +99,75 @@ def score_hosts(urls_or_hosts):
 
 def score(url_or_host):
     return score_hosts([url_or_host])[0]
+
+
+NUMBER_NAMES = {"en": ["name length", "number of dots", "number of hyphens", "number of digits", "share of digits",
+                       "randomness of the letters", "longest part of the name", "punycode (xn--)", "raw IP address"],
+                "ar": ["طول الاسم", "عدد النقاط", "عدد الشرطات", "عدد الأرقام", "نسبة الأرقام", "عشوائية الحروف",
+                       "أطول جزء في الاسم", "ترميز punycode ‏(xn--)", "عنوان IP مباشر"]}
+
+
+def _readable(chunk, lang):
+    """'^sal' -> "starts with 'sal'", 'top$' -> "ends with 'top'"."""
+    starts, ends = chunk.startswith("^"), chunk.endswith("$")
+    core = chunk.strip("^$")
+    if lang == "ar":
+        return f"يبدأ بـ '{core}'" if starts else f"ينتهي بـ '{core}'" if ends else f"'{core}'"
+    return f"starts with '{core}'" if starts else f"ends with '{core}'" if ends else f"'{core}'"
+
+
+def explain(url_or_host, top=4, lang="en"):
+    """Why the model gave this score: the parts of the name (and counts) that pushed it towards
+    'scam' or towards 'safe'. A linear model can be read exactly like this: each piece adds or
+    subtracts a fixed amount. Returns None when there is no model."""
+    from sklearn.utils import murmurhash3_32
+    model = _load()
+    if model is None:
+        return None
+    host = host_of(url_or_host)
+    text = "^" + host + "$"
+    X, _, _ = features([host], model["mean"], model["std"])
+    row = X.toarray()[0]
+    effect = row * model["coef"]
+    pieces = {}
+    for n in (3, 4, 5):
+        for i in range(len(text) - n + 1):
+            g = text[i:i + n]
+            pieces[g] = float(effect[abs(murmurhash3_32(g, seed=0)) % N_FEATURES])
+    numbers = [(NUMBER_NAMES[lang][j], float(effect[N_FEATURES + j])) for j in range(len(NUMBER_NAMES["en"]))]
+
+    def pick(items, positive):
+        chosen = []
+        for g, v in sorted(items, key=lambda kv: -kv[1] if positive else kv[1]):
+            if (v > 0) != positive or abs(v) < 0.05:
+                break
+            if any(g.strip("^$") in c.strip("^$") or c.strip("^$") in g.strip("^$") for c, _ in chosen):
+                continue  # skip overlapping chunks ("to", "top", "top$"): keep the strongest one
+            chosen.append((g, v))
+            if len(chosen) == top:
+                break
+        return chosen
+
+    def strength(v):
+        a = abs(v)
+        if lang == "ar":
+            return "قوي" if a >= 1 else "متوسط" if a >= 0.4 else "خفيف"
+        return "strong" if a >= 1 else "medium" if a >= 0.4 else "slight"
+
+    up = [(_readable(g, lang), strength(v)) for g, v in pick(pieces.items(), True)]
+    down = [(_readable(g, lang), strength(v)) for g, v in pick(pieces.items(), False)]
+    nums_up = [(n, strength(v)) for n, v in sorted(numbers, key=lambda x: -x[1]) if v >= 0.2][:2]
+    nums_down = [(n, strength(v)) for n, v in sorted(numbers, key=lambda x: x[1]) if v <= -0.2][:2]
+    return {"host": host, "score": score(host), "towards_scam": up + nums_up, "towards_safe": down + nums_down}
+
+
+def similar(url_or_host, candidates, k=5):
+    """The k candidate websites whose NAMES look most alike (shared letter chunks), with a 0-100 similarity."""
+    if not candidates:
+        return []
+    host = host_of(url_or_host)
+    hosts = [host_of(c) for c in candidates]
+    v = _vectorizer()
+    sims = (v.transform(["^" + h + "$" for h in hosts]) @ v.transform(["^" + host + "$"]).T).toarray()[:, 0]
+    order = [i for i in sims.argsort()[::-1] if hosts[i] != host]
+    return [(candidates[i], int(round(100 * sims[i]))) for i in order[:k]]

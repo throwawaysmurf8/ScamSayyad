@@ -69,6 +69,17 @@ internet and no cost, every line comes from a fixed template, and no score is ch
 panel's **Add Arabic version** switch adds the same report in Arabic below the English one, built from
 templates (`report.build_ar`) with the scorer's reasons translated (`i18n.py`).
 
+### Ask Dhab: the assistant
+
+Each flagged site's card has an **Ask Dhab** box with six set questions: *Why does the ML agree or
+disagree with the rules? Why did the rules give this score? Which other sites look like this one?
+What would change the risk level? What should I do first? How sure can we be?* Every answer is
+calculated from our data (`assistant.py`), so it is exact and explainable. Because the ML is a simple
+linear model, it can show which parts of a name pushed it towards "scam" or "safe" (`ml_model.explain`),
+and "similar sites" compares names by their shared letter chunks (`ml_model.similar`). Questions typed
+freely in your own words would need a language model (an LLM): Gemini, or a free model run on this
+laptop with a tool such as Ollama.
+
 ## AI briefings with Gemini (optional, currently off)
 
 On each flagged site, and on each possible campaign, an **AI briefing** button asks Google's Gemini
@@ -162,7 +173,7 @@ To refresh the public results later, copy `data/scamshield.db` over `data/public
 
 | Feature | Status | Data source | Key needed? |
 |---|---|---|---|
-| 1. Scoring engine: brand look-alikes, cheap domain endings, short links, no HTTPS, scam words, urgent SMS wording | Working, 41 automated tests | Built in | No |
+| 1. Scoring engine: brand look-alikes, cheap domain endings, short links, no HTTPS, scam words, urgent SMS wording | Working, 45 automated tests | Built in | No |
 | 1b. Domain age, registrar, abuse e-mail | Working | RDAP (rdap.org); UAE WHOIS (whois.nic.ae) for .ae | No |
 | 1c. Google Safe Browsing | Working, tested live with a real key (`enrich.py --test-key`); skipped cleanly without a key | Google Safe Browsing v4 | Free key |
 | 2. New-domain watcher | Working | crt.sh certificate logs | No |
@@ -322,6 +333,7 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
 | `ml_model.py` | The ML second opinion: turns a website name into letter chunks and counts, and scores it 0–100% with the trained model in `data/ml/model.npz` (numbers only, no code). |
 | `tools/train_ml.py` | Downloads the public training lists, trains the ML model with a fair held-back test, checks it on our UAE data, and saves `data/ml/model.npz` and `data/ml/metrics.json`. |
 | `briefing.py` | The officer briefing (5 lines) for a site or a campaign, built from the rule findings, the campaign and the ML second opinion. No AI service. |
+| `assistant.py` | "Ask Dhab": answers six set questions about a site from our rules, the ML model, campaigns and the database. |
 | `i18n.py` | Every screen text in English and Arabic, plus Arabic versions of the scorer's reasons (for display only). |
 | `report.py` | Feature 4b. Builds the takedown report, offered only for MEDIUM and HIGH sites: target, reasons, registration details, the registrar's abuse contact and where to send it (registrar, Google Safe Browsing, UAE eCrime). For sites on free hosting platforms (workers.dev, vercel.app ...) it says to report to the platform instead. |
 | `maps_scanner.py` | Feature 5 (stretch). Searches Google Maps for fake "customer service" listings and checks each listing's website and phone number (fake listings often link the real website but show the scammer's number). Each listing is its own row. Its takedown report asks Google to remove the listing. It only runs with a `GOOGLE_PLACES_KEY`, and each search is a paid request. |

@@ -470,3 +470,44 @@ def test_arabic_report_is_built_without_ai_and_sits_below_english():
     both = report.with_arabic(english, arabic, ai_generated=False)
     assert both.index("Takedown request") < both.index("طلب إزالة")
     assert "AI-generated" not in both                                # nothing AI-written here
+
+
+# ---------------------------------------------------------------- Ask Dhab (assistant) + ML explanation, offline
+def test_ml_explains_itself_with_parts_of_the_name(monkeypatch, tmp_path):
+    ml = _tiny_model(monkeypatch, tmp_path)
+    e = ml.explain("https://verify-account-login.top")
+    assert e["score"] == ml.score("verify-account-login.top")
+    assert e["towards_scam"]                                                 # name parts or counts pushed it up
+    assert all(s in ("strong", "medium", "slight") for _, s in e["towards_scam"] + e["towards_safe"])
+    ml_ar = ml.explain("https://verify-account-login.top", lang="ar")
+    assert all(s in ("قوي", "متوسط", "خفيف") for _, s in ml_ar["towards_scam"] + ml_ar["towards_safe"])
+
+
+def test_similar_sites_finds_look_alike_names(monkeypatch, tmp_path):
+    ml = _tiny_model(monkeypatch, tmp_path)
+    found = ml.similar("salik-pay-now.top", ["https://salik-pay-now.xyz", "https://wikipedia.org", "https://salik-pay-now.top"])
+    assert found[0][0] == "https://salik-pay-now.xyz" and found[0][1] > found[1][1]
+    assert all(u != "https://salik-pay-now.top" for u, _ in found)            # never itself
+
+
+def test_ask_dhab_answers_every_question_in_both_languages(monkeypatch, tmp_path):
+    import assistant
+    _tiny_model(monkeypatch, tmp_path)
+    site = _flagged_site(); before = dict(site)
+    others = [dict(_flagged_site(), url="https://salik-pay.xyz/x", source="cert log")]
+    for key in assistant.QUESTIONS:
+        for lang in ("en", "ar"):
+            assert assistant.answer(key, site, None, others, lang).strip()
+    assert site == before                                                      # answers never change the site
+    assert "rules" in assistant.answer("why_ml", site, None, others)
+    assert "salik-pay.xyz" in assistant.answer("similar", site, None, others)
+
+
+def test_ask_dhab_does_not_use_ml_for_maps_listings_or_official_sites(monkeypatch, tmp_path):
+    import assistant
+    from scorer import score_listing
+    _tiny_model(monkeypatch, tmp_path)
+    listing = score_listing("Dubai Police Help", "+91 95177 56947", "https://www.dubaipolice.gov.ae/"); listing["source"] = "maps"
+    assert "phone" in assistant.answer("why_ml", listing)
+    official = score_url("https://www.dubaipolice.gov.ae")
+    assert "official" in assistant.answer("why_ml", official)

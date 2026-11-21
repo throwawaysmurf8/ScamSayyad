@@ -12,6 +12,7 @@ import pandas as pd
 import streamlit as st
 
 import ai
+import assistant
 import briefing
 import campaigns
 import config
@@ -134,6 +135,19 @@ def show_local_briefing(text):
     st.caption(f":material/model_training: **{briefing.LABEL[LANG]}**")
     st.html(f"<div dir='{'rtl' if LANG == 'ar' else 'ltr'}' style='white-space:pre-wrap;border-inline-start:3px "
             f"solid #0B6B63;padding:.4rem .8rem'>{html.escape(text)}</div>")
+
+
+def ask_dhab(site, campaign, sites):
+    """'Ask Dhab': set questions about this site, answered exactly from our data (rules + ML)."""
+    labels = {k: v[1 if LANG == "ar" else 0] for k, v in assistant.QUESTIONS.items()}
+    choice = st.pills(T("ask_pick"), list(labels), format_func=labels.get, key=f"ask_{site['url']}_{LANG}",
+                      label_visibility="collapsed")
+    if choice:
+        st.caption(f":material/model_training: **{T('ask_label')}**")
+        text = assistant.answer(choice, site, campaign, sites, LANG)
+        st.html(f"<div dir='{'rtl' if LANG == 'ar' else 'ltr'}' style='white-space:pre-wrap;border-inline-start:3px "
+                f"solid #0B6B63;padding:.4rem .8rem'>{html.escape(text)}</div>")  # plain text, never links
+    st.caption(T("ask_free"))
 
 
 def ai_briefing_block(kind, key, **args):
@@ -394,6 +408,9 @@ def render_dashboard():
                 with st.container(border=True):
                     st.markdown(f":material/assignment: **{T('briefing_title')}**")
                     ai_briefing_block("site", key=f"ai_site_{site['url']}", site=site, campaign=in_campaign)
+            with st.container(border=True):
+                st.markdown(f"🦎 **{T('ask_title')}**")
+                ask_dhab(site, in_campaign, sites)
             with st.container(border=True):
                 st.markdown(T("report_title"))
                 if report.is_reportable(site):

@@ -700,6 +700,7 @@ def test_side_chat_uses_claude_haiku_low_effort(monkeypatch, tmp_path):
     assert answer == "salik campaign first."
     k = sent[0]
     assert k["model"] == "claude-haiku-5-5" and k["output_config"] == {"effort": "low"}
+    assert k["thinking"] == {"type": "disabled"} and k["max_tokens"] <= 400  # no hidden reasoning tokens
     assert "untrusted" in k["system"] and "maximum signal" in k["system"]      # same rules + terse style
     assert [m["role"] for m in k["messages"]] == ["user", "assistant", "user"]  # remembers the last answer
     assert "fake-key-for-tests" not in str(k)
@@ -719,3 +720,28 @@ def test_daily_limits_stop_at_the_cap(monkeypatch, tmp_path):
     monkeypatch.setattr(limits, "FILE", tmp_path / "usage.json")
     assert [limits.take("maps", 3) for _ in range(4)] == [True, True, True, False]  # 4th scan refused
     assert limits.take("hunts", 20)                                                # other limits unaffected
+
+
+def test_briefings_fall_back_to_claude_when_the_local_model_is_off(monkeypatch, tmp_path):
+    """Showcase safety net: with Ollama off and an Anthropic key, briefings come from Claude (faked)."""
+    import types
+    import anthropic
+    import ai
+    import local_llm
+    monkeypatch.setattr(config, "DB_PATH", tmp_path / "test.db")
+    monkeypatch.setattr(config, "ANTHROPIC_API_KEY", "fake-key-for-tests")
+    monkeypatch.setattr(ai, "_local_check", [-1e9, False])
+    monkeypatch.setattr(local_llm, "available", lambda timeout=1.0: False)
+    sent = []
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            self.messages = types.SimpleNamespace(create=lambda **k: sent.append(k) or types.SimpleNamespace(
+                stop_reason="end_turn", content=[types.SimpleNamespace(type="text", text="Brand: Salik.")]))
+
+    monkeypatch.setattr(anthropic, "Anthropic", FakeClient)
+    assert ai.engine() == "claude-haiku-5-5" and ai.available()
+    assert ai.site_briefing(_flagged_site(), generate=True) == "Brand: Salik."
+    assert sent[0]["thinking"] == {"type": "disabled"}
+    assert ai.site_briefing(_flagged_site()) == "Brand: Salik."   # saved, shown again without a new call
+    assert len(sent) == 1

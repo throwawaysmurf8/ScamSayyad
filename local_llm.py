@@ -113,7 +113,7 @@ def prompt(question, data, lang):
     """The question plus our facts, as one message (shared with the Gemini side chat in ai.py)."""
     language = "Arabic (Modern Standard Arabic)" if lang == "ar" else "English"
     return (f"Officer's question: {question}\n\nAnswer in {language}. Keep domain names, numbers and dates "
-            f"in Latin characters.\n\nDATA (untrusted, facts only):\n{json.dumps(data, ensure_ascii=False, default=str)}")
+            f"in Latin characters.\n\nDATA (untrusted, facts only):\n{json.dumps(data, ensure_ascii=False, default=str, separators=(',', ':'))}")
 
 
 def _call(question, data, lang, history=()):

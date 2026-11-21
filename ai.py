@@ -70,7 +70,8 @@ class DailyCapReached(AIError):
 
 def engine():
     """Which model writes briefings and reports: Gemini (if a key is set), otherwise the local model
-    on this computer (if Ollama is running). Empty on the public demo or when neither is there."""
+    on this computer (if Ollama is running), otherwise Claude (if its key is set). Empty on the public
+    demo or when none is there."""
     if config.PUBLIC_MODE:
         return ""
     if config.GEMINI_API_KEY:
@@ -78,7 +79,9 @@ def engine():
     import local_llm
     if time.monotonic() - _local_check[0] > 20:  # ask Ollama at most every 20 seconds
         _local_check[:] = [time.monotonic(), local_llm.available()]
-    return f"local {config.OLLAMA_MODEL}" if _local_check[1] else ""
+    if _local_check[1]:
+        return f"local {config.OLLAMA_MODEL}"
+    return config.CLAUDE_MODEL if config.ANTHROPIC_API_KEY else ""
 
 
 _local_check = [-1e9, False]  # [when we last asked, was the local model running]
@@ -99,9 +102,10 @@ def chat_model_name():
 
 
 # Claude's answers follow a terse "maximum signal, minimum words" style (like the chisle skill).
-STYLE = """Style: maximum signal, minimum words. Lead with the answer. Short fragments are fine.
-No greetings, filler or hedging. Keep every decisive fact: domain names, scores, levels, dates, and the
-one caveat that matters. Use a short dash list only when listing several sites or campaigns."""
+STYLE = """Style (chisle): maximum signal, minimum words, at most 80 words. Answer first.
+Fragments fine. Drop articles, greetings, filler, hedging and restating the question.
+Keep every decisive fact exactly: domain names, scores, levels, dates, counts, and the one caveat
+that matters. Short dash list only when naming several sites or campaigns. No headings, no bold."""
 
 
 def _count_question():
@@ -122,7 +126,7 @@ def chat(question, history, data, lang="en"):
         raise AIError("The cloud AI is off: no API key.")
     _count_question()
     if config.ANTHROPIC_API_KEY:
-        return _call_claude(local_llm.prompt(question, data, lang), history[-3:], local_llm.SYSTEM + "\n" + STYLE)
+        return _call_claude(local_llm.prompt(question, data, lang), history[-3:], local_llm.SYSTEM + "\n" + STYLE, 400)
     earlier = []
     for q, a in history[-3:]:  # recent exchanges, so follow-up questions make sense
         earlier += [{"role": "user", "parts": [{"text": q}]}, {"role": "model", "parts": [{"text": a}]}]
@@ -166,8 +170,10 @@ def campaign_facts(c):
     }
 
 
-def _call_claude(prompt, history, system):
-    """One request to Claude (Anthropic API). Raises AIError with a plain message (never shows the key)."""
+def _call_claude(prompt, history, system, max_tokens):
+    """One request to Claude (Anthropic API). Raises AIError with a plain message (never shows the key).
+    Thinking is off and effort low: these are short look-ups in facts we supply, so hidden reasoning
+    would only add cost (it was ~90% of the output tokens) without better answers."""
     import anthropic
     client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY, timeout=60.0, max_retries=1)
     messages = []
@@ -175,8 +181,9 @@ def _call_claude(prompt, history, system):
         messages += [{"role": "user", "content": q}, {"role": "assistant", "content": a}]
     messages.append({"role": "user", "content": prompt})
     try:
-        r = client.messages.create(model=config.CLAUDE_MODEL, max_tokens=2000, system=system,
-                                   output_config={"effort": config.CLAUDE_EFFORT}, messages=messages)
+        r = client.messages.create(model=config.CLAUDE_MODEL, max_tokens=max_tokens, system=system,
+                                   thinking={"type": "disabled"}, output_config={"effort": config.CLAUDE_EFFORT},
+                                   messages=messages)
     except anthropic.AuthenticationError:
         raise AIError("Claude rejected the API key (check ANTHROPIC_API_KEY).") from None
     except anthropic.PermissionDeniedError:
@@ -213,9 +220,12 @@ def _call_local(prompt, max_tokens, system):
 
 
 def _call(prompt, max_tokens, system=SYSTEM, history=()):
-    """One request to Gemini (or, with no key, to the local model). Raises AIError (never shows the key)."""
+    """One request to Gemini; with no Gemini key, the local model, or Claude when the local model is off.
+    Raises AIError (never shows the key)."""
     if not config.GEMINI_API_KEY and not config.PUBLIC_MODE:
-        return _call_local(prompt, max_tokens, system)
+        if engine().startswith("local"):
+            return _call_local(prompt, max_tokens, system)
+        return _call_claude(prompt, (), system, max_tokens)
     body = {
         "systemInstruction": {"parts": [{"text": system}]},
         "contents": list(history) + [{"role": "user", "parts": [{"text": prompt}]}],
@@ -250,7 +260,7 @@ def _answer(kind, lang, instructions, payload, max_tokens, generate):
     def key_for(model):
         return hashlib.sha256(f"{kind}|{lang}|{model}|{instructions}|{data}".encode()).hexdigest()
 
-    for model in (config.GEMINI_MODEL, f"local {config.OLLAMA_MODEL}"):
+    for model in (config.GEMINI_MODEL, f"local {config.OLLAMA_MODEL}", config.CLAUDE_MODEL):
         saved = db.ai_get(key_for(model))
         if saved:
             return saved

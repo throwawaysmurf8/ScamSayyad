@@ -21,3 +21,4 @@ ScamShield_pitch.pdf
 data/ml/raw/
 data/usage_today.json
 data/public_live.db
+data/audit.csv

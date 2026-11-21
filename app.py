@@ -29,7 +29,8 @@ from enrich import check, check_and_save
 from report import code_span, escape_md
 from scorer import decode_punycode, explain_level, parse, score_url
 
-st.set_page_config(page_title="ScamSayyad · صيّاد الاحتيال", page_icon=str(Path(__file__).parent / "assets" / "caracal.svg"), layout="wide")
+st.set_page_config(page_title="ScamSayyad · صيّاد الاحتيال", page_icon=str(Path(__file__).parent / "assets" / "caracal.svg"), layout="wide",
+                   initial_sidebar_state="expanded")
 
 # Each risk level gets a color AND a shape, so it never relies on color alone.
 # The color names are Streamlit's theme colors, which adapt to light and dark mode.
@@ -56,7 +57,7 @@ BRAND_CSS = """<style>
 
 # Arabic reads right to left. Domain names, URLs and code stay left to right.
 RTL_CSS = """<style>
-[data-testid="stMainBlockContainer"] { direction: rtl; }
+[data-testid="stMainBlockContainer"], [data-testid="stSidebarContent"] { direction: rtl; }
 [data-testid="stMainBlockContainer"] pre, [data-testid="stMainBlockContainer"] code,
 [data-testid="stDataFrame"], .ss-host, .ss-ltr { direction: ltr; text-align: left; }
 </style>"""
@@ -154,6 +155,7 @@ def anaq_says(text, label):
     """One answer from Anaq, as a chat bubble with the caracal's face. Plain text, never links."""
     with st.chat_message("assistant", avatar=ANAQ_AVATAR):
         st.caption(label)
+        text = text.replace("**", "")  # the model sometimes adds Markdown bold; we show plain text
         st.html(f"<div dir='{'rtl' if LANG == 'ar' else 'ltr'}' style='white-space:pre-wrap'>{html.escape(text)}</div>")
 
 
@@ -436,6 +438,11 @@ def render_dashboard():
     if event.selection.rows:
         site = view.iloc[event.selection.rows[0]].to_dict()
         in_campaign = next((c for c in campaigns.find(sites) if site["domain"] in c["domains"]), None)
+        st.session_state["selected_site"], st.session_state["selected_campaign"] = site, in_campaign
+    else:
+        st.session_state.pop("selected_site", None)
+        st.session_state.pop("selected_campaign", None)
+    if event.selection.rows:
         st.divider()
         left, right = st.columns([3, 2])
         with left:
@@ -654,3 +661,47 @@ with tab_about:
 # Drawn last so it already includes anything a hunt or check above just added.
 with tab_dash:
     render_dashboard()
+
+
+# ----------------------------------------------------------------------------- Anaq, the side-panel assistant
+def side_assistant():
+    """Anaq on the side: chat about the whole dashboard, or the site selected in the table.
+    Answers come from the local language model (Ollama), using only our facts."""
+    face, head = st.columns([1, 4], vertical_alignment="center")
+    face.image(ANAQ_AVATAR, width=48)
+    head.markdown(f"**{T('side_title')}**")
+    head.caption(T("side_sub"))
+    selected = st.session_state.get("selected_site")
+    st.caption(T("side_about_site", site=hostname(selected["url"])) if selected else T("side_about_all"))
+    if not llm_ready():
+        st.info(T("side_off_public") if config.PUBLIC_MODE else T("side_off"), icon=":material/info:")
+        return
+    history = st.session_state.setdefault("anaq_chat", [])  # [(question, answer), ...]
+    for q, a in history:
+        with st.chat_message("user", avatar=":material/person:"):
+            st.text(q)
+        anaq_says(a, f"**{local_llm.LABEL[LANG].format(model=config.OLLAMA_MODEL)}**")
+    starters = [T("side_q1"), T("side_q2")] + ([T("side_q3")] if selected else [])
+    picked = None if history else st.pills(T("side_try"), starters, key=f"side_starters_{LANG}")
+    typed = st.chat_input(T("side_input"), max_chars=300)
+    question = typed or picked
+    if question:
+        with st.chat_message("user", avatar=":material/person:"):
+            st.text(question)
+        try:
+            with st.spinner(T("ask_thinking")):
+                sites = db.all_sites()
+                data = local_llm.overview_facts(sites, campaigns.find(sites), selected,
+                                                st.session_state.get("selected_campaign"))
+                answer = local_llm.chat(question, history, data, LANG)
+            history.append((question, answer))
+            st.rerun()
+        except local_llm.LLMError as e:
+            st.error(T("ask_failed", err=str(e)), icon=":material/error:")
+    if history and st.button(T("side_clear"), icon=":material/refresh:"):
+        st.session_state["anaq_chat"] = []
+        st.rerun()
+
+
+with st.sidebar:
+    side_assistant()

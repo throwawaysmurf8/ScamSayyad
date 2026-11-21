@@ -563,3 +563,28 @@ def test_free_question_errors_are_plain_messages(monkeypatch, tmp_path):
         local_llm.ask("why?", _flagged_site())
     with pytest.raises(local_llm.LLMError):
         local_llm.ask("   ", _flagged_site())
+
+
+# ---------------------------------------------------------------- Anaq side panel (whole-dashboard chat), fake model
+def test_side_panel_chat_uses_overview_facts_and_remembers(monkeypatch, tmp_path):
+    import local_llm
+    _tiny_model(monkeypatch, tmp_path)
+    sent = []
+    monkeypatch.setattr(local_llm, "_call", lambda q, data, lang, history=(): sent.append((q, data, list(history))) or "ok")
+    sites = [_flagged_site(), dict(_flagged_site(), url="https://salik-pay.xyz/", score=40, level="MEDIUM")]
+    camp = [{"brand": "salik", "registrar": "WebNic", "domains": ["a", "b", "c"], "first": "2025-10-03",
+             "last": "2025-10-17", "endings": [".top"], "top_score": 75, "websites": ["salik-a.top"]}]
+    data = local_llm.overview_facts(sites, camp)
+    assert data["sites_checked"] == 2 and data["possible_campaigns"][0]["domains"] == 3
+    assert "site_the_officer_has_selected" not in data
+    assert "site_the_officer_has_selected" in local_llm.overview_facts(sites, camp, selected=sites[0])
+    history = [("q1", "a1"), ("q2", "a2"), ("q3", "a3"), ("q4", "a4")]
+    local_llm.chat("and the second one?", history, data)
+    assert sent[0][2] == history[-3:]                         # remembers the last 3 exchanges only
+
+
+def test_dashboard_page_loads_without_errors():
+    """Opens the whole dashboard headlessly, so a broken page can't pass the tests."""
+    from streamlit.testing.v1 import AppTest
+    at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120).run()
+    assert not at.exception, [e.value for e in at.exception]

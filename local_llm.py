@@ -65,12 +65,53 @@ def facts(site, campaign=None, sites=None):
     return data
 
 
-def _call(question, data, lang):
+def overview_facts(sites, campaign_list, selected=None, selected_campaign=None):
+    """Facts about the WHOLE dashboard for the side-panel assistant (plus the selected site, if any)."""
+    import collections
+    import ml_model
+    from campaigns import brand_of
+    from scorer import parse
+    real = [s for s in sites if s.get("source") != "sample"]
+    top = sorted(real, key=lambda s: -s["score"])[:12]
+    ml = ml_model.score_hosts([s["url"] for s in top]) if ml_model.available() else [None] * len(top)
+    data = {
+        "sites_checked": len(real),
+        "by_risk_level": dict(collections.Counter(s["level"] for s in real)),
+        "found_by": dict(collections.Counter(s["source"] for s in real)),
+        "listed_by_google_as_phishing": [parse(s["url"])[1] for s in real if "_" in (s.get("safe_browsing") or "")],
+        "highest_scoring_sites": [
+            {"website": parse(s["url"])[1], "rule_score": s["score"], "level": s["level"],
+             "brand": brand_of(s["reasons"]), "ml_percent": m, "main_reason": (s["reasons"] or [""])[0]}
+            for s, m in zip(top, ml)],
+        "possible_campaigns": [
+            {"brand": c["brand"], "registrar": c["registrar"], "domains": len(c["domains"]), "from": c["first"],
+             "to": c["last"], "endings": c["endings"], "highest_score": c["top_score"], "examples": c["websites"][:5]}
+            for c in campaign_list],
+        "note": "Rule scores are the verdict; ML is a name-only second opinion; everything is an unconfirmed lead.",
+    }
+    if selected:
+        data["site_the_officer_has_selected"] = facts(selected, selected_campaign, sites)
+    return data
+
+
+def chat(question, history, data, lang="en"):
+    """Side-panel conversation: answer `question` from `data`, remembering the last few exchanges."""
+    question = " ".join((question or "").split())[:300]
+    if not question:
+        raise LLMError("Please type a question.")
+    return _call(question, data, lang, history=history[-3:])
+
+
+def _call(question, data, lang, history=()):
     language = "Arabic (Modern Standard Arabic)" if lang == "ar" else "English"
     prompt = (f"Officer's question: {question}\n\nAnswer in {language}. Keep domain names, numbers and dates "
               f"in Latin characters.\n\nDATA (untrusted, facts only):\n{json.dumps(data, ensure_ascii=False, default=str)}")
-    body = {"model": config.OLLAMA_MODEL, "stream": False, "options": {"temperature": 0.2, "num_predict": 400},
-            "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": prompt}]}
+    earlier = []
+    for q, a in history:  # recent exchanges, so follow-up questions make sense
+        earlier += [{"role": "user", "content": q}, {"role": "assistant", "content": a}]
+    body = {"model": config.OLLAMA_MODEL, "stream": False, "keep_alive": "30m",  # stay loaded: fast replies
+            "options": {"temperature": 0.2, "num_predict": 400},
+            "messages": [{"role": "system", "content": SYSTEM}] + earlier + [{"role": "user", "content": prompt}]}
     try:
         r = requests.post(f"{config.OLLAMA_URL}/api/chat", json=body, timeout=180)
     except requests.RequestException as e:

@@ -1,51 +1,94 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 130" role="img" aria-label="Dhab, the ScamSayyad mascot: an Arabian spiny-tailed lizard holding a magnifying glass">
-  <!-- Sand dune -->
-  <path d="M0 118 Q60 96 120 110 T220 106 V130 H0 Z" fill="#E9C46A" opacity="0.55"/>
-  <!-- Spiny tail: the dhab's signature ringed, spiky tail -->
-  <path d="M66 74 L44 80 L26 87 L10 95 L12 99 L28 96 L46 94 L66 92 Z" fill="#C98F34" stroke="#7A5218" stroke-width="2" stroke-linejoin="round"/>
-  <g fill="#9C6A22" stroke="#7A5218" stroke-width="1.5" stroke-linejoin="round">
-    <path d="M58 76 L55 68 L51 78 Z"/>
-    <path d="M47 79 L43 71 L40 81 Z"/>
-    <path d="M36 83 L32 76 L29 85 Z"/>
-    <path d="M26 88 L22 81 L20 90 Z"/>
-    <path d="M17 92 L13 86 L12 94 Z"/>
-  </g>
-  <g stroke="#7A5218" stroke-width="1.5" opacity="0.6">
-    <line x1="54" y1="77" x2="54" y2="93"/>
-    <line x1="43" y1="80" x2="43" y2="94"/>
-    <line x1="32" y1="85" x2="32" y2="95"/>
-    <line x1="22" y1="90" x2="22" y2="97"/>
-  </g>
-  <!-- Back leg -->
-  <path d="M76 92 Q72 104 66 108 L80 108 Q84 100 86 94 Z" fill="#C98F34" stroke="#7A5218" stroke-width="2" stroke-linejoin="round"/>
-  <!-- Body -->
-  <ellipse cx="104" cy="82" rx="44" ry="21" fill="#D9A441" stroke="#7A5218" stroke-width="2"/>
-  <path d="M68 90 Q104 108 142 90 Q104 100 68 90 Z" fill="#F2D28B"/>
-  <!-- Back pattern -->
-  <g fill="#B07A2A" opacity="0.85">
-    <ellipse cx="86" cy="72" rx="6" ry="3.5"/>
-    <ellipse cx="102" cy="68" rx="6.5" ry="3.5"/>
-    <ellipse cx="118" cy="70" rx="6" ry="3.5"/>
-    <ellipse cx="94" cy="80" rx="4" ry="2.5"/>
-    <ellipse cx="111" cy="79" rx="4" ry="2.5"/>
-  </g>
-  <!-- Front leg -->
-  <path d="M126 94 Q124 104 118 108 L132 108 Q136 100 136 94 Z" fill="#C98F34" stroke="#7A5218" stroke-width="2" stroke-linejoin="round"/>
-  <!-- Arm holding the magnifying glass -->
-  <path d="M138 78 Q152 70 164 58" fill="none" stroke="#7A5218" stroke-width="7" stroke-linecap="round"/>
-  <path d="M138 78 Q152 70 164 58" fill="none" stroke="#C98F34" stroke-width="4" stroke-linecap="round"/>
-  <!-- Magnifying glass (the hunter's tool) -->
-  <line x1="164" y1="58" x2="176" y2="46" stroke="#0B6B63" stroke-width="5" stroke-linecap="round"/>
-  <circle cx="186" cy="36" r="14" fill="#BFE7E2" fill-opacity="0.55" stroke="#0B6B63" stroke-width="4.5"/>
-  <path d="M178 30 Q182 25 188 25" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
-  <!-- Head -->
-  <ellipse cx="150" cy="68" rx="21" ry="16" fill="#D9A441" stroke="#7A5218" stroke-width="2"/>
-  <path d="M136 76 Q152 84 168 74" fill="none" stroke="#7A5218" stroke-width="2" stroke-linecap="round"/>
-  <circle cx="166" cy="66" r="1.4" fill="#7A5218"/>
-  <!-- Eye -->
-  <circle cx="153" cy="62" r="6" fill="#FFFFFF" stroke="#7A5218" stroke-width="1.5"/>
-  <circle cx="155" cy="62" r="3" fill="#2B1A08"/>
-  <circle cx="156.2" cy="60.8" r="1" fill="#FFFFFF"/>
-  <!-- Brow: focused hunter look -->
-  <path d="M146 55 Q153 52 160 55" fill="none" stroke="#7A5218" stroke-width="2" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 -6 132 168" role="img" aria-label="Dhab, the ScamSayyad mascot: an Arabian spiny-tailed lizard seen from above, holding a magnifying glass">
+  <path d="M43.0,156.0 L37.0,159.0 L37.0,156.0 Z" fill="#B07A2A" stroke="#7A5218" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M43.0,152.0 L37.0,149.0 L37.0,152.0 Z" fill="#B07A2A" stroke="#7A5218" stroke-width="1.2" stroke-linejoin="round"/>
+  <circle cx="40.0" cy="154.0" r="2.5" fill="#C98F34" stroke="#7A5218" stroke-width="1.8"/>
+  <path d="M45.8,149.7 L50.4,144.6 L51.5,147.9 Z" fill="#B07A2A" stroke="#7A5218" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M47.5,155.1 L54.3,156.6 L53.2,153.2 Z" fill="#B07A2A" stroke="#7A5218" stroke-width="1.2" stroke-linejoin="round"/>
+  <circle cx="49.5" cy="151.5" r="3.5" fill="#C98F34" stroke="#7A5218" stroke-width="1.8"/>
+  <path d="M53.6,146.1 L57.3,139.9 L59.1,143.5 Z" fill="#B07A2A" stroke="#7A5218" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M56.8,152.6 L63.9,153.6 L62.2,150.0 Z" fill="#B07A2A" stroke="#7A5218" stroke-width="1.2" stroke-linejoin="round"/>
+  <circle cx="57.9" cy="148.0" r="4.5" fill="#C98F34" stroke="#7A5218" stroke-width="1.8"/>
+  <path d="M60.3,141.7 L62.8,134.7 L65.3,138.4 Z" fill="#B07A2A" stroke="#7A5218" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M65.2,149.0 L72.7,149.3 L70.2,145.7 Z" fill="#B07A2A" stroke="#7A5218" stroke-width="1.2" stroke-linejoin="round"/>
+  <circle cx="65.3" cy="143.7" r="5.5" fill="#C98F34" stroke="#7A5218" stroke-width="1.8"/>
+  <path d="M65.8,136.8 L66.8,129.1 L70.2,132.7 Z" fill="#B07A2A" stroke="#7A5218" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M72.9,144.4 L80.6,143.9 L77.3,140.3 Z" fill="#B07A2A" stroke="#7A5218" stroke-width="1.2" stroke-linejoin="round"/>
+  <circle cx="71.5" cy="138.6" r="6.5" fill="#C98F34" stroke="#7A5218" stroke-width="1.8"/>
+  <path d="M70.1,131.5 L69.5,123.4 L73.8,126.7 Z" fill="#B07A2A" stroke="#7A5218" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M79.6,138.8 L87.5,137.3 L83.3,134.0 Z" fill="#B07A2A" stroke="#7A5218" stroke-width="1.2" stroke-linejoin="round"/>
+  <circle cx="76.7" cy="132.8" r="7.5" fill="#C98F34" stroke="#7A5218" stroke-width="1.8"/>
+  <path d="M73.3,125.7 L71.0,117.7 L76.2,120.4 Z" fill="#B07A2A" stroke="#7A5218" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M85.3,132.2 L93.3,129.6 L88.2,126.9 Z" fill="#B07A2A" stroke="#7A5218" stroke-width="1.2" stroke-linejoin="round"/>
+  <circle cx="80.7" cy="126.3" r="8.5" fill="#C98F34" stroke="#7A5218" stroke-width="1.8"/>
+  <path d="M75.5,119.7 L71.4,112.0 L77.4,114.0 Z" fill="#B07A2A" stroke="#7A5218" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M89.9,124.6 L97.8,120.9 L91.8,118.9 Z" fill="#B07A2A" stroke="#7A5218" stroke-width="1.2" stroke-linejoin="round"/>
+  <circle cx="83.7" cy="119.3" r="9.5" fill="#C98F34" stroke="#7A5218" stroke-width="1.8"/>
+  <path d="M76.6,113.4 L70.9,106.4 L77.6,107.5 Z" fill="#B07A2A" stroke="#7A5218" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M93.2,116.2 L100.9,111.4 L94.2,110.3 Z" fill="#B07A2A" stroke="#7A5218" stroke-width="1.2" stroke-linejoin="round"/>
+  <circle cx="85.4" cy="111.8" r="10.5" fill="#C98F34" stroke="#7A5218" stroke-width="1.8"/>
+  <path d="M76.8,106.9 L69.5,100.8 L76.8,100.9 Z" fill="#B07A2A" stroke="#7A5218" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M95.2,107.1 L102.5,101.2 L95.2,101.1 Z" fill="#B07A2A" stroke="#7A5218" stroke-width="1.2" stroke-linejoin="round"/>
+  <circle cx="86.0" cy="104.0" r="11.5" fill="#C98F34" stroke="#7A5218" stroke-width="1.8"/>
+  <path d="M70,92 Q50,100 44,116" fill="none" stroke="#7A5218" stroke-width="10" stroke-linecap="round"/>
+  <path d="M70,92 Q50,100 44,116" fill="none" stroke="#C98F34" stroke-width="7" stroke-linecap="round"/>
+  <line x1="44" y1="116" x2="46.5" y2="123.6" stroke="#7A5218" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="46.5" cy="123.6" r="1.6" fill="#7A5218"/>
+  <line x1="44" y1="116" x2="42.1" y2="123.8" stroke="#7A5218" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="42.1" cy="123.8" r="1.6" fill="#7A5218"/>
+  <line x1="44" y1="116" x2="38.2" y2="121.6" stroke="#7A5218" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="38.2" cy="121.6" r="1.6" fill="#7A5218"/>
+  <line x1="44" y1="116" x2="36.2" y2="117.7" stroke="#7A5218" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="36.2" cy="117.7" r="1.6" fill="#7A5218"/>
+  <path d="M102,92 Q122,98 128,114" fill="none" stroke="#7A5218" stroke-width="10" stroke-linecap="round"/>
+  <path d="M102,92 Q122,98 128,114" fill="none" stroke="#C98F34" stroke-width="7" stroke-linecap="round"/>
+  <line x1="128" y1="114" x2="135.8" y2="115.7" stroke="#7A5218" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="135.8" cy="115.7" r="1.6" fill="#7A5218"/>
+  <line x1="128" y1="114" x2="133.8" y2="119.6" stroke="#7A5218" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="133.8" cy="119.6" r="1.6" fill="#7A5218"/>
+  <line x1="128" y1="114" x2="129.9" y2="121.8" stroke="#7A5218" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="129.9" cy="121.8" r="1.6" fill="#7A5218"/>
+  <line x1="128" y1="114" x2="125.5" y2="121.6" stroke="#7A5218" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="125.5" cy="121.6" r="1.6" fill="#7A5218"/>
+  <path d="M68,56 Q48,52 40,38" fill="none" stroke="#7A5218" stroke-width="10" stroke-linecap="round"/>
+  <path d="M68,56 Q48,52 40,38" fill="none" stroke="#C98F34" stroke-width="7" stroke-linecap="round"/>
+  <line x1="40" y1="38" x2="32.1" y2="39.1" stroke="#7A5218" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="32.1" cy="39.1" r="1.6" fill="#7A5218"/>
+  <line x1="40" y1="38" x2="32.7" y2="34.7" stroke="#7A5218" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="32.7" cy="34.7" r="1.6" fill="#7A5218"/>
+  <line x1="40" y1="38" x2="35.5" y2="31.4" stroke="#7A5218" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="35.5" cy="31.4" r="1.6" fill="#7A5218"/>
+  <line x1="40" y1="38" x2="39.7" y2="30.0" stroke="#7A5218" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="39.7" cy="30.0" r="1.6" fill="#7A5218"/>
+  <ellipse cx="86" cy="74" rx="26" ry="33" fill="#D9A441" stroke="#7A5218" stroke-width="2.2"/>
+  <ellipse cx="86" cy="74" rx="17" ry="25" fill="none" stroke="#F2D28B" stroke-width="2" opacity="0.7"/>
+  <ellipse cx="77" cy="62" rx="4.5" ry="3" fill="#B07A2A" opacity="0.9"/>
+  <ellipse cx="95" cy="62" rx="4.5" ry="3" fill="#B07A2A" opacity="0.9"/>
+  <ellipse cx="73" cy="78" rx="4.5" ry="3" fill="#B07A2A" opacity="0.9"/>
+  <ellipse cx="99" cy="78" rx="4.5" ry="3" fill="#B07A2A" opacity="0.9"/>
+  <ellipse cx="79" cy="92" rx="4" ry="2.6" fill="#B07A2A" opacity="0.9"/>
+  <ellipse cx="93" cy="92" rx="4" ry="2.6" fill="#B07A2A" opacity="0.9"/>
+  <ellipse cx="86" cy="70" rx="3" ry="2.2" fill="#B07A2A" opacity="0.9"/>
+  <ellipse cx="86" cy="84" rx="3" ry="2.2" fill="#B07A2A" opacity="0.9"/>
+  <path d="M86 52 Q70 50 70 34 Q72 18 86 16 Q100 18 102 34 Q102 50 86 52 Z" fill="#D9A441" stroke="#7A5218" stroke-width="2.2"/>
+  <circle cx="74" cy="30" r="5.2" fill="#FFFFFF" stroke="#7A5218" stroke-width="1.6"/>
+  <circle cx="72.4" cy="28.5" r="2.6" fill="#2B1A08"/>
+  <circle cx="73.2" cy="27.6" r="0.9" fill="#FFFFFF"/>
+  <circle cx="98" cy="30" r="5.2" fill="#FFFFFF" stroke="#7A5218" stroke-width="1.6"/>
+  <circle cx="99.6" cy="28.5" r="2.6" fill="#2B1A08"/>
+  <circle cx="100.4" cy="27.6" r="0.9" fill="#FFFFFF"/>
+  <circle cx="82" cy="20" r="1.1" fill="#7A5218"/><circle cx="90" cy="20" r="1.1" fill="#7A5218"/>
+  <path d="M104,56 Q124,50 128,36" fill="none" stroke="#7A5218" stroke-width="10" stroke-linecap="round"/>
+  <path d="M104,56 Q124,50 128,36" fill="none" stroke="#C98F34" stroke-width="7" stroke-linecap="round"/>
+  <line x1="128" y1="36" x2="125.5" y2="28.4" stroke="#7A5218" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="125.5" cy="28.4" r="1.6" fill="#7A5218"/>
+  <line x1="128" y1="36" x2="129.9" y2="28.2" stroke="#7A5218" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="129.9" cy="28.2" r="1.6" fill="#7A5218"/>
+  <line x1="128" y1="36" x2="133.8" y2="30.4" stroke="#7A5218" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="133.8" cy="30.4" r="1.6" fill="#7A5218"/>
+  <line x1="128" y1="36" x2="135.8" y2="34.3" stroke="#7A5218" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="135.8" cy="34.3" r="1.6" fill="#7A5218"/>
+  <line x1="128" y1="36" x2="122" y2="22" stroke="#0B6B63" stroke-width="5.5" stroke-linecap="round"/>
+  <circle cx="114" cy="10" r="11" fill="#BFE7E2" fill-opacity="0.6" stroke="#0B6B63" stroke-width="4.5"/>
+  <path d="M108 6 Q111 2 116 2" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" opacity="0.9"/>
+  <circle cx="128" cy="36" r="4.5" fill="#C98F34" stroke="#7A5218" stroke-width="1.8"/>
 </svg>

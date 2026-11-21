@@ -166,9 +166,9 @@ def show_result(res, campaign=None):
 
 head, status = st.columns([3, 2], vertical_alignment="bottom")
 with head:
-    mascot, title = st.columns([1, 4], vertical_alignment="center")
+    mascot, title = st.columns([1, 5], vertical_alignment="center")
     # Our mascot Dhab, the Arabian spiny-tailed lizard (our own drawing, assets/dhab.svg).
-    mascot.image(str(config.ROOT / "assets" / "dhab.svg"), width=170)
+    mascot.image(str(config.ROOT / "assets" / "dhab.svg"), width=120)
     title.markdown("# ScamSayyad · صيّاد الاحتيال")
     title.markdown("The scam hunter for the UAE. *Sayyad* (صيّاد) is Arabic for hunter; "
                    "our mascot **Dhab** (ضب) is the desert's patient hunter.")

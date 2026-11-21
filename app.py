@@ -711,7 +711,7 @@ def side_assistant():
         with st.chat_message("user", avatar=":material/person:"):
             st.text(question)
         try:
-            with st.spinner(T("ask_thinking")):
+            with st.spinner(T("side_thinking_cloud", model=ai.chat_model_name()) if cloud else T("ask_thinking")):
                 sites = db.all_sites()
                 data = local_llm.overview_facts(sites, campaigns.find(sites), selected,
                                                 st.session_state.get("selected_campaign"))

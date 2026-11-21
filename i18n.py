@@ -175,6 +175,8 @@ S = {
     "ask_own": ("Or ask your own question", "أو اطرح سؤالك الخاص"),
     "ask_own_ph": ("e.g. Is this part of the same campaign as the Salik sites?", "مثلاً: هل هذا جزء من حملة مواقع سالك نفسها؟"),
     "ask_btn": ("Ask", "اسأل"),
+    "side_thinking_cloud": ("Anaq is thinking ({model}; only our facts are sent)...",
+                            "عناق يفكّر ({model}؛ تُرسل حقائقنا فقط)..."),
     "ask_thinking": ("Anaq is thinking (local model, only our facts are used)...",
                      "عناق يفكّر (نموذج محلي، تُستخدم حقائقنا فقط)..."),
     "ask_failed": ("Anaq could not answer: {err}", "تعذّر على عناق الإجابة: {err}"),

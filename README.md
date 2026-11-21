@@ -60,6 +60,53 @@ it) onto the GitHub website uploads `.env` too, so delete or move `.env` before 
 
 ---
 
+## AI briefings and Arabic reports (Gemini, optional)
+
+On each flagged site, and on each possible campaign, an **AI briefing** button asks Google's Gemini
+for a 5-line summary for an officer: the brand being imitated, how many domains, the likely scam
+tactic, how confident we are, and the first action to take. The takedown panel can also add an
+**Arabic version** of the report, below the English one. Rules:
+
+- **Only our facts.** Gemini receives the score, reasons, registrar, dates and domain names already
+  in the database. It gets no links to open and no web-search tools, so it never visits a site.
+- **Scores don't change.** The AI's text is only shown. Scoring stays rule-based and explainable.
+- **Saved once.** Each answer is saved in the database (`ai_cache` table), so the same briefing is
+  never paid for twice and still shows when the internet is slow.
+- **Labelled.** Everything the AI writes says "AI-generated draft — officer review required".
+- **Optional.** Without a key (or if Gemini fails) the buttons are hidden, a message says why, and
+  everything else works. The public demo never uses the key.
+
+### Getting a Gemini API key (in your Google Cloud project "scamshield")
+
+1. Go to https://console.cloud.google.com and pick the **scamshield** project at the top.
+2. Open **APIs & Services → Library**, search for **Generative Language API** (Gemini API), and
+   click **Enable**.
+3. Open **APIs & Services → Credentials → Create credentials → API key**. Copy it.
+4. Click **Edit API key** → **API restrictions → Restrict key** → tick only **Generative Language
+   API** → **Save**. A leaked key then can't be used for anything else.
+5. Turn on billing alerts: **Billing → Budgets & alerts → Create budget**, for example 10 USD a
+   month with e-mail alerts at 50%, 90% and 100%. Keep it on.
+6. Open `.env` in Notepad and add a new line: `GEMINI_API_KEY=` followed by the key (no spaces or
+   quotes). Never put the key in code, chats, screenshots or slides.
+7. Restart the dashboard (close the `run.bat` window and start it again). The header badge
+   "AI briefings" turns green.
+
+The model is set in `config.py` (`GEMINI_MODEL`, a fast low-cost "Flash-Lite" model). Google renames
+models over time: if Gemini answers "model not found", put the current Flash-Lite name in `.env` as
+`GEMINI_MODEL=...`.
+
+---
+
+## English and Arabic
+
+The dashboard has an **English / العربية** switch at the top. In Arabic the layout reads right to
+left; website names, links and codes stay left to right. All screen text lives in `i18n.py`. The
+scorer's reasons are stored in English and translated for display, so scores never depend on the
+language. Hunter progress messages and the official takedown report stay in English (the report
+can get an AI Arabic version below it).
+
+---
+
 ## Public demo: ScamSayyad on Streamlit Community Cloud
 
 The public site is called **ScamSayyad** (صيّاد الاحتيال, "scam hunter"; *sayyad* is Arabic for hunter). The public site is a **read-only showcase**: it shows a
@@ -106,7 +153,7 @@ To refresh the public results later, copy `data/scamshield.db` over `data/public
 
 | Feature | Status | Data source | Key needed? |
 |---|---|---|---|
-| 1. Scoring engine: brand look-alikes, cheap domain endings, short links, no HTTPS, scam words, urgent SMS wording | Working, 24 automated tests | Built in | No |
+| 1. Scoring engine: brand look-alikes, cheap domain endings, short links, no HTTPS, scam words, urgent SMS wording | Working, 32 automated tests | Built in | No |
 | 1b. Domain age, registrar, abuse e-mail | Working | RDAP (rdap.org); UAE WHOIS (whois.nic.ae) for .ae | No |
 | 1c. Google Safe Browsing | Working, tested live with a real key (`enrich.py --test-key`); skipped cleanly without a key | Google Safe Browsing v4 | Free key |
 | 2. New-domain watcher | Working | crt.sh certificate logs | No |
@@ -220,6 +267,18 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
 
 ---
 
+## Future plans
+
+- **A machine-learning model that learns new scam patterns.** Trained on sites Google has confirmed
+  as phishing and on leads officers have confirmed as scams, it would spot patterns we haven't written
+  rules for yet, and get better as more cases are confirmed.
+- **Why rules come first:** today we have only 4 Google-confirmed phishing sites and no
+  officer-confirmed leads. A model trained on so few examples would mostly guess, and it couldn't
+  explain its answers. Rules explain every point of a score; each confirmation officers record now
+  becomes training data for that model later.
+
+---
+
 ## Every file explained
 
 | File | What it does |
@@ -231,6 +290,8 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
 | `ct_watcher.py` | Feature 2. Searches the crt.sh certificate logs for new websites whose names start with a UAE brand, then scores them. Run it alone with `python ct_watcher.py`. |
 | `search_scanner.py` | Feature 3. Runs risky searches ("pay Dubai Police fine") and scores every result. Run it alone with `python search_scanner.py "your search"`. |
 | `campaigns.py` | Groups flagged sites into "possible campaigns": 3+ domains imitating the same brand, from the same registrar, registered within 14 days of each other. Shown at the bottom of the Dashboard. |
+| `ai.py` | AI briefings and the Arabic report, from Google's Gemini. Sends only facts already in the database, never opens websites, never changes scores, saves every answer so it is never paid for twice, and labels everything as an AI draft. Off without `GEMINI_API_KEY`. |
+| `i18n.py` | Every screen text in English and Arabic, plus Arabic versions of the scorer's reasons (for display only). |
 | `report.py` | Feature 4b. Builds the takedown report, offered only for MEDIUM and HIGH sites: target, reasons, registration details, the registrar's abuse contact and where to send it (registrar, Google Safe Browsing, UAE eCrime). For sites on free hosting platforms (workers.dev, vercel.app ...) it says to report to the platform instead. |
 | `maps_scanner.py` | Feature 5 (stretch). Searches Google Maps for fake "customer service" listings and checks each listing's website and phone number (fake listings often link the real website but show the scammer's number). Each listing is its own row. Its takedown report asks Google to remove the listing. It only runs with a `GOOGLE_PLACES_KEY`, and each search is a paid request. |
 | `app.py` | The Streamlit dashboard. It only draws screens and calls the modules above. Tabs: **Dashboard**, **Check a link**, **Hunt for scams**, **How it works**. |

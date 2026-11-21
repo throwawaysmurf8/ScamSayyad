@@ -270,3 +270,103 @@ def test_listing_phone_cannot_inject_formatting():
     r = score_listing("Dubai Police Help", "+44 ![x](http://evil.example/p.png) [a](http://evil.example)", "https://www.dubaipolice.gov.ae/")
     text = " ".join(r["reasons"])
     assert "evil" not in text and "](" not in text and "[" not in text
+
+
+# ---------------------------------------------------------------- AI (Gemini) -- all with a fake AI
+def _fake_ai(monkeypatch, tmp_path, answer="Brand: salik\nDomains: 3\nLikely tactic: fake toll payment\n"
+                                           "Confidence: high, HIGH risk level\nFirst action: report to registrar"):
+    import ai
+    monkeypatch.setattr(config, "DB_PATH", tmp_path / "test.db")
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "fake-key-for-tests")
+    sent = []
+
+    def fake_call(prompt, max_tokens):
+        sent.append(prompt)
+        return answer
+    monkeypatch.setattr(ai, "_call", fake_call)
+    return ai, sent
+
+
+def _flagged_site():
+    s = score_url("https://salik-pay.top/fine?id=1", age_days=10)
+    s.update(registrar="Example Registrar", created="2026-11-10", age_days=10, safe_browsing="clean",
+             source="cert log", query="salik*", text="")
+    return s
+
+
+def test_ai_briefing_is_saved_and_never_asked_twice(monkeypatch, tmp_path):
+    ai, sent = _fake_ai(monkeypatch, tmp_path)
+    site = _flagged_site()
+    first = ai.site_briefing(site, generate=True)
+    again = ai.site_briefing(site, generate=True)
+    assert first == again and "Brand: salik" in first
+    assert len(sent) == 1                                   # second time comes from the database
+    assert ai.site_briefing(site, generate=False) == first  # saved answers show without asking
+
+
+def test_ai_only_gets_our_facts_and_never_changes_the_score(monkeypatch, tmp_path):
+    ai, sent = _fake_ai(monkeypatch, tmp_path)
+    site = _flagged_site()
+    before = dict(site)
+    ai.site_briefing(site, generate=True)
+    assert site == before                                   # nothing in the site (score, level...) changed
+    prompt = sent[0]
+    assert '"risk_score": ' + str(site["score"]) in prompt and "Example Registrar" in prompt
+    assert "/fine?id=1" not in prompt                       # only the website name, not the full link
+    assert "untrusted" in prompt.lower()
+
+
+def test_ai_never_fetches_websites(monkeypatch, tmp_path):
+    import requests
+    ai, _ = _fake_ai(monkeypatch, tmp_path)
+    monkeypatch.setattr(requests, "get", lambda *a, **k: (_ for _ in ()).throw(AssertionError("fetched a site")))
+    ai.site_briefing(_flagged_site(), generate=True)        # would fail if anything called requests.get
+
+
+def test_ai_off_without_key_and_failures_are_plain_messages(monkeypatch, tmp_path):
+    import pytest
+    import ai
+    monkeypatch.setattr(config, "DB_PATH", tmp_path / "test.db")
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "")
+    assert not ai.available()
+    assert ai.site_briefing(_flagged_site(), generate=False) is None
+    with pytest.raises(ai.AIError, match="no Gemini key"):
+        ai.site_briefing(_flagged_site(), generate=True)
+
+    class Down:
+        status_code = 503
+        def json(self):
+            return {"error": {"message": "The model is overloaded."}}
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "fake-key-for-tests")
+    monkeypatch.setattr(ai.requests, "post", lambda *a, **k: Down())
+    with pytest.raises(ai.AIError) as e:
+        ai.site_briefing(_flagged_site(), generate=True)
+    assert "HTTP 503" in str(e.value) and "fake-key-for-tests" not in str(e.value)
+
+
+def test_campaign_briefing(monkeypatch, tmp_path):
+    ai, sent = _fake_ai(monkeypatch, tmp_path)
+    camp = {"brand": "salik", "registrar": "WebNic", "domains": ["a.top", "b.top", "c.top"], "first": "2025-10-03",
+            "last": "2025-10-17", "endings": [".top"], "top_score": 75, "websites": ["salik-a.top", "salik-b.top", "salik-c.top"]}
+    assert "Brand" in ai.campaign_briefing(camp, generate=True)
+    assert '"number_of_domains": 3' in sent[0]
+
+
+def test_bilingual_report_puts_arabic_below_english(monkeypatch, tmp_path):
+    import report
+    ai, sent = _fake_ai(monkeypatch, tmp_path, answer="طلب إزالة - موقع احتيالي مشتبه به")
+    english = report.build(_flagged_site())
+    arabic = ai.report_arabic(english, generate=True)
+    both = report.with_arabic(english, arabic)
+    assert both.index("Takedown request") < both.index("طلب إزالة")
+    assert "AI-generated draft — officer review required" in both
+    assert "**Generated:**" not in sent[0]                  # timestamp left out, so it is translated once
+    assert report.with_arabic(english, None) == english
+
+
+def test_arabic_translation_of_reasons():
+    import i18n
+    ar = i18n.translate("+35 Uses the brand name 'salik' but is not an official salik domain", "ar")
+    assert ar.startswith("+35 ") and "'salik'" in ar and "Uses" not in ar
+    assert i18n.translate("Domain is young (67 days old)", "en") == "Domain is young (67 days old)"
+    assert all(len(v) == 2 and v[0] and v[1] for v in i18n.S.values())   # every screen text in both languages

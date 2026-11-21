@@ -29,6 +29,14 @@ CREATE TABLE IF NOT EXISTS sites (
     first_seen   TEXT,
     last_checked TEXT
 );
+CREATE TABLE IF NOT EXISTS ai_cache (
+    key        TEXT PRIMARY KEY,  -- fingerprint of: what was asked + the exact facts sent
+    kind       TEXT,              -- site_briefing / campaign_briefing / report_arabic
+    lang       TEXT,
+    model      TEXT,
+    text       TEXT,              -- the AI's answer, saved so it is never paid for twice
+    created_at TEXT
+);
 CREATE TABLE IF NOT EXISTS domain_cache (
     domain     TEXT PRIMARY KEY,
     info       TEXT,        -- JSON
@@ -98,3 +106,15 @@ def cache_domain(domain, info):
 def delete_samples():
     with connect() as con:
         con.execute("DELETE FROM sites WHERE source='sample'")
+
+
+def ai_get(key):
+    with connect() as con:
+        row = con.execute("SELECT text FROM ai_cache WHERE key=?", (key,)).fetchone()
+    return row[0] if row else None
+
+
+def ai_put(key, kind, lang, model, text):
+    with connect() as con:
+        con.execute("INSERT OR REPLACE INTO ai_cache VALUES (?, ?, ?, ?, ?, ?)",
+                    (key, kind, lang, model, text, now()))

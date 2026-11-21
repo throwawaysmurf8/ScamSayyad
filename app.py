@@ -1,8 +1,9 @@
-"""ScamShield police dashboard (Streamlit).
+"""ScamSayyad / ScamShield police dashboard (Streamlit), in English and Arabic.
 
-Start it with run.bat, or:  .venv\\Scripts\\python -m streamlit run app.py
+Start it with run.bat, or:  .venv\\Scripts\\python -m streamlit run app.py --server.address localhost
 
 This file only draws the screens; all the real work happens in the other modules.
+Screen text lives in i18n.py (English + Arabic). AI briefings come from ai.py (Gemini).
 """
 import csv
 import html
@@ -10,18 +11,20 @@ import html
 import pandas as pd
 import streamlit as st
 
+import ai
 import campaigns
 import config
 import ct_watcher
 import db
+import i18n
 import maps_scanner
 import report
-from report import code_span, escape_md
 import search_scanner
 from enrich import check, check_and_save
+from report import code_span, escape_md
 from scorer import decode_punycode, explain_level, parse, score_url
 
-st.set_page_config(page_title="ScamSayyad · Scam hunter for the UAE", page_icon="🦎", layout="wide")
+st.set_page_config(page_title="ScamSayyad · صيّاد الاحتيال", page_icon="🦎", layout="wide")
 
 # Each risk level gets a color AND a shape, so it never relies on color alone.
 # The color names are Streamlit's theme colors, which adapt to light and dark mode.
@@ -30,6 +33,33 @@ LEVELS = {
     "MEDIUM": ("orange", "◆", ":material/warning:"),
     "LOW": ("green", "●", ":material/verified_user:"),
 }
+
+# Colors for the brand highlight in the website-name heading (same meaning as the risk badge).
+# One color per level that reads on BOTH the light and the dark theme (at least 3.9:1 on each).
+HOST_HEADING_CSS = """<style>
+.ss-host { font-size: 1.35rem; font-weight: 600; margin: .25rem 0 .5rem; word-break: break-all; direction: ltr; }
+.ss-HIGH { color: #E53935; } .ss-MEDIUM { color: #C06A00; } .ss-LOW { color: #2E8B3E; }
+</style>"""
+
+# Arabic reads right to left. Domain names, URLs and code stay left to right.
+RTL_CSS = """<style>
+[data-testid="stMainBlockContainer"] { direction: rtl; }
+[data-testid="stMainBlockContainer"] pre, [data-testid="stMainBlockContainer"] code,
+[data-testid="stDataFrame"], .ss-host, .ss-ltr { direction: ltr; text-align: left; }
+</style>"""
+
+# --- Language -------------------------------------------------------------------------
+# The switch is drawn in the header (status column); its choice is read here first.
+LANG = "ar" if st.session_state.get("lang_choice") == "العربية" else "en"
+
+
+def T(key, **values):
+    return i18n.t(key, LANG, **values)
+
+
+def tr(text):
+    """Scorer text (reasons, 'why' sentences) in the chosen language."""
+    return i18n.translate(text, LANG)
 
 
 def load_samples():
@@ -60,64 +90,81 @@ def hostname_readable(url):
 
 brand_used = campaigns.brand_of  # "...brand name 'salik'..." -> 'salik'
 
-# Colors for the brand highlight in the website-name heading (same meaning as the risk badge).
-# One color per level that reads on BOTH the light and the dark theme (at least 3.9:1 on each,
-# above the 3:1 needed for large bold text), so it works whichever theme Streamlit shows.
-HOST_HEADING_CSS = """<style>
-.ss-host { font-size: 1.35rem; font-weight: 600; margin: .25rem 0 .5rem; word-break: break-all; }
-.ss-HIGH { color: #E53935; } .ss-MEDIUM { color: #C06A00; } .ss-LOW { color: #2E8B3E; }
-</style>"""
+
+def dates_text(c):
+    return c["first"] if c["first"] == c["last"] else T("dates_range", a=c["first"], b=c["last"])
+
+
+def unknown_if_missing(value):
+    """None or empty values (NaN in tables) are shown as 'unknown' instead of 'None'."""
+    return T("unknown") if value is None or pd.isna(value) or value == "" else value
+
+
+def show_ai_text(text):
+    """Anything the AI wrote: labelled as a draft and shown as plain text (escaped HTML), so it
+    can never turn into links or images. Arabic answers read right to left."""
+    rtl = any("؀" <= ch <= "ۿ" for ch in text)
+    st.caption(f":material/smart_toy: **{ai.LABEL['ar' if rtl else 'en']}**")
+    st.html(f"<div dir='{'rtl' if rtl else 'ltr'}' style='white-space:pre-wrap;border-inline-start:3px solid "
+            f"#0B6B63;padding:.4rem .8rem;margin-bottom:.3rem'>{html.escape(text)}</div>")
+    st.caption(T("ai_note"))
+
+
+def ai_briefing_block(kind, key, **args):
+    """Show a saved AI briefing, or an 'AI briefing' button that makes one. Hidden without a key."""
+    make = ai.site_briefing if kind == "site" else ai.campaign_briefing
+    saved = make(lang=LANG, generate=False, **args)
+    if saved:
+        show_ai_text(saved)
+        return
+    if not ai.available():
+        st.caption(T("ai_off_public") if config.PUBLIC_MODE else T("ai_off"))
+        return
+    if st.button(T("ai_button"), key=key, icon=":material/smart_toy:"):
+        try:
+            with st.spinner(T("ai_thinking")):
+                show_ai_text(make(lang=LANG, generate=True, **args))
+        except ai.AIError as e:
+            st.error(T("ai_failed", err=str(e)), icon=":material/error:")
 
 
 def show_campaigns(sites):
     """Possible campaigns: many look-alike domains from one registrar in the same days."""
     found = campaigns.find(sites)
-    st.subheader(f":material/hub: Possible campaigns ({len(found)})")
-    st.caption(f"{config.CAMPAIGN_MIN_DOMAINS}+ flagged domains imitating the same brand, from the same "
-               f"registrar, registered within {config.CAMPAIGN_MAX_GAP_DAYS} days of each other. A lead, not "
-               "proof. Only sites with registration details can be grouped.")
+    st.subheader(T("campaigns_title", n=len(found)))
+    st.caption(T("campaigns_note", min=config.CAMPAIGN_MIN_DOMAINS, gap=config.CAMPAIGN_MAX_GAP_DAYS))
     if not found:
-        st.info("No possible campaigns yet. Run the watcher to collect more registration details.")
-    for c in found:
-        dates = c["first"] if c["first"] == c["last"] else f"{c['first']} to {c['last']}"
-        with st.expander(f"**{c['brand']}** · {len(c['domains'])} domains · {code_span(c['registrar'])} · "
-                         f"registered {escape_md(dates)}"):
-            st.markdown(f"**Domain endings:** {escape_md(' '.join(c['endings']))} · "
-                        f"**Highest score:** {c['top_score']}")
+        st.info(T("campaigns_none"))
+    for i, c in enumerate(found):
+        with st.expander(T("campaign_label", brand=c["brand"], n=len(c["domains"]),
+                           registrar=code_span(c["registrar"]), dates=escape_md(dates_text(c)))):
+            st.markdown(T("campaign_detail", endings=escape_md(" ".join(c["endings"])), top=c["top_score"]))
             st.markdown(" · ".join(code_span(w) for w in c["websites"]))
-
-
-def unknown_if_missing(value):
-    """None or empty values (NaN in tables) are shown as 'unknown' instead of 'None'."""
-    return "unknown" if value is None or pd.isna(value) or value == "" else value
+            ai_briefing_block("campaign", key=f"ai_campaign_{i}_{c['first']}_{c['brand']}", campaign=c)
 
 
 def show_why(res, campaign=None):
     """'Why is it at this risk level?': strong vs supporting signs, distance to the next level,
     campaign membership, and what we could not check."""
     why = explain_level(res["score"], res["level"], res["reasons"], res.get("age_days"), res.get("safe_browsing"))
+    level_word = T(res["level"])
     if not why["strong"] and not why["supporting"]:  # official site or no signs at all
-        st.markdown("**Why LOW risk?**")
-        st.markdown("\n".join(f"- {line}" for line in res["reasons"]))
+        st.markdown(f"**{T('why_title', level=level_word)}**")
+        st.markdown("\n".join(f"- {tr(line)}" for line in res["reasons"]))
         return
-    friendly = lambda t: t.replace("SOCIAL_ENGINEERING", "phishing (social engineering)")
-    why["strong"] = [(p, friendly(t)) for p, t in why["strong"]]
-    st.markdown(f"**Why {res['level']} risk?**")
-    st.markdown(why["headline"])
+    friendly = lambda t: tr(t.replace("SOCIAL_ENGINEERING", "phishing (social engineering)"))
+    st.markdown(f"**{T('why_title', level=level_word)}**")
+    st.markdown(tr(why["headline"]))
     if why["strong"]:
-        st.markdown("**Strong signs** · each one alone points to impersonation\n" +
-                    "\n".join(f"- **+{p}** {t}" for p, t in why["strong"]))
+        st.markdown(T("strong") + "\n" + "\n".join(f"- **+{p}** {friendly(t)}" for p, t in why["strong"]))
     if why["supporting"]:
-        st.markdown("**Supporting signs** · common on scam sites, but not proof on their own\n" +
-                    "\n".join(f"- **+{p}** {t}" for p, t in why["supporting"]))
+        st.markdown(T("supporting") + "\n" + "\n".join(f"- **+{p}** {tr(t)}" for p, t in why["supporting"]))
     if campaign:
-        dates = campaign["first"] if campaign["first"] == campaign["last"] else f"{campaign['first']} to {campaign['last']}"
-        st.markdown(f":material/hub: **Part of a possible campaign:** {len(campaign['domains'])} look-alike "
-                    f"{campaign['brand']} domains from the same registrar, registered {escape_md(dates)}. "
-                    "See *Possible campaigns* below.")
-    st.caption(why["next_level"])
+        st.markdown(T("in_campaign", n=len(campaign["domains"]), brand=campaign["brand"],
+                      dates=escape_md(dates_text(campaign))))
+    st.caption(tr(why["next_level"]))
     for line in why["unknown"]:
-        st.caption(f"Not known: {line}")
+        st.caption(T("not_known", x=tr(line)))
 
 
 def show_result(res, campaign=None):
@@ -127,7 +174,7 @@ def show_result(res, campaign=None):
         top, badge = st.columns([3, 1], vertical_alignment="center")
         top.markdown(f"## :{color}[{res['score']}]<span style='font-size:1rem;opacity:.7'> / 100</span>",
                      unsafe_allow_html=True)
-        badge.badge(f"{res['level']} risk", icon=icon, color=color)
+        badge.badge(T("risk_badge", level=T(res["level"])), icon=icon, color=color)
 
         # Full website name, with the imitated brand highlighted when it appears as-is.
         # Drawn as escaped HTML, not Markdown: Markdown would turn "www.…" into a clickable
@@ -141,264 +188,320 @@ def show_result(res, campaign=None):
         st.html(f"{HOST_HEADING_CSS}<div class='ss-host'>{name}</div>")
         decoded = decode_punycode(host)
         if decoded:
-            st.markdown(f"Victims see it as: {code_span(decoded)} (special letters hidden in the `xn--` code)")
+            st.markdown(T("victims_see", name=code_span(decoded)))
         if brand and brand not in host:
-            st.caption(f"Look-alike of the brand '{brand}'")
+            st.caption(T("lookalike_of", brand=brand))
         st.code(res["url"], language=None, wrap_lines=True)
         if res.get("source") == "maps" and res.get("text"):
             # Listing details come from whoever created the listing: plain text, never rendered.
-            st.caption("Google Maps listing: name | phone | address")
+            st.caption(T("maps_listing"))
             st.text(res["text"])
 
         show_why(res, campaign)
 
         age = unknown_if_missing(res.get("age_days"))
         created = unknown_if_missing(res.get("created"))
-        if age != "unknown":
-            age = f"{int(age)} days" + (f" · since {created}" if created != "unknown" else "")
+        if age != T("unknown"):
+            age = (T("days_since", d=int(age), c=created) if created != T("unknown") else T("days", d=int(age)))
         f1, f2, f3, f4 = st.columns(4)
-        f1.caption("Registered domain"); f1.markdown(f"`{res['domain']}`")
-        f2.caption("Domain age"); f2.markdown(escape_md(age))
-        f3.caption("Registrar"); f3.text(unknown_if_missing(res.get("registrar")))  # plain text, never a link
+        f1.caption(T("f_domain")); f1.markdown(f"`{res['domain']}`")
+        f2.caption(T("f_age")); f2.markdown(escape_md(age))
+        f3.caption(T("f_registrar")); f3.text(unknown_if_missing(res.get("registrar")))  # plain text, never a link
         sb = res.get("safe_browsing")
-        f4.caption("Safe Browsing"); f4.markdown(escape_md("not checked" if unknown_if_missing(sb) == "unknown" else sb))
+        f4.caption(T("f_sb")); f4.markdown(escape_md(T("not_checked") if unknown_if_missing(sb) == T("unknown") else sb))
 
 
+def takedown_panel(site, key):
+    """Takedown report: download (English, optionally + AI Arabic version) and preview."""
+    english = report.build(site)
+    arabic = ai.report_arabic(english, generate=False)
+    want_ar = st.toggle(T("report_arabic"), key=f"ar_{key}", value=bool(arabic),
+                        disabled=not (arabic or ai.available()),
+                        help=T("report_arabic_help") if (arabic or ai.available()) else
+                        (T("ai_off_public") if config.PUBLIC_MODE else T("ai_off")))
+    if want_ar and not arabic:
+        try:
+            with st.spinner(T("translating")):
+                arabic = ai.report_arabic(english, generate=True)
+        except ai.AIError as e:
+            st.error(T("ai_failed", err=str(e)), icon=":material/error:")
+    text = report.with_arabic(english, arabic if want_ar else None)
+    st.download_button(T("report_download"), text, file_name=f"takedown_{site['domain']}.md",
+                       mime="text/markdown", type="primary", icon=":material/download:", width="stretch",
+                       key=f"dl_{key}")
+    with st.expander(T("report_preview")):
+        st.markdown(english)
+        if want_ar and arabic:
+            st.divider()
+            show_ai_text(arabic)
+
+
+def _source_badge(name, on):
+    return f":green-badge[:material/check: {name}]" if on else f":gray-badge[:material/remove: {name}: {T('off_no_key')}]"
+
+
+# ----------------------------------------------------------------------------- Header
 head, status = st.columns([3, 2], vertical_alignment="bottom")
+with status:
+    st.segmented_control("Language / اللغة", ["English", "العربية"], default="English", key="lang_choice",
+                         label_visibility="collapsed")
+    if config.PUBLIC_MODE:
+        st.markdown(" ".join([f":gray-badge[:material/lock: {T('public_badge')}]",
+                              _source_badge(T("src_sb"), config.SAFE_BROWSING_KEY)]))
+    else:
+        st.markdown(" ".join([_source_badge(T("src_ct"), True), _source_badge(T("src_search"), True),
+                              _source_badge(T("src_sb"), config.SAFE_BROWSING_KEY),
+                              _source_badge(T("src_maps"), config.PLACES_KEY),
+                              _source_badge(T("src_ai"), ai.available())]))
+if LANG == "ar":
+    st.html(RTL_CSS)
 with head:
     mascot, title = st.columns([1, 5], vertical_alignment="center")
     # Our mascot Dhab, the Arabian spiny-tailed lizard (our own drawing, assets/dhab.svg).
     mascot.image(str(config.ROOT / "assets" / "dhab.svg"), width=120)
     title.markdown("# ScamSayyad · صيّاد الاحتيال")
-    title.markdown("The scam hunter for the UAE. *Sayyad* (صيّاد) is Arabic for hunter; "
-                   "our mascot **Dhab** (ضب) is the desert's patient hunter.")
-    st.caption("Hunts for websites impersonating UAE police, government and banks. "
-               "Scores are leads for officer review, not verdicts. Suspicious pages are never opened.")
-def _source_badge(name, on):
-    return f":green-badge[:material/check: {name}]" if on else f":gray-badge[:material/remove: {name}: off, no key]"
-
-
-with status:
-    if config.PUBLIC_MODE:
-        st.markdown(" ".join([":gray-badge[:material/lock: Public demo: read-only]",
-                              _source_badge("Safe Browsing", config.SAFE_BROWSING_KEY)]))
-    else:
-        st.markdown(" ".join([_source_badge("Certificate logs", True), _source_badge("Web search", True),
-                              _source_badge("Safe Browsing", config.SAFE_BROWSING_KEY),
-                              _source_badge("Google Maps", config.PLACES_KEY)]))
+    title.markdown(T("tagline"))
+    st.caption(T("subtitle"))
 
 if config.PUBLIC_MODE:
-    st.warning("**Hackathon prototype, not an official Dubai Police or UAE government service.** "
-               "Sites listed here are automated, unverified leads, not confirmed scams. "
-               "Do not visit them. To report a scam, use the official UAE eCrime platform (ecrime.ae).",
-               icon=":material/info:")
+    st.warning(T("public_banner"), icon=":material/info:")
 
-tab_dash, tab_check, tab_hunt, tab_about = st.tabs(["Dashboard", "Check a link", "Hunt for scams", "How it works"])
+tab_dash, tab_check, tab_hunt, tab_about = st.tabs([T("tab_dash"), T("tab_check"), T("tab_hunt"), T("tab_about")])
+
 
 # ----------------------------------------------------------------------------- Dashboard
 def render_dashboard():
     sites = db.all_sites()
     if not sites:
-        st.info("No sites yet. Go to **Hunt for scams** to scan, or load the demo data there.")
-    else:
-        df = pd.DataFrame(sites)
-        is_demo = df.source == "sample"
-        real, n_demo = df[~is_demo], int(is_demo.sum())
+        st.info(T("no_sites"))
+        return
+    df = pd.DataFrame(sites)
+    is_demo = df.source == "sample"
+    real, n_demo = df[~is_demo], int(is_demo.sum())
 
-        cards = st.container()  # filled in below, once we know the slider and source choices
+    cards = st.container()  # filled in below, once we know the slider and source choices
 
-        with st.container(border=True):
-            f1, f2, f3 = st.columns([2, 3, 1], vertical_alignment="bottom")
-            min_score = f1.slider("Minimum score", 0, 100, config.DASHBOARD_MIN_SCORE, step=5,
-                                  help="Lower it to see weaker leads too.")
-            sources = sorted(df.source[~is_demo].unique())
-            chosen = f2.multiselect("Source", sources, default=sources)
-            show_samples = f3.toggle(
-                "Demo data", value=n_demo > 0, disabled=n_demo == 0,
-                help=("Adds the made-up practice rows (12 real official sites plus 12 invented scams from "
-                      "data/sample_urls.csv) to the table below. They are marked DEMO and never change the "
-                      "numbers above. Load or remove them on the Hunt for scams tab.")
-                if n_demo else "No demo data loaded. You can load it on the Hunt for scams tab.")
+    with st.container(border=True):
+        f1, f2, f3 = st.columns([2, 3, 1], vertical_alignment="bottom")
+        min_score = f1.slider(T("min_score"), 0, 100, config.DASHBOARD_MIN_SCORE, step=5, help=T("min_score_help"))
+        sources = sorted(df.source[~is_demo].unique())
+        chosen = f2.multiselect(T("source"), sources, default=sources)
+        show_samples = f3.toggle(T("demo_data"), value=n_demo > 0, disabled=n_demo == 0,
+                                 help=T("demo_help") if n_demo else T("demo_help_none"))
 
-        # The cards count exactly the REAL sites the table shows (same slider and sources). Never demo rows.
-        shown_real = real[(real.score >= min_score) & real.source.isin(chosen)]
-        with cards:
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric(":red[▲] High risk", int((shown_real.level == "HIGH").sum()), border=True)
-            c2.metric(":orange[◆] Medium risk", int((shown_real.level == "MEDIUM").sum()), border=True)
-            c3.metric("Listed by Google", int(shown_real.safe_browsing.fillna("").str.contains("_").sum()),
-                      border=True, help="Google Safe Browsing already lists these as dangerous.")
-            c4.metric("Real sites shown", len(shown_real), border=True)
-            st.caption(f"Counts follow the filters below: real sites scoring **{min_score} or more**, out of "
-                       f"{len(real):,} real sites checked in total. Demo data is never counted.")
+    # The cards count exactly the REAL sites the table shows (same slider and sources). Never demo rows.
+    shown_real = real[(real.score >= min_score) & real.source.isin(chosen)]
+    with cards:
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric(f":red[▲] {T('card_high')}", int((shown_real.level == "HIGH").sum()), border=True)
+        c2.metric(f":orange[◆] {T('card_medium')}", int((shown_real.level == "MEDIUM").sum()), border=True)
+        c3.metric(T("card_google"), int(shown_real.safe_browsing.fillna("").str.contains("_").sum()),
+                  border=True, help=T("card_google_help"))
+        c4.metric(T("card_shown"), len(shown_real), border=True)
+        st.caption(T("cards_note", min_score=min_score, total=len(real)))
 
-        view = df[(df.score >= min_score) & (df.source.isin(chosen) | (is_demo & show_samples))]
-        if show_samples and n_demo:
-            st.warning(f"**Demo data is on.** The table includes {int(view.source.eq('sample').sum())} made-up "
-                       "practice rows, marked **DEMO** in the *Found by* column. They are not real detections.",
-                       icon=":material/science:")
-        # Highest risk first; newest first among equal scores.
-        view = view.sort_values(["score", "first_seen"], ascending=[False, False]).reset_index(drop=True)
-        table = view.assign(
-            level=view.level.map(lambda lv: f"{LEVELS[lv][1]} {lv.title()}"),
-            host=view.url.map(hostname_readable),
-            source=view.source.replace("sample", "DEMO (made up)"),
-            brand=view.reasons.map(brand_used),
-            why=view.reasons.map(lambda r: r[0] if r else ""),
-            age_days=view.age_days.map(lambda a: "unknown" if pd.isna(a) else str(int(a))),
-        )[["score", "level", "host", "brand", "why", "source", "age_days", "first_seen", "url"]]
+    view = df[(df.score >= min_score) & (df.source.isin(chosen) | (is_demo & show_samples))]
+    if show_samples and n_demo:
+        st.warning(T("demo_on", n=int(view.source.eq("sample").sum())), icon=":material/science:")
+    # Highest risk first; newest first among equal scores.
+    view = view.sort_values(["score", "first_seen"], ascending=[False, False]).reset_index(drop=True)
+    table = view.assign(
+        level=view.level.map(lambda lv: f"{LEVELS[lv][1]} {T(lv)}"),
+        host=view.url.map(hostname_readable),
+        source=view.source.replace("sample", T("demo_made_up")),
+        brand=view.reasons.map(brand_used),
+        why=view.reasons.map(lambda r: tr(r[0]) if r else ""),
+        age_days=view.age_days.map(lambda a: T("unknown") if pd.isna(a) else str(int(a))),
+    )[["score", "level", "host", "brand", "why", "source", "age_days", "first_seen", "url"]]
 
-        st.markdown(f"**{len(view)} sites** match · select a row for details and the takedown report")
-        event = st.dataframe(
-            table, hide_index=True, width="stretch", height=420, on_select="rerun", selection_mode="single-row",
-            column_config={
-                "score": st.column_config.ProgressColumn("Score", min_value=0, max_value=100, format="%d",
-                                                         width="small"),
-                "level": st.column_config.TextColumn("Risk", width="small"),
-                "host": st.column_config.TextColumn("Website", width=380,
-                                                    help="Full website name, including the brand the scammer used"),
-                "brand": st.column_config.TextColumn("Brand", width=100, help="The brand being imitated"),
-                "why": st.column_config.TextColumn("Main reason", width=540),
-                "source": st.column_config.TextColumn("Found by", width="small"),
-                "age_days": st.column_config.TextColumn("Age (days)", width="small",
-                                                        help="'unknown' when the registry did not say"),
-                "first_seen": st.column_config.TextColumn("First seen", width="small"),
-                "url": st.column_config.TextColumn("Full URL", width="medium"),
-            })
+    st.markdown(T("n_match", n=len(view)))
+    event = st.dataframe(
+        table, hide_index=True, width="stretch", height=420, on_select="rerun", selection_mode="single-row",
+        column_config={
+            "score": st.column_config.ProgressColumn(T("col_score"), min_value=0, max_value=100, format="%d",
+                                                     width="small"),
+            "level": st.column_config.TextColumn(T("col_risk"), width="small"),
+            "host": st.column_config.TextColumn(T("col_site"), width=380, help=T("col_site_help")),
+            "brand": st.column_config.TextColumn(T("col_brand"), width=100, help=T("col_brand_help")),
+            "why": st.column_config.TextColumn(T("col_reason"), width=540),
+            "source": st.column_config.TextColumn(T("col_found"), width="small"),
+            "age_days": st.column_config.TextColumn(T("col_age"), width="small", help=T("col_age_help")),
+            "first_seen": st.column_config.TextColumn(T("col_first"), width="small"),
+            "url": st.column_config.TextColumn(T("col_url"), width="medium"),
+        })
 
-        if event.selection.rows:
-            site = view.iloc[event.selection.rows[0]].to_dict()
-            in_campaign = next((c for c in campaigns.find(sites) if site["domain"] in c["domains"]), None)
-            st.divider()
-            left, right = st.columns([3, 2])
-            with left:
-                if site["source"] == "sample":
-                    st.warning("Demo data: this is a made-up example, not a real detection.",
-                               icon=":material/science:")
-                show_result(site, in_campaign)
-                found_by = "demo data (made up)" if site["source"] == "sample" else site["source"]
-                query = "" if site["source"] == "sample" or not site["query"] else " · " + code_span(site["query"])
-                st.caption(f"Found by {found_by}{query} · "
-                           f"first seen {site['first_seen']}")
-            with right:
-                with st.container(border=True):
-                    st.markdown("**Takedown report**")
-                    if report.is_reportable(site):
-                        text = report.build(site)
-                        st.caption("Ready for officer review. Includes the registrar's abuse contact.")
-                        st.download_button("Download takedown report", text,
-                                           file_name=f"takedown_{site['domain']}.md", mime="text/markdown",
-                                           type="primary", icon=":material/download:", width="stretch")
-                        with st.expander("Preview report"):
-                            st.markdown(text)
-                    else:
-                        st.caption("Not needed: this site scored low risk.")
-
+    if event.selection.rows:
+        site = view.iloc[event.selection.rows[0]].to_dict()
+        in_campaign = next((c for c in campaigns.find(sites) if site["domain"] in c["domains"]), None)
         st.divider()
-        show_campaigns(sites)
+        left, right = st.columns([3, 2])
+        with left:
+            if site["source"] == "sample":
+                st.warning(T("demo_row"), icon=":material/science:")
+            show_result(site, in_campaign)
+            found_by = T("demo_source") if site["source"] == "sample" else site["source"]
+            query = "" if site["source"] == "sample" or not site["query"] else " · " + code_span(site["query"])
+            st.caption(T("found_by_line", src=found_by, query=query, first=site["first_seen"]))
+        with right:
+            if report.is_reportable(site):
+                with st.container(border=True):
+                    st.markdown(f":material/smart_toy: **{T('ai_button')}**")
+                    ai_briefing_block("site", key=f"ai_site_{site['url']}", site=site, campaign=in_campaign)
+            with st.container(border=True):
+                st.markdown(T("report_title"))
+                if report.is_reportable(site):
+                    st.caption(T("report_ready"))
+                    takedown_panel(site, key=site["url"])
+                else:
+                    st.caption(T("report_not_needed"))
+
+    st.divider()
+    show_campaigns(sites)
+
 
 # ----------------------------------------------------------------------------- Check a link
 with tab_check:
     form, result = st.columns([2, 3], gap="large")
     with form:
-        st.subheader("Check a link")
-        st.caption("Paste a link from an SMS, WhatsApp message or e-mail. The page itself is never opened.")
-        url = st.text_input("Link or domain", placeholder="http://dubaipol1ce-fines.xyz/pay")
-        msg = st.text_area("Message it came with (optional)",
-                           placeholder="Dubai Police: unpaid fine. Pay within 24 hours...")
-        go = st.button("Check link", type="primary", icon=":material/search:", disabled=not url.strip())
+        st.subheader(T("check_title"))
+        st.caption(T("check_note"))
+        url = st.text_input(T("check_input"), placeholder="http://dubaipol1ce-fines.xyz/pay")
+        msg = st.text_area(T("check_msg"), placeholder="Dubai Police: unpaid fine. Pay within 24 hours...")
+        go = st.button(T("check_btn"), type="primary", icon=":material/search:", disabled=not url.strip())
     with result:
         if go:
-            with st.spinner("Checking domain age and reputation..."):
+            with st.spinner(T("checking")):
                 if config.PUBLIC_MODE:  # public demo: check only, never write to the shared data
                     res = check(url.strip(), text=msg.strip())[0]
                 else:
                     res = check_and_save(url.strip(), text=msg.strip(), source="manual")
             show_result(res)
             if report.is_reportable(res):
-                st.download_button("Download takedown report", report.build(res), icon=":material/download:",
+                st.download_button(T("report_download"), report.build(res), icon=":material/download:",
                                    file_name=f"takedown_{res['domain']}.md", mime="text/markdown")
         else:
-            st.info("The score, the reasons and the domain's registration details will appear here.",
-                    icon=":material/arrow_back:")
+            st.info(T("check_empty"), icon=":material/arrow_back:")
 
 # ----------------------------------------------------------------------------- Hunt
 with tab_hunt:
     if config.PUBLIC_MODE:
-        st.info("Hunting is switched off in this public demo, so visitors can't run up costs or change "
-                "the data. The Dashboard shows real results from earlier hunts; try **Check a link** "
-                "to score any link yourself.", icon=":material/lock:")
+        st.info(T("hunt_public"), icon=":material/lock:")
     else:
         with st.container(border=True):
-            st.subheader(":material/new_releases: New-domain watcher")
-            st.caption("Searches public certificate logs (crt.sh) for recently created websites whose names start "
-                       "with a UAE brand. crt.sh can be slow or down; saved snapshots are used when it is.")
-            prefixes = st.multiselect("Brand prefixes", config.CT_PREFIXES,
-                                      default=["salik", "emiratespost", "emiratesnbd."])
-            days = st.slider("Certificates issued in the last N days", 1, 90, config.CT_RECENT_DAYS)
-            if st.button("Run watcher", type="primary", icon=":material/play_arrow:", disabled=not prefixes):
-                with st.status("Searching certificate logs (about 30 s per prefix)...", expanded=True) as s:
+            st.subheader(T("watcher_title"))
+            st.caption(T("watcher_note"))
+            prefixes = st.multiselect(T("prefixes"), config.CT_PREFIXES, default=["salik", "emiratespost", "emiratesnbd."])
+            days = st.slider(T("days_slider"), 1, 90, config.CT_RECENT_DAYS)
+            if st.button(T("run_watcher"), type="primary", icon=":material/play_arrow:", disabled=not prefixes):
+                with st.status(T("watcher_running"), expanded=True) as s:
                     res = ct_watcher.run(prefixes, days, log=st.write)
-                    s.update(label=f"Watcher finished: {len(res)} new hostnames", state="complete")
+                    s.update(label=T("watcher_done", n=len(res)), state="complete")
 
         with st.container(border=True):
-            st.subheader(":material/travel_explore: Search-results scanner")
-            st.caption("Searches the web like a victim would and scores every result.")
-            queries = st.multiselect("Risky searches", config.SEARCH_QUERIES, default=config.SEARCH_QUERIES[:2])
-            extra = st.text_input("Add your own search (optional)")
-            if st.button("Run search scan", type="primary", icon=":material/play_arrow:",
+            st.subheader(T("search_title"))
+            st.caption(T("search_note"))
+            queries = st.multiselect(T("queries"), config.SEARCH_QUERIES, default=config.SEARCH_QUERIES[:2])
+            extra = st.text_input(T("extra_query"))
+            if st.button(T("run_search"), type="primary", icon=":material/play_arrow:",
                          disabled=not (queries or extra.strip())):
-                with st.status("Searching...", expanded=True) as s:
+                with st.status(T("searching"), expanded=True) as s:
                     res = search_scanner.run(queries + ([extra.strip()] if extra.strip() else []), log=st.write)
-                    s.update(label=f"Search scan finished: {len(res)} results", state="complete")
+                    s.update(label=T("search_done", n=len(res)), state="complete")
 
         with st.container(border=True):
-            st.subheader(":material/map: Google Maps listings")
+            st.subheader(T("maps_title"))
             if config.PLACES_KEY:
-                st.caption("Looks for fake 'customer service' listings and scores their websites.")
-                if st.button("Run Maps scan", type="primary", icon=":material/play_arrow:"):
-                    with st.status("Searching Google Maps...", expanded=True) as s:
+                st.caption(T("maps_note"))
+                if st.button(T("run_maps"), type="primary", icon=":material/play_arrow:"):
+                    with st.status(T("maps_running"), expanded=True) as s:
                         res = maps_scanner.run(log=st.write)
-                        s.update(label=f"Maps scan finished: {len(res)} listings", state="complete")
+                        s.update(label=T("maps_done", n=len(res)), state="complete")
             else:
-                st.caption("Off: needs a Google Places API key (GOOGLE_PLACES_KEY in .env, billing account required).")
+                st.caption(T("maps_off"))
 
         with st.container(border=True):
-            st.subheader(":material/science: Demo data")
-            st.caption("12 real official sites and 12 made-up scams, labelled 'sample'. Useful when offline.")
+            st.subheader(T("demo_title"))
+            st.caption(T("demo_note"))
             d1, d2, _ = st.columns([1, 1, 2])
-            if d1.button("Load demo data", width="stretch"):
-                added = load_samples()
-                st.success(f"Added {added} demo rows. See the Dashboard tab.")
-            if d2.button("Remove demo data", width="stretch"):
+            if d1.button(T("demo_load"), width="stretch"):
+                st.success(T("demo_added", n=load_samples()))
+            if d2.button(T("demo_remove"), width="stretch"):
                 db.delete_samples()
-                st.success("Demo data removed.")
+                st.success(T("demo_removed"))
 
 # ----------------------------------------------------------------------------- About
-with tab_about:
-    st.markdown(f"""
-**How a site is scored (0–100)** — points are added for each warning sign, capped at 100:
+W = config.WEIGHTS
+ABOUT = {
+    "en": f"""
+**How a site is scored (0–100)**: points are added for each warning sign, capped at 100.
 
 | Signal | Points |
 |---|---|
-| Uses a UAE brand name (Dubai Police, RTA, Salik, DEWA, banks...) on a non-official domain | {config.WEIGHTS['brand_in_domain']} |
-| Look-alike spelling (dubaipolise, sa1ik) | {config.WEIGHTS['lookalike_spelling']} |
-| Message claims to be from a brand, link isn't official | {config.WEIGHTS['brand_in_text']} |
-| Domain under 30 days old / under 180 days | {config.WEIGHTS['very_new_domain']} / {config.WEIGHTS['new_domain']} |
-| Listed by Google Safe Browsing | {config.WEIGHTS['safe_browsing_hit']} |
-| Short link, raw IP address, punycode | {config.WEIGHTS['shortener']}, {config.WEIGHTS['ip_host']}, {config.WEIGHTS['punycode']} |
-| Cheap domain ending (.xyz, .top, .click...) | {config.WEIGHTS['risky_tld']} |
-| No HTTPS, hyphen-heavy name | {config.WEIGHTS['no_https']} each |
-| Scam words in the address, urgent wording in the message | up to {config.WEIGHTS['url_keyword_max']} / {config.WEIGHTS['urgent_text_max']} |
+| Uses a UAE brand name (Dubai Police, RTA, Salik, DEWA, banks...) on a non-official domain | {W['brand_in_domain']} |
+| Look-alike spelling (dubaipolise, sa1ik) | {W['lookalike_spelling']} |
+| Google Maps listing with a brand name and a foreign phone number | {W['phone_not_uae']} |
+| Listed by Google Safe Browsing | {W['safe_browsing_hit']} |
+| Message claims to be from a brand, link isn't official | {W['brand_in_text']} |
+| Domain under 30 days old / under 180 days | {W['very_new_domain']} / {W['new_domain']} |
+| Short link, raw IP address, punycode | {W['shortener']}, {W['ip_host']}, {W['punycode']} |
+| Cheap domain ending (.xyz, .top, .click...) | {W['risky_tld']} |
+| No HTTPS, hyphen-heavy name | {W['no_https']} each |
+| Scam words in the address, urgent wording in the message | up to {W['url_keyword_max']} / {W['urgent_text_max']} |
 
 **HIGH** ≥ {config.HIGH_RISK} · **MEDIUM** ≥ {config.MEDIUM_RISK}. Official domains and all `.gov.ae` sites score 0.
 
-**Data sources (all free):** RDAP + UAE WHOIS (domain age), crt.sh (certificate logs),
-DuckDuckGo/Bing via `ddgs` (search), Google Safe Browsing and Places (optional keys).
+**AI briefings (Gemini):** optional short summaries and an Arabic version of the takedown report. The AI only
+reads facts we already have (scores, reasons, registrar, dates, domain names), never opens a website, and never
+changes a score. Everything it writes is labelled "AI-generated draft — officer review required".
 
-Google Safe Browsing: **{'on' if config.SAFE_BROWSING_KEY else 'off (no key)'}** ·
-Google Maps: **{'on' if config.PLACES_KEY else 'off (no key)'}**
-""")
+**Data sources:** RDAP + UAE WHOIS (domain age), crt.sh (certificate logs), Bing via `ddgs` (search),
+Google Safe Browsing, Google Places and Gemini (optional keys).
+
+### Future plans
+- **A machine-learning model that learns new scam patterns.** It would be trained on sites Google has confirmed
+  as phishing and on leads officers have confirmed as scams, so the system learns patterns we haven't written
+  rules for yet.
+- **Why rules come first:** today we have only 4 Google-confirmed phishing sites and no officer-confirmed
+  leads. A model trained on so few examples would guess. Rules explain every point of a score, and each
+  confirmation officers record now becomes training data for later.
+""",
+    "ar": f"""
+**كيف تُحسب نتيجة الموقع (0–100)**: تُضاف نقاط لكل علامة تحذير، بحد أقصى 100.
+
+| العلامة | النقاط |
+|---|---|
+| يستخدم اسم علامة إماراتية (شرطة دبي، هيئة الطرق، سالك، ديوا، البنوك...) على نطاق غير رسمي | {W['brand_in_domain']} |
+| تهجئة شبيهة (dubaipolise، sa1ik) | {W['lookalike_spelling']} |
+| إدراج في خرائط Google باسم علامة ورقم هاتف أجنبي | {W['phone_not_uae']} |
+| مدرج لدى Google Safe Browsing | {W['safe_browsing_hit']} |
+| الرسالة تدّعي أنها من علامة والرابط غير رسمي | {W['brand_in_text']} |
+| عمر النطاق أقل من 30 يوماً / أقل من 180 يوماً | {W['very_new_domain']} / {W['new_domain']} |
+| رابط مختصر، عنوان IP مباشر، ترميز punycode | {W['shortener']}، {W['ip_host']}، {W['punycode']} |
+| امتداد نطاق رخيص (.xyz، .top، .click...) | {W['risky_tld']} |
+| بدون HTTPS، اسم كثير الشرطات | {W['no_https']} لكل منهما |
+| كلمات احتيال في العنوان، صياغة عاجلة في الرسالة | حتى {W['url_keyword_max']} / {W['urgent_text_max']} |
+
+**عالية** ≥ {config.HIGH_RISK} · **متوسطة** ≥ {config.MEDIUM_RISK}. النطاقات الرسمية وجميع مواقع `.gov.ae` نتيجتها 0.
+
+**ملخصات الذكاء الاصطناعي (Gemini):** ملخصات قصيرة اختيارية ونسخة عربية من تقرير الإزالة. يقرأ الذكاء الاصطناعي
+الحقائق المتوفرة لدينا فقط (النتائج، الأسباب، المسجِّل، التواريخ، أسماء النطاقات)، ولا يفتح أي موقع، ولا يغيّر أي
+نتيجة. كل ما يكتبه موسوم بعبارة «مسودة مولّدة بالذكاء الاصطناعي — تتطلب مراجعة الضابط».
+
+**مصادر البيانات:** RDAP و UAE WHOIS (عمر النطاق)، crt.sh (سجلات الشهادات)، Bing عبر `ddgs` (البحث)،
+Google Safe Browsing و Google Places و Gemini (مفاتيح اختيارية).
+
+### خطط مستقبلية
+- **نموذج تعلّم آلي يتعلّم أنماط احتيال جديدة.** يُدرَّب على مواقع أكدت Google أنها تصيّد احتيالي، وعلى مؤشرات أكد
+  الضباط أنها احتيال، ليكتشف النظام أنماطاً لم نكتب لها قواعد بعد.
+- **لماذا القواعد أولاً:** لدينا اليوم 4 مواقع فقط أكدتها Google ولا توجد مؤشرات أكدها الضباط بعد. نموذج يُدرَّب
+  على هذا العدد القليل سيخمّن. القواعد تشرح كل نقطة في النتيجة، وكل تأكيد يسجّله الضباط الآن يصبح بيانات تدريب لاحقاً.
+""",
+}
+with tab_about:
+    st.markdown(ABOUT[LANG])
+    st.markdown(f"Google Safe Browsing: **{T('on') if config.SAFE_BROWSING_KEY else T('off_short')}** · "
+                f"Google Maps: **{T('on') if config.PLACES_KEY else T('off_short')}** · "
+                f"Gemini: **{T('on') if ai.available() else T('off_short')}**")
 
 # Drawn last so it already includes anything a hunt or check above just added.
 with tab_dash:

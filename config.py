@@ -21,6 +21,12 @@ if _env_file.exists():
 SAFE_BROWSING_KEY = os.environ.get("GOOGLE_SAFE_BROWSING_KEY", "")
 PLACES_KEY = os.environ.get("GOOGLE_PLACES_KEY", "")
 
+# AI briefings (ai.py): Google Gemini. Optional; everything else works without it.
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+# A fast, low-cost model. Google renames models over time: if Gemini says the model is not
+# found, put the current "Flash-Lite" model name in .env as GEMINI_MODEL=...
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite")
+
 # --- Public demo (Streamlit Community Cloud) ---------------------------------
 # Set SCAMSHIELD_PUBLIC = "1" in the cloud app's Secrets. The public site then:
 #   * shows a read-only copy of the results (data/public_snapshot.db, refreshed by hand);
@@ -31,6 +37,7 @@ PUBLIC_MODE = os.environ.get("SCAMSHIELD_PUBLIC", "") == "1"
 if PUBLIC_MODE:
     DB_PATH = ROOT / "data" / "public_snapshot.db"
     PLACES_KEY = ""  # never spend the paid Maps key on a public site
+    GEMINI_API_KEY = ""  # nor the Gemini key: saved AI briefings are still shown
 
 # --- Official domains (never flagged) --------------------------------------
 # Matched on the *registered* domain, so "www.rta.ae" and "fines.rta.ae" are official,

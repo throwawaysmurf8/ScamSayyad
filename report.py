@@ -129,6 +129,19 @@ produced without opening the page.*
 """
 
 
+def with_arabic(english, arabic):
+    """The bilingual report: the English report first, then the AI's Arabic version below it.
+    The Arabic text is AI-written, so it is labelled and kept in a plain-text block (never
+    rendered as links or images)."""
+    if not arabic:
+        return english
+    arabic = arabic.replace("```", "'''")
+    return (f"{english}\n\n---\n\n# النسخة العربية / Arabic version\n\n"
+            f"**AI-generated draft — officer review required · "
+            f"مسودة مولّدة بالذكاء الاصطناعي — تتطلب مراجعة الضابط**\n\n"
+            f"```text\n{arabic}\n```\n")
+
+
 if __name__ == "__main__":
     from enrich import check
     result, _ = check(sys.argv[1] if len(sys.argv) > 1 else "http://dubaipol1ce-fines.xyz/pay")

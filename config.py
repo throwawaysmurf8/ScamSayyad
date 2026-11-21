@@ -50,7 +50,7 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite")
 # Public-site limits, so strangers can't run up the bill (limits.py). The daily caps are "soft" (they reset
 # if the cloud server restarts); the hard limits are the quotas / spend limits in Google's and Anthropic's consoles.
-CHAT_DAILY_CAP = int(os.environ.get("CHAT_DAILY_CAP", "20"))  # Anaq questions per day, all visitors
+CHAT_DAILY_CAP = int(os.environ.get("CHAT_DAILY_CAP", "100"))  # Anaq questions per day, all visitors combined
 CHAT_PER_VISITOR = int(os.environ.get("CHAT_PER_VISITOR", "10"))  # Anaq questions per visit
 PUBLIC_HUNTS_PER_DAY = int(os.environ.get("PUBLIC_HUNTS_PER_DAY", "20"))  # per hunter: certificate watcher, web search (each)
 PUBLIC_MAPS_PER_DAY = int(os.environ.get("PUBLIC_MAPS_PER_DAY", "6"))  # Maps scans: 3 Google requests each, so 6 scans = 18 requests (Google quota: 20/day)

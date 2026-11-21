@@ -148,7 +148,7 @@ real results (`data/public_snapshot.db`) and lets visitors try "Check a link" wi
 Visitors can also run the hunters and the Google Maps scan, within daily limits for the whole site
 (20 hunts, 6 Maps scans = 18 Google requests; `limits.py`). Their results go into a working copy (`data/public_live.db`) that
 everyone sees and that resets when the cloud app restarts. Anaq's chat (Claude Haiku 5.5, if a key is set)
-allows 10 questions per visit and 20 a day. A banner says it's a hackathon prototype, not an official
+allows 10 questions per visit and 100 a day for all visitors combined. A banner says it's a hackathon prototype, not an official
 police service. The in-app limits are soft (they reset on a restart): also set a daily quota on the Places
 API in Google Cloud and a spend limit in the Anthropic console.
 

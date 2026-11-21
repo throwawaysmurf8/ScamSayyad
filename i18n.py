@@ -226,9 +226,9 @@ S = {
                     "ستظهر هنا النتيجة والأسباب وبيانات تسجيل النطاق."),
 
     # --- Hunt ---------------------------------------------------------------------
-    "hunt_public": ("Public demo: anyone can run a hunt, up to {hunts} hunts and {maps} Google Maps scans a day "
+    "hunt_public": ("Public demo: anyone can run a hunt, up to {hunts} runs of each hunter and {maps} Google Maps scans a day "
                     "for the whole site. New results show on the Dashboard for everyone, and reset when the site restarts.",
-                    "نسخة عامة: يمكن لأي زائر تشغيل البحث، حتى {hunts} عملية بحث و{maps} فحوصات لخرائط Google يومياً "
+                    "نسخة عامة: يمكن لأي زائر تشغيل البحث، حتى {hunts} تشغيلاً لكل أداة بحث و{maps} فحوصات لخرائط Google يومياً "
                     "للموقع كله. تظهر النتائج الجديدة في لوحة المتابعة للجميع، وتُمسح عند إعادة تشغيل الموقع."),
     "hunt_cap": ("Today's limit ({n}) is reached on the public demo. Please try again tomorrow.",
                  "تم بلوغ الحد اليومي ({n}) في النسخة العامة. يُرجى المحاولة غداً."),

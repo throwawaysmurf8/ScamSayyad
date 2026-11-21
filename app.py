@@ -517,7 +517,7 @@ with tab_hunt:
         prefixes = st.multiselect(T("prefixes"), config.CT_PREFIXES, default=["salik", "emiratespost", "emiratesnbd."])
         days = st.slider(T("days_slider"), 1, 90, config.CT_RECENT_DAYS)
         if (st.button(T("run_watcher"), type="primary", icon=":material/play_arrow:", disabled=not prefixes)
-                and allowed_today("hunts", config.PUBLIC_HUNTS_PER_DAY)):
+                and allowed_today("watcher", config.PUBLIC_HUNTS_PER_DAY)):
             with st.status(T("watcher_running"), expanded=True) as s:
                 res = ct_watcher.run(prefixes, days, log=st.write)
                 s.update(label=T("watcher_done", n=len(res)), state="complete")
@@ -529,7 +529,7 @@ with tab_hunt:
         extra = st.text_input(T("extra_query"), max_chars=100)
         if (st.button(T("run_search"), type="primary", icon=":material/play_arrow:",
                       disabled=not (queries or extra.strip()))
-                and allowed_today("hunts", config.PUBLIC_HUNTS_PER_DAY)):
+                and allowed_today("search", config.PUBLIC_HUNTS_PER_DAY)):
             with st.status(T("searching"), expanded=True) as s:
                 res = search_scanner.run(queries + ([extra.strip()] if extra.strip() else []), log=st.write)
                 s.update(label=T("search_done", n=len(res)), state="complete")

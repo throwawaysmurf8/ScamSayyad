@@ -332,7 +332,7 @@ def _source_badge(name, on):
 
 
 # ----------------------------------------------------------------------------- Header
-head, status = st.columns([3, 2], vertical_alignment="center")
+head, status = st.columns([7, 3], vertical_alignment="center")
 with status:
     st.segmented_control("Language / اللغة", ["English", "العربية"], default="English", key="lang_choice",
                          label_visibility="collapsed")
@@ -348,10 +348,10 @@ with status:
 if LANG == "ar":
     st.html(RTL_CSS)
 with head:
-    mascot, title = st.columns([1, 7], vertical_alignment="center")
-    # Our mascot Anaq, the Arabian caracal (our own drawing, assets/caracal.svg). Shown once, small:
+    mascot, title = st.columns([2, 5], vertical_alignment="center")
+    # Our mascot Anaq, the Arabian caracal, standing and looking at us (our own drawing, assets/caracal.svg). Shown once:
     # the brand defers to the content.
-    mascot.image(str(config.ROOT / "assets" / "caracal.svg"), width=78)
+    mascot.image(str(config.ROOT / "assets" / "caracal.svg"), width=120)
     title.html(f"{BRAND_CSS}<div class='ss-brand'><span class='ss-name'>Athar Al Anaq</span>"
                f"<span class='ss-name-ar'>أثر العناق</span></div>")
     title.markdown(T("tagline"))

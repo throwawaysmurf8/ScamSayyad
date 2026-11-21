@@ -1,0 +1,87 @@
+{
+  "trained_on": "2026-11-21",
+  "examples": {
+    "phishing": 83906,
+    "safe": 223656
+  },
+  "held_back_test": {
+    "scams": 13209,
+    "scams_caught": 8817,
+    "catch_rate": 0.6675,
+    "safe": 44643,
+    "safe_wrongly_flagged": 2618,
+    "false_alarm_rate": 0.0586
+  },
+  "uae_check": {
+    "google_confirmed_phishing": {
+      "count": 4,
+      "flagged_50_plus": 4,
+      "scores": {
+        "dubaipolice.click": 58,
+        "emiratesnbd.secure-frais.click": 100,
+        "emiratespost-ttys.top": 95,
+        "emiratespost-ttyx.top": 96
+      },
+      "is_scam": true
+    },
+    "sample_scams": {
+      "count": 12,
+      "flagged_50_plus": 10,
+      "scores": {
+        "dubaipol1ce-fines.xyz": 94,
+        "dubaipolice.gov.ae.pay-fine.top": 100,
+        "salik-recharge-now.online": 81,
+        "rta-fines-ae.click": 91,
+        "dewa-bill-refund.site": 69,
+        "emiratespost-parcel.info": 95,
+        "emiratesnbd-secure-login.xyz": 99,
+        "xn--dubaiplice-u9b.com": 49,
+        "45.137.21.9": 100,
+        "bit.ly": 35,
+        "dubaipolise.com": 51,
+        "adcb-kyc-update.icu": 99
+      },
+      "is_scam": true
+    },
+    "official_uae_sites": {
+      "count": 27,
+      "flagged_50_plus": 4,
+      "scores": {
+        "adcb.com": 37,
+        "addc.ae": 8,
+        "adib.ae": 24,
+        "adpolice.gov.ae": 0,
+        "bankfab.com": 9,
+        "cbd.ae": 29,
+        "darb.ae": 54,
+        "dewa.ae": 22,
+        "dewa.gov.ae": 0,
+        "dib.ae": 35,
+        "du.ae": 10,
+        "dubaipolice.gov.ae": 1,
+        "eand.com": 8,
+        "ecrime.ae": 13,
+        "emiratesnbd.com": 51,
+        "emiratespost.ae": 33,
+        "etihadwe.ae": 56,
+        "etisalat.ae": 25,
+        "icp.gov.ae": 1,
+        "itc.gov.ae": 1,
+        "mashreq.com": 36,
+        "moi.gov.ae": 0,
+        "rakbank.ae": 24,
+        "rta.ae": 8,
+        "salik.ae": 53,
+        "u.ae": 16,
+        "uaepass.ae": 10
+      },
+      "is_scam": false
+    }
+  },
+  "seconds": 108,
+  "threshold": 50,
+  "sources": [
+    "PhiUSIIL Phishing URL dataset (UCI ML Repository, CC BY 4.0), Prasad & Chandra 2024",
+    "Tranco top 100,000 sites (tranco-list.eu), Le Pochat et al. NDSS 2019"
+  ]
+}

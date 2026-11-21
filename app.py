@@ -18,6 +18,7 @@ import ct_watcher
 import db
 import i18n
 import maps_scanner
+import ml_model
 import report
 import search_scanner
 from enrich import check, check_and_save
@@ -91,6 +92,23 @@ def hostname_readable(url):
 brand_used = campaigns.brand_of  # "...brand name 'salik'..." -> 'salik'
 
 
+@st.cache_data(show_spinner=False)
+def ml_scores(urls, model_mtime):
+    """ML second-opinion scores for many sites (cached until the model file changes)."""
+    return ml_model.score_hosts(list(urls))
+
+
+def ml_for(urls):
+    if not ml_model.available():
+        return [None] * len(urls)
+    return ml_scores(tuple(urls), ml_model.MODEL_PATH.stat().st_mtime)
+
+
+def is_official(reasons):
+    """Allowlisted official sites (the rules already know they are safe)."""
+    return bool(reasons) and reasons[0].startswith("Official domain")
+
+
 def dates_text(c):
     return c["first"] if c["first"] == c["last"] else T("dates_range", a=c["first"], b=c["last"])
 
@@ -118,8 +136,7 @@ def ai_briefing_block(kind, key, **args):
         show_ai_text(saved)
         return
     if not ai.available():
-        st.caption(T("ai_off_public") if config.PUBLIC_MODE else T("ai_off"))
-        return
+        return  # no key: nothing to show (the header badge says AI is off); code kept for later
     if st.button(T("ai_button"), key=key, icon=":material/smart_toy:"):
         try:
             with st.spinner(T("ai_thinking")):
@@ -210,15 +227,21 @@ def show_result(res, campaign=None):
         sb = res.get("safe_browsing")
         f4.caption(T("f_sb")); f4.markdown(escape_md(T("not_checked") if unknown_if_missing(sb) == T("unknown") else sb))
 
+        ml = ml_for([res["url"]])[0]  # second opinion only: shown, never added to the score
+        if ml is not None and not is_official(res["reasons"]):  # official sites need no second opinion
+            rule_flag, ml_flag = res["score"] >= config.MEDIUM_RISK, ml >= 50
+            verdict = T("ml_agrees") if rule_flag == ml_flag else (
+                T("ml_disagrees_more") if ml_flag else T("ml_disagrees_less"))
+            st.markdown(T("ml_card", p=ml, verdict=verdict))
+
 
 def takedown_panel(site, key):
     """Takedown report: download (English, optionally + AI Arabic version) and preview."""
     english = report.build(site)
     arabic = ai.report_arabic(english, generate=False)
-    want_ar = st.toggle(T("report_arabic"), key=f"ar_{key}", value=bool(arabic),
-                        disabled=not (arabic or ai.available()),
-                        help=T("report_arabic_help") if (arabic or ai.available()) else
-                        (T("ai_off_public") if config.PUBLIC_MODE else T("ai_off")))
+    want_ar = False
+    if arabic or ai.available():  # the Arabic option only appears when AI is on (or already saved)
+        want_ar = st.toggle(T("report_arabic"), key=f"ar_{key}", value=bool(arabic), help=T("report_arabic_help"))
     if want_ar and not arabic:
         try:
             with st.spinner(T("translating")):
@@ -312,7 +335,12 @@ def render_dashboard():
         brand=view.reasons.map(brand_used),
         why=view.reasons.map(lambda r: tr(r[0]) if r else ""),
         age_days=view.age_days.map(lambda a: T("unknown") if pd.isna(a) else str(int(a))),
-    )[["score", "level", "host", "brand", "why", "source", "age_days", "first_seen", "url"]]
+        ml=[None if is_official(r) else m for r, m in zip(view.reasons, ml_for(list(view.url)))],
+    )[["score", "level", "host", "brand", "why", "source", "age_days", "first_seen", "url", "ml"]]
+    if not ml_model.available():
+        table = table.drop(columns=["ml"])  # no model file: no column, everything else as normal
+    else:
+        table = table[["score", "level", "ml", "host", "brand", "why", "source", "age_days", "first_seen", "url"]]
 
     st.markdown(T("n_match", n=len(view)))
     event = st.dataframe(
@@ -328,6 +356,8 @@ def render_dashboard():
             "age_days": st.column_config.TextColumn(T("col_age"), width="small", help=T("col_age_help")),
             "first_seen": st.column_config.TextColumn(T("col_first"), width="small"),
             "url": st.column_config.TextColumn(T("col_url"), width="medium"),
+            "ml": st.column_config.ProgressColumn(T("col_ml"), min_value=0, max_value=100, format="%d%%",
+                                                  width=140, help=T("col_ml_help")),
         })
 
     if event.selection.rows:
@@ -343,7 +373,8 @@ def render_dashboard():
             query = "" if site["source"] == "sample" or not site["query"] else " · " + code_span(site["query"])
             st.caption(T("found_by_line", src=found_by, query=query, first=site["first_seen"]))
         with right:
-            if report.is_reportable(site):
+            if report.is_reportable(site) and (ai.available() or
+                                               ai.site_briefing(site, in_campaign, lang=LANG, generate=False)):
                 with st.container(border=True):
                     st.markdown(f":material/smart_toy: **{T('ai_button')}**")
                     ai_briefing_block("site", key=f"ai_site_{site['url']}", site=site, campaign=in_campaign)
@@ -497,8 +528,48 @@ Google Safe Browsing و Google Places و Gemini (مفاتيح اختيارية).
   على هذا العدد القليل سيخمّن. القواعد تشرح كل نقطة في النتيجة، وكل تأكيد يسجّله الضباط الآن يصبح بيانات تدريب لاحقاً.
 """,
 }
+def ml_plans():
+    """'Future plans' with the real ML test numbers, if the model has been trained."""
+    import json
+    path = config.ROOT / "data" / "ml" / "metrics.json"
+    if not path.exists():
+        return ""
+    m = json.loads(path.read_text(encoding="utf-8"))
+    h, u = m["held_back_test"], m["uae_check"]
+    g, sc, of = u["google_confirmed_phishing"], u["sample_scams"], u["official_uae_sites"]
+    if LANG == "ar":
+        return f"""
+### خطط مستقبلية
+- **تم بناؤه: نموذج تعلّم آلي بسيط مدرَّب على بيانات تصيّد عامة** (انحدار لوجستي على مقاطع حروف أسماء المواقع،
+  {m['examples']['phishing']:,} مثال تصيّد و{m['examples']['safe']:,} موقعاً آمناً، تدرّب في نحو {m['seconds']} ثانية).
+  في اختبار عادل على مواقع لم يرها أثناء التدريب، **اكتشف {h['catch_rate']:.0%} من مواقع التصيّد** ({h['scams_caught']:,} من {h['scams']:,})
+  و**أشار خطأً إلى {h['false_alarm_rate']:.1%} من المواقع الآمنة** ({h['safe_wrongly_flagged']:,} من {h['safe']:,}).
+  على بياناتنا: {g['flagged_50_plus']} من {g['count']} مواقع أكدتها Google، و{sc['flagged_50_plus']} من {sc['count']} من أمثلة الاحتيال،
+  لكنه ظنّ {of['flagged_50_plus']} من {of['count']} مواقع إماراتية رسمية مشبوهة. لهذا هو **رأي ثانٍ فقط** ولا يغيّر النتيجة.
+- **مخطط له: نموذج تعلّم عميق مدرَّب على بيانات إماراتية أكدها الضباط**، ليتعلّم أنماط الاحتيال المحلية.
+  لا توجد لدينا بعد أمثلة مؤكدة كافية، ولهذا تأتي القواعد أولاً: فهي تشرح كل نقطة في النتيجة.
+
+مصادر بيانات التدريب: {'؛ '.join(m['sources'])}.
+"""
+    return f"""
+### Future plans
+- **Built: a simple ML model trained on public phishing data** (logistic regression on letter chunks of website
+  names; {m['examples']['phishing']:,} phishing and {m['examples']['safe']:,} safe examples; trains in about {m['seconds']} seconds).
+  In a fair test on sites it never saw, it **caught {h['catch_rate']:.0%} of phishing sites** ({h['scams_caught']:,} of {h['scams']:,})
+  and **wrongly flagged {h['false_alarm_rate']:.1%} of safe sites** ({h['safe_wrongly_flagged']:,} of {h['safe']:,}).
+  On our data it flagged {g['flagged_50_plus']} of {g['count']} Google-confirmed phishing sites and {sc['flagged_50_plus']} of {sc['count']}
+  sample scams, but also {of['flagged_50_plus']} of {of['count']} official UAE sites. That is why it is a **second opinion only** and
+  never changes the score.
+- **Planned: a deep-learning model trained on UAE-specific, officer-confirmed data**, so it learns local scam
+  patterns. We don't have enough confirmed examples yet, which is why rules come first: they explain every point.
+
+Training data: {'; '.join(m['sources'])}.
+"""
+
+
 with tab_about:
-    st.markdown(ABOUT[LANG])
+    st.markdown(ABOUT[LANG].split("### Future plans")[0].split("### خطط مستقبلية")[0])
+    st.markdown(ml_plans() or ABOUT[LANG][ABOUT[LANG].find("###"):])
     st.markdown(f"Google Safe Browsing: **{T('on') if config.SAFE_BROWSING_KEY else T('off_short')}** · "
                 f"Google Maps: **{T('on') if config.PLACES_KEY else T('off_short')}** · "
                 f"Gemini: **{T('on') if ai.available() else T('off_short')}**")

@@ -370,3 +370,52 @@ def test_arabic_translation_of_reasons():
     assert ar.startswith("+35 ") and "'salik'" in ar and "Uses" not in ar
     assert i18n.translate("Domain is young (67 days old)", "en") == "Domain is young (67 days old)"
     assert all(len(v) == 2 and v[0] and v[1] for v in i18n.S.values())   # every screen text in both languages
+
+
+# ---------------------------------------------------------------- ML second opinion (offline)
+def _tiny_model(monkeypatch, tmp_path):
+    """Train a tiny model on made-up names (no internet, no downloads) and point ml_model at it."""
+    import numpy as np
+    from sklearn.linear_model import LogisticRegression
+    import ml_model
+    scams = ["secure-login-verify.top", "account-update-pay.xyz", "verify-bank-login.click", "pay-fine-now.icu",
+             "login-secure-update.sbs", "bank-verify-account.cyou", "parcel-fee-pay.top", "update-kyc-now.xyz"]
+    safe = ["google.com", "wikipedia.org", "bbc.co.uk", "amazon.com", "github.com", "apple.com", "nytimes.com", "dewa.gov.ae"]
+    X, mean, std = ml_model.features(scams + safe)
+    clf = LogisticRegression(C=10, max_iter=1000).fit(X, [1] * len(scams) + [0] * len(safe))
+    path = tmp_path / "model.npz"
+    np.savez_compressed(path, coef=clf.coef_[0].astype(np.float32), intercept=np.float64(clf.intercept_[0]),
+                        mean=mean, std=std)
+    monkeypatch.setattr(ml_model, "MODEL_PATH", path)
+    monkeypatch.setattr(ml_model, "_MODEL", None)
+    return ml_model
+
+
+def test_ml_scores_are_0_to_100_and_rank_scams_higher(monkeypatch, tmp_path):
+    ml = _tiny_model(monkeypatch, tmp_path)
+    assert ml.available()
+    scam, safe = ml.score("https://verify-account-login.top/x"), ml.score("https://www.wikipedia.org")
+    assert 0 <= safe < scam <= 100
+    assert ml.host_of("https://WWW.Salik-Pay.top/path?q=1") == "salik-pay.top"   # name only, no page
+
+
+def test_ml_missing_model_hides_everything(monkeypatch, tmp_path):
+    import ml_model
+    monkeypatch.setattr(ml_model, "MODEL_PATH", tmp_path / "missing.npz")
+    monkeypatch.setattr(ml_model, "_MODEL", None)
+    assert not ml_model.available()
+    assert ml_model.score_hosts(["a.com", "b.top"]) == [None, None]
+
+
+def test_ml_never_changes_the_rule_score(monkeypatch, tmp_path):
+    ml = _tiny_model(monkeypatch, tmp_path)
+    before = score_url("https://salik-pay-verify.top/login")
+    ml.score("https://salik-pay-verify.top/login")
+    assert score_url("https://salik-pay-verify.top/login") == before     # rules give exactly the same result
+
+
+def test_ml_model_file_holds_numbers_only(monkeypatch, tmp_path):
+    import numpy as np
+    ml = _tiny_model(monkeypatch, tmp_path)
+    with np.load(ml.MODEL_PATH, allow_pickle=False) as f:                 # would fail if code were inside
+        assert set(f.files) == {"coef", "intercept", "mean", "std"}

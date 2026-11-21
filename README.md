@@ -153,7 +153,7 @@ To refresh the public results later, copy `data/scamshield.db` over `data/public
 
 | Feature | Status | Data source | Key needed? |
 |---|---|---|---|
-| 1. Scoring engine: brand look-alikes, cheap domain endings, short links, no HTTPS, scam words, urgent SMS wording | Working, 32 automated tests | Built in | No |
+| 1. Scoring engine: brand look-alikes, cheap domain endings, short links, no HTTPS, scam words, urgent SMS wording | Working, 36 automated tests | Built in | No |
 | 1b. Domain age, registrar, abuse e-mail | Working | RDAP (rdap.org); UAE WHOIS (whois.nic.ae) for .ae | No |
 | 1c. Google Safe Browsing | Working, tested live with a real key (`enrich.py --test-key`); skipped cleanly without a key | Google Safe Browsing v4 | Free key |
 | 2. New-domain watcher | Working | crt.sh certificate logs | No |
@@ -267,15 +267,32 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
 
 ---
 
-## Future plans
+## ML second opinion and future plans
 
-- **A machine-learning model that learns new scam patterns.** Trained on sites Google has confirmed
-  as phishing and on leads officers have confirmed as scams, it would spot patterns we haven't written
-  rules for yet, and get better as more cases are confirmed.
-- **Why rules come first:** today we have only 4 Google-confirmed phishing sites and no
-  officer-confirmed leads. A model trained on so few examples would mostly guess, and it couldn't
-  explain its answers. Rules explain every point of a score; each confirmation officers record now
-  becomes training data for that model later.
+- **Built: a simple ML model trained on public phishing data.** `ml_model.py` gives every website name a
+  0–100% "how scam-like does this name look" score, shown as its own **ML second opinion** column and on
+  each site's card. It is logistic regression (scikit-learn) on 3–5-letter chunks of the name plus simple
+  counts (length, dots, hyphens, digits). It never opens a website and **never changes the rule-based
+  score**. It is hidden for official, allowlisted sites, and disappears if `data/ml/model.npz` is missing.
+  - **Training data (lists only; no site in them is opened):** the PhiUSIIL Phishing URL dataset
+    (UCI ML Repository, CC BY 4.0; Prasad & Chandra 2024, https://doi.org/10.1016/j.cose.2023.103545)
+    and the Tranco top 100,000 sites (tranco-list.eu; non-commercial, credit to Tranco and its sources,
+    Le Pochat et al., NDSS 2019). OpenPhish is not used: its terms forbid security operations and
+    building products from its feed. URLhaus needs an account and lists mostly malware downloads.
+  - **Fair test (21 Nov 2026):** 20% of sites were held back, grouped by domain so the model never saw
+    them. It **caught 67% of phishing sites** (8,817 of 13,209) and **wrongly flagged 5.9% of safe sites**
+    (2,618 of 44,643). Fair, not great: it only sees the name, and many phishing pages live on
+    normal-looking names (hacked sites, free hosting).
+  - **On our UAE data:** it flagged all 4 Google-confirmed phishing sites (58–100%) and 10 of 12 sample
+    scams (it missed the punycode name and the bit.ly link, which the rules catch). But it also gave 4 of
+    27 official UAE sites 50% or more (salik.ae, darb.ae, etihadwe.ae, emiratesnbd.com), so it is shown
+    only as a second opinion.
+  - **Retrain:** `.venv\Scripts\python -I tools/train_ml.py --download` (about 2 minutes, no GPU).
+    Results go to `data/ml/metrics.json`; the "How it works" tab shows them.
+- **Planned: a deep-learning model trained on UAE-specific, officer-confirmed data**, so it learns local
+  scam patterns. We don't have enough confirmed examples yet (4 Google-confirmed sites, no officer
+  confirmations), which is why rules come first: they explain every point of a score, and each
+  confirmation officers record becomes training data later.
 
 ---
 
@@ -291,6 +308,8 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
 | `search_scanner.py` | Feature 3. Runs risky searches ("pay Dubai Police fine") and scores every result. Run it alone with `python search_scanner.py "your search"`. |
 | `campaigns.py` | Groups flagged sites into "possible campaigns": 3+ domains imitating the same brand, from the same registrar, registered within 14 days of each other. Shown at the bottom of the Dashboard. |
 | `ai.py` | AI briefings and the Arabic report, from Google's Gemini. Sends only facts already in the database, never opens websites, never changes scores, saves every answer so it is never paid for twice, and labels everything as an AI draft. Off without `GEMINI_API_KEY`. |
+| `ml_model.py` | The ML second opinion: turns a website name into letter chunks and counts, and scores it 0–100% with the trained model in `data/ml/model.npz` (numbers only, no code). |
+| `tools/train_ml.py` | Downloads the public training lists, trains the ML model with a fair held-back test, checks it on our UAE data, and saves `data/ml/model.npz` and `data/ml/metrics.json`. |
 | `i18n.py` | Every screen text in English and Arabic, plus Arabic versions of the scorer's reasons (for display only). |
 | `report.py` | Feature 4b. Builds the takedown report, offered only for MEDIUM and HIGH sites: target, reasons, registration details, the registrar's abuse contact and where to send it (registrar, Google Safe Browsing, UAE eCrime). For sites on free hosting platforms (workers.dev, vercel.app ...) it says to report to the platform instead. |
 | `maps_scanner.py` | Feature 5 (stretch). Searches Google Maps for fake "customer service" listings and checks each listing's website and phone number (fake listings often link the real website but show the scammer's number). Each listing is its own row. Its takedown report asks Google to remove the listing. It only runs with a `GOOGLE_PLACES_KEY`, and each search is a paid request. |

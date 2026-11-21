@@ -77,6 +77,18 @@ S = {
     "col_age": ("Age (days)", "العمر (أيام)"),
     "col_age_help": ("'unknown' when the registry did not say", "«غير معروف» عندما لا يذكر السجل التاريخ"),
     "col_first": ("First seen", "أول ظهور"), "col_url": ("Full URL", "الرابط الكامل"),
+    "col_ml": ("ML second opinion", "رأي ثانٍ (تعلّم آلي)"),
+    "col_ml_help": ("How scam-like the website NAME looks to a machine-learning model trained on public phishing "
+                    "data (0–100%). A second opinion only: it never changes the rule-based score.",
+                    "مدى تشابه اسم الموقع مع مواقع الاحتيال وفق نموذج تعلّم آلي مدرَّب على بيانات تصيّد عامة (0–100٪). "
+                    "رأي ثانٍ فقط، ولا يغيّر النتيجة المبنية على القواعد."),
+    "ml_card": (":material/model_training: **ML second opinion:** {p}% scam-like name ({verdict}). A separate model "
+                "trained on public phishing data; it does not change the score above.",
+                ":material/model_training: **رأي ثانٍ (تعلّم آلي):** {p}٪ تشابه مع أسماء الاحتيال ({verdict}). نموذج "
+                "منفصل مدرَّب على بيانات تصيّد عامة، ولا يغيّر النتيجة أعلاه."),
+    "ml_agrees": ("agrees with the rules", "يتفق مع القواعد"),
+    "ml_disagrees_more": ("the model is more worried than the rules", "النموذج أكثر قلقاً من القواعد"),
+    "ml_disagrees_less": ("the model is less worried than the rules", "النموذج أقل قلقاً من القواعد"),
     "demo_row": ("Demo data: this is a made-up example, not a real detection.",
                  "بيانات تجريبية: هذا مثال مختلق وليس اكتشافاً حقيقياً."),
     "found_by_line": ("Found by {src}{query} · first seen {first}", "المصدر: {src}{query} · أول ظهور {first}"),

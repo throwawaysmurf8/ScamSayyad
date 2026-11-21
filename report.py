@@ -129,12 +129,94 @@ produced without opening the page.*
 """
 
 
-def with_arabic(english, arabic):
-    """The bilingual report: the English report first, then the AI's Arabic version below it.
-    The Arabic text is AI-written, so it is labelled and kept in a plain-text block (never
-    rendered as links or images)."""
+def build_ar(site):
+    """The same report in Arabic, built from templates (no AI): the same facts and sections, with the
+    scorer's reasons translated (i18n.py). Outside values stay in code formatting, as in English."""
+    import i18n
+    tr = lambda text: i18n.translate(text, "ar")
+    level_ar = {"HIGH": "عالية", "MEDIUM": "متوسطة", "LOW": "منخفضة"}.get(site.get("level"), "")
+    reasons = "\n".join(f"- {tr(r)}" for r in site.get("reasons", []))
+    why = tr(explain_level(site.get("score", 0), site.get("level", "LOW"), site.get("reasons", []),
+                           site.get("age_days"), site.get("safe_browsing"))["headline"])
+    age = "غير معروف"
+    if _val(site, "age_days") is not None:
+        age = f"{int(site['age_days'])} يوماً"
+        if _val(site, "created"):
+            age += f" (سُجّل في {escape_md(site['created'])})"
+    abuse = (code_span(site["abuse_email"]) if _val(site, "abuse_email")
+             else "غير منشورة - راجع صفحة الإبلاغ عن الإساءة لدى المسجِّل")
+    if site.get("domain") in config.SHARED_HOSTS:
+        abuse = (f"مستضاف على المنصة المشتركة {code_span(site['domain'])} - أبلغ فريق الإساءة في المنصة، "
+                 "وليس مسجِّل النطاق")
+    decoded = decode_punycode(parse(site["url"])[1])
+    decoded_line = f"\n- **يراه الضحايا هكذا:** {code_span(decoded)} (شبيه بترميز punycode)" if decoded else ""
+    is_listing = site.get("source") == "maps"
+    sure = "يبدو أن" if site.get("level") == "HIGH" else "قد"
+    if is_listing:
+        title = "إدراج مشتبه بأنه مزيف في خرائط Google"
+        action = (f"{sure} هذا الإدراج في خرائط Google ينتحل صفة علامة حكومية أو مالية إماراتية، مثلاً برقم هاتف "
+                  "لا يخص العلامة. يُرجى إزالة الإدراج والاحتفاظ بسجل تعديلاته لمتابعة جهات إنفاذ القانون.")
+        send_to = (f"1. خرائط Google: أبلغ عن الإدراج كمزيف (خيار «اقتراح تعديل» أو الإبلاغ).\n"
+                   f"2. إذا لم يكن موقع الإدراج رسمياً، فريق الإساءة لدى مسجِّله: {abuse}\n"
+                   f"3. منصة eCrime الإماراتية: {ECRIME}")
+    else:
+        title = "موقع إلكتروني مشتبه بأنه احتيالي"
+        action = (f"{sure} هذا النطاق ينتحل صفة علامة حكومية أو مالية إماراتية لجمع مدفوعات أو بيانات شخصية من "
+                  "الجمهور. " + ("يُرجى إيقاف النطاق أو الاستضافة" if site.get("level") == "HIGH" else
+                                 "يُرجى مراجعته، وإيقاف النطاق أو الاستضافة عند التأكد،") +
+                  " والاحتفاظ بسجلات التسجيل لمتابعة جهات إنفاذ القانون.")
+        send_to = (f"1. فريق الإساءة لدى المسجِّل: {abuse}\n"
+                   f"2. Google Safe Browsing (يحظره في Chrome وأندرويد): {SAFE_BROWSING_REPORT}\n"
+                   f"3. منصة eCrime الإماراتية: {ECRIME}")
+    text = (site.get("text") or "").strip().replace("```", "'''")
+    show_text = text and (site.get("source", "manual") == "manual" or is_listing)
+    heading = "إدراج خرائط Google (الاسم | الهاتف | العنوان)" if is_listing else "الرسالة التي حملت الرابط"
+    found_by = site.get("source", "manual") + (f" - {site['query']}" if site.get("query") else "")
+    return f"""# طلب إزالة - {title}
+
+## الهدف
+- **الرابط:** {code_span(site['url'])}
+- **اسم الموقع الكامل:** {code_span(parse(site['url'])[1])}{decoded_line}
+- **النطاق المسجَّل:** {code_span(site.get('domain', ''))}
+- **درجة الخطورة:** {site.get('score')}/100 ({level_ar})
+- **أول ظهور لدى ScamShield:** {site.get('first_seen', 'الآن')}
+- **المصدر:** {code_span(found_by)}
+
+## أسباب الإبلاغ
+{why}
+
+{reasons}
+
+## بيانات التسجيل
+- **عمر النطاق:** {age}
+- **المسجِّل:** {code_span(site['registrar']) if _val(site, 'registrar') else 'غير معروف'}
+- **جهة الإبلاغ عن الإساءة لدى المسجِّل:** {abuse}
+- **Google Safe Browsing:** {escape_md(tr(_val(site, 'safe_browsing') or 'not checked'))}
+{f'''
+## {heading}
+```text
+{text}
+```
+''' if show_text else ""}
+## الإجراء المطلوب
+{action}
+
+## جهات الإرسال
+{send_to}
+
+---
+*يتطلب مراجعة الضابط. لا تزر الموقع من جهاز العمل؛ أُعدّ هذا التقرير دون فتح الصفحة.*
+"""
+
+
+def with_arabic(english, arabic, ai_generated=True):
+    """The bilingual report: the English report first, then the Arabic version below it.
+    An AI-written Arabic text is labelled as a draft and kept in a plain-text block (never
+    rendered as links or images); the template version (build_ar) is ordinary report text."""
     if not arabic:
         return english
+    if not ai_generated:
+        return f"{english}\n\n---\n\n{arabic}"
     arabic = arabic.replace("```", "'''")
     return (f"{english}\n\n---\n\n# النسخة العربية / Arabic version\n\n"
             f"**AI-generated draft — officer review required · "

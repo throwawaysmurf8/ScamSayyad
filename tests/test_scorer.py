@@ -419,3 +419,54 @@ def test_ml_model_file_holds_numbers_only(monkeypatch, tmp_path):
     ml = _tiny_model(monkeypatch, tmp_path)
     with np.load(ml.MODEL_PATH, allow_pickle=False) as f:                 # would fail if code were inside
         assert set(f.files) == {"coef", "intercept", "mean", "std"}
+
+
+# ---------------------------------------------------------------- Local briefing (rules + ML, no AI)
+def test_local_briefing_has_five_lines_and_right_tactic():
+    import briefing
+    site = _flagged_site()                                         # salik-pay.top, HIGH-ish
+    text = briefing.site_briefing(site, None, ml=88, lang="en")
+    lines = text.splitlines()
+    assert [l.split(":")[0] for l in lines] == ["Brand", "Domains", "Likely tactic", "Confidence", "First action"]
+    assert "Salik" in lines[0] and "toll" in lines[2] and "ML 88%" in lines[3]
+    post = score_url("https://emiratespost-parcel.info"); post.update(registrar=None, abuse_email=None, source="cert log")
+    assert "parcel" in briefing.site_briefing(post, None, None).splitlines()[2]
+    bank = score_url("https://emiratesnbd-secure-login.xyz"); bank.update(source="cert log")
+    assert "bank login" in briefing.site_briefing(bank, None, None).splitlines()[2]
+
+
+def test_local_briefing_first_action_uses_our_facts():
+    import briefing
+    site = _flagged_site(); site.update(abuse_email="abuse@registrar.example")
+    assert "abuse@registrar.example" in briefing.site_briefing(site, None, None).splitlines()[4]
+    camp = {"brand": "salik", "registrar": "WebNic", "domains": ["a.top", "b.top", "c.top"], "first": "2025-10-03",
+            "last": "2025-10-17", "endings": [".top"], "top_score": 75, "websites": ["salik-a.top"]}
+    assert "covering all 3 domains" in briefing.site_briefing(site, camp, None).splitlines()[4]
+    assert "ML finds 2 of 3" in briefing.campaign_briefing(camp, [90, 70, 10])
+
+
+def test_local_briefing_ignores_ml_for_maps_listings_and_changes_no_score():
+    import briefing
+    from scorer import score_listing
+    site = score_listing("Dubai Police Help- Rescue", "+91 95177 56947", "https://www.dubaipolice.gov.ae/")
+    site.update(source="maps", text="Dubai Police Help- Rescue | phone +91 95177 56947 | Umm Hurair")
+    before = dict(site)
+    text = briefing.site_briefing(site, None, ml=1)
+    assert "ML" not in text and "+91 95177 56947" in text and "phone number" in text
+    assert site == before
+
+
+def test_local_briefing_in_arabic():
+    import briefing
+    text = briefing.site_briefing(_flagged_site(), None, ml=88, lang="ar")
+    assert text.splitlines()[0].startswith("العلامة: سالك") and "88٪" in text
+
+
+def test_arabic_report_is_built_without_ai_and_sits_below_english():
+    import report
+    site = _flagged_site()
+    english, arabic = report.build(site), report.build_ar(site)
+    assert "طلب إزالة" in arabic and "أسباب الإبلاغ" in arabic and "+35 يستخدم اسم العلامة 'salik'" in arabic
+    both = report.with_arabic(english, arabic, ai_generated=False)
+    assert both.index("Takedown request") < both.index("طلب إزالة")
+    assert "AI-generated" not in both                                # nothing AI-written here

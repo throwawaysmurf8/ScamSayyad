@@ -12,6 +12,7 @@ import pandas as pd
 import streamlit as st
 
 import ai
+import briefing
 import campaigns
 import config
 import ct_watcher
@@ -128,15 +129,30 @@ def show_ai_text(text):
     st.caption(T("ai_note"))
 
 
+def show_local_briefing(text):
+    """A briefing built on this computer from rules + ML: plain text, labelled, never rendered as links."""
+    st.caption(f":material/model_training: **{briefing.LABEL[LANG]}**")
+    st.html(f"<div dir='{'rtl' if LANG == 'ar' else 'ltr'}' style='white-space:pre-wrap;border-inline-start:3px "
+            f"solid #0B6B63;padding:.4rem .8rem'>{html.escape(text)}</div>")
+
+
 def ai_briefing_block(kind, key, **args):
-    """Show a saved AI briefing, or an 'AI briefing' button that makes one. Hidden without a key."""
+    """Officer briefing. With a working Gemini key: a saved AI briefing or a button to make one.
+    Without one (now): an automatic briefing from our rules + the ML second opinion, shown at once."""
     make = ai.site_briefing if kind == "site" else ai.campaign_briefing
     saved = make(lang=LANG, generate=False, **args)
     if saved:
         show_ai_text(saved)
         return
     if not ai.available():
-        return  # no key: nothing to show (the header badge says AI is off); code kept for later
+        if kind == "site":
+            site = args["site"]
+            ml = None if is_official(site["reasons"]) else ml_for([site["url"]])[0]
+            show_local_briefing(briefing.site_briefing(site, args.get("campaign"), ml, LANG))
+        else:
+            c = args["campaign"]
+            show_local_briefing(briefing.campaign_briefing(c, ml_for(c["websites"]), LANG))
+        return
     if st.button(T("ai_button"), key=key, icon=":material/smart_toy:"):
         try:
             with st.spinner(T("ai_thinking")):
@@ -238,25 +254,17 @@ def show_result(res, campaign=None):
 def takedown_panel(site, key):
     """Takedown report: download (English, optionally + AI Arabic version) and preview."""
     english = report.build(site)
-    arabic = ai.report_arabic(english, generate=False)
-    want_ar = False
-    if arabic or ai.available():  # the Arabic option only appears when AI is on (or already saved)
-        want_ar = st.toggle(T("report_arabic"), key=f"ar_{key}", value=bool(arabic), help=T("report_arabic_help"))
-    if want_ar and not arabic:
-        try:
-            with st.spinner(T("translating")):
-                arabic = ai.report_arabic(english, generate=True)
-        except ai.AIError as e:
-            st.error(T("ai_failed", err=str(e)), icon=":material/error:")
-    text = report.with_arabic(english, arabic if want_ar else None)
+    want_ar = st.toggle(T("report_arabic"), key=f"ar_{key}", value=LANG == "ar", help=T("report_arabic_help"))
+    arabic = report.build_ar(site) if want_ar else None  # template translation: no AI needed
+    text = report.with_arabic(english, arabic, ai_generated=False)
     st.download_button(T("report_download"), text, file_name=f"takedown_{site['domain']}.md",
                        mime="text/markdown", type="primary", icon=":material/download:", width="stretch",
                        key=f"dl_{key}")
     with st.expander(T("report_preview")):
         st.markdown(english)
-        if want_ar and arabic:
+        if arabic:
             st.divider()
-            show_ai_text(arabic)
+            st.markdown(arabic)
 
 
 def _source_badge(name, on):
@@ -373,10 +381,9 @@ def render_dashboard():
             query = "" if site["source"] == "sample" or not site["query"] else " · " + code_span(site["query"])
             st.caption(T("found_by_line", src=found_by, query=query, first=site["first_seen"]))
         with right:
-            if report.is_reportable(site) and (ai.available() or
-                                               ai.site_briefing(site, in_campaign, lang=LANG, generate=False)):
+            if report.is_reportable(site):
                 with st.container(border=True):
-                    st.markdown(f":material/smart_toy: **{T('ai_button')}**")
+                    st.markdown(f":material/assignment: **{T('briefing_title')}**")
                     ai_briefing_block("site", key=f"ai_site_{site['url']}", site=site, campaign=in_campaign)
             with st.container(border=True):
                 st.markdown(T("report_title"))
@@ -481,9 +488,9 @@ ABOUT = {
 
 **HIGH** ≥ {config.HIGH_RISK} · **MEDIUM** ≥ {config.MEDIUM_RISK}. Official domains and all `.gov.ae` sites score 0.
 
-**AI briefings (Gemini):** optional short summaries and an Arabic version of the takedown report. The AI only
-reads facts we already have (scores, reasons, registrar, dates, domain names), never opens a website, and never
-changes a score. Everything it writes is labelled "AI-generated draft — officer review required".
+**Officer briefings:** each flagged site and campaign gets a 5-line briefing (brand, domains, likely tactic,
+confidence, first action), built on this computer from the rule findings and the ML second opinion. No AI service is
+used and no score is changed. The takedown report can add an Arabic version below the English one, built from templates.
 
 **Data sources:** RDAP + UAE WHOIS (domain age), crt.sh (certificate logs), Bing via `ddgs` (search),
 Google Safe Browsing, Google Places and Gemini (optional keys).
@@ -514,9 +521,9 @@ Google Safe Browsing, Google Places and Gemini (optional keys).
 
 **عالية** ≥ {config.HIGH_RISK} · **متوسطة** ≥ {config.MEDIUM_RISK}. النطاقات الرسمية وجميع مواقع `.gov.ae` نتيجتها 0.
 
-**ملخصات الذكاء الاصطناعي (Gemini):** ملخصات قصيرة اختيارية ونسخة عربية من تقرير الإزالة. يقرأ الذكاء الاصطناعي
-الحقائق المتوفرة لدينا فقط (النتائج، الأسباب، المسجِّل، التواريخ، أسماء النطاقات)، ولا يفتح أي موقع، ولا يغيّر أي
-نتيجة. كل ما يكتبه موسوم بعبارة «مسودة مولّدة بالذكاء الاصطناعي — تتطلب مراجعة الضابط».
+**ملخصات الضابط:** يحصل كل موقع مشبوه وكل حملة على ملخص من 5 أسطر (العلامة، النطاقات، الأسلوب المرجّح، درجة
+الثقة، الإجراء الأول)، يُبنى على هذا الجهاز من نتائج القواعد ورأي التعلّم الآلي، دون خدمة ذكاء اصطناعي ودون تغيير أي نتيجة.
+ويمكن إضافة نسخة عربية من تقرير الإزالة أسفل النسخة الإنجليزية، تُبنى من قوالب ثابتة.
 
 **مصادر البيانات:** RDAP و UAE WHOIS (عمر النطاق)، crt.sh (سجلات الشهادات)، Bing عبر `ddgs` (البحث)،
 Google Safe Browsing و Google Places و Gemini (مفاتيح اختيارية).

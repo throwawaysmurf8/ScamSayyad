@@ -60,7 +60,16 @@ it) onto the GitHub website uploads `.env` too, so delete or move `.env` before 
 
 ---
 
-## AI briefings and Arabic reports (Gemini, optional)
+## Officer briefings and Arabic reports (no AI needed)
+
+Every MEDIUM/HIGH site and every possible campaign gets an **officer briefing**: 5 lines (brand,
+domains, likely tactic, confidence, first action). It's built on this computer by `briefing.py` from
+our own facts: the rule findings, the campaign, and the ML second opinion. There's no AI service, no
+internet and no cost, every line comes from a fixed template, and no score is changed. The takedown
+panel's **Add Arabic version** switch adds the same report in Arabic below the English one, built from
+templates (`report.build_ar`) with the scorer's reasons translated (`i18n.py`).
+
+## AI briefings with Gemini (optional, currently off)
 
 On each flagged site, and on each possible campaign, an **AI briefing** button asks Google's Gemini
 for a 5-line summary for an officer: the brand being imitated, how many domains, the likely scam
@@ -153,7 +162,7 @@ To refresh the public results later, copy `data/scamshield.db` over `data/public
 
 | Feature | Status | Data source | Key needed? |
 |---|---|---|---|
-| 1. Scoring engine: brand look-alikes, cheap domain endings, short links, no HTTPS, scam words, urgent SMS wording | Working, 36 automated tests | Built in | No |
+| 1. Scoring engine: brand look-alikes, cheap domain endings, short links, no HTTPS, scam words, urgent SMS wording | Working, 41 automated tests | Built in | No |
 | 1b. Domain age, registrar, abuse e-mail | Working | RDAP (rdap.org); UAE WHOIS (whois.nic.ae) for .ae | No |
 | 1c. Google Safe Browsing | Working, tested live with a real key (`enrich.py --test-key`); skipped cleanly without a key | Google Safe Browsing v4 | Free key |
 | 2. New-domain watcher | Working | crt.sh certificate logs | No |
@@ -310,6 +319,7 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
 | `ai.py` | AI briefings and the Arabic report, from Google's Gemini. Sends only facts already in the database, never opens websites, never changes scores, saves every answer so it is never paid for twice, and labels everything as an AI draft. Off without `GEMINI_API_KEY`. |
 | `ml_model.py` | The ML second opinion: turns a website name into letter chunks and counts, and scores it 0–100% with the trained model in `data/ml/model.npz` (numbers only, no code). |
 | `tools/train_ml.py` | Downloads the public training lists, trains the ML model with a fair held-back test, checks it on our UAE data, and saves `data/ml/model.npz` and `data/ml/metrics.json`. |
+| `briefing.py` | The officer briefing (5 lines) for a site or a campaign, built from the rule findings, the campaign and the ML second opinion. No AI service. |
 | `i18n.py` | Every screen text in English and Arabic, plus Arabic versions of the scorer's reasons (for display only). |
 | `report.py` | Feature 4b. Builds the takedown report, offered only for MEDIUM and HIGH sites: target, reasons, registration details, the registrar's abuse contact and where to send it (registrar, Google Safe Browsing, UAE eCrime). For sites on free hosting platforms (workers.dev, vercel.app ...) it says to report to the platform instead. |
 | `maps_scanner.py` | Feature 5 (stretch). Searches Google Maps for fake "customer service" listings and checks each listing's website and phone number (fake listings often link the real website but show the scammer's number). Each listing is its own row. Its takedown report asks Google to remove the listing. It only runs with a `GOOGLE_PLACES_KEY`, and each search is a paid request. |

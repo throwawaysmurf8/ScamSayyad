@@ -121,10 +121,12 @@ S = {
     "report_download": ("Download takedown report", "تنزيل تقرير الإزالة"),
     "report_preview": ("Preview report", "معاينة التقرير"),
     "report_not_needed": ("Not needed: this site scored low risk.", "غير مطلوب: نتيجة هذا الموقع منخفضة الخطورة."),
-    "report_arabic": ("Add Arabic version (AI translation)", "إضافة النسخة العربية (ترجمة بالذكاء الاصطناعي)"),
-    "report_arabic_help": ("The English report stays first; Gemini's Arabic translation is added below it, "
-                           "labelled as an AI draft.",
-                           "يبقى التقرير الإنجليزي أولاً، وتُضاف ترجمة Gemini العربية أسفله مع وسمها كمسودة آلية."),
+    "report_arabic": ("Add Arabic version", "إضافة النسخة العربية"),
+    "report_arabic_help": ("The English report stays first; the same report in Arabic is added below it. It is "
+                           "built from fixed templates with the same facts, so no AI is needed.",
+                           "يبقى التقرير الإنجليزي أولاً، ويُضاف التقرير نفسه بالعربية أسفله. يُبنى من قوالب ثابتة "
+                           "بالحقائق نفسها، دون الحاجة إلى الذكاء الاصطناعي."),
+    "briefing_title": ("Officer briefing", "ملخص للضابط"),
     "translating": ("Translating the report with Gemini...", "جارٍ ترجمة التقرير عبر Gemini..."),
 
     # --- AI ---------------------------------------------------------------------
@@ -255,6 +257,9 @@ _PATTERNS = [
     (r"Domain age: the registry gave no date, so no age points were added\.", "عمر النطاق: لم يذكر السجل تاريخاً، لذلك لم تُضف نقاط العمر."),
     (r"Google Safe Browsing: not checked\.", "Google Safe Browsing: لم يُفحص."),
     (r"phishing \(social engineering\)|SOCIAL_ENGINEERING", "تصيّد احتيالي (هندسة اجتماعية)"),
+    (r"^clean$", "سليم (غير مدرج)"),
+    (r"^not checked$", "لم يُفحص"),
+    (r"^not configured$", "غير مفعّل"),
 ]
 
 

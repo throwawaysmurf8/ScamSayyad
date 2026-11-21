@@ -329,9 +329,12 @@ def test_ai_off_without_key_and_failures_are_plain_messages(monkeypatch, tmp_pat
     import ai
     monkeypatch.setattr(config, "DB_PATH", tmp_path / "test.db")
     monkeypatch.setattr(config, "GEMINI_API_KEY", "")
+    import local_llm
+    monkeypatch.setattr(local_llm, "available", lambda timeout=1.0: False)  # no key AND no local model
+    monkeypatch.setattr(ai, "_local_check", [-1e9, False])
     assert not ai.available()
     assert ai.site_briefing(_flagged_site(), generate=False) is None
-    with pytest.raises(ai.AIError, match="no Gemini key"):
+    with pytest.raises(ai.AIError, match="start the local model"):
         ai.site_briefing(_flagged_site(), generate=True)
 
     class Down:
@@ -617,3 +620,51 @@ def test_public_site_chat_uses_gemini_with_caps(monkeypatch, tmp_path):
     with pytest.raises(ai.DailyCapReached):                       # 3rd question today: refused, not sent
         ai.chat("And now?", [], data)
     assert len(sent) == 2
+
+
+def test_briefings_use_the_local_model_when_there_is_no_key(monkeypatch, tmp_path):
+    import ai
+    import local_llm
+    monkeypatch.setattr(config, "DB_PATH", tmp_path / "test.db")
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "")
+    monkeypatch.setattr(local_llm, "available", lambda timeout=1.0: True)
+    monkeypatch.setattr(ai, "_local_check", [-1e9, False])
+    sent = []
+
+    class Reply:
+        status_code = 200
+
+        def json(self):
+            return {"message": {"content": "Line 1. Line 2."}}
+
+    monkeypatch.setattr(ai.requests, "post", lambda url, json, **k: sent.append((url, json)) or Reply())
+    assert ai.engine() == f"local {config.OLLAMA_MODEL}"
+    assert ai.site_briefing(_flagged_site(), generate=True) == "Line 1. Line 2."
+    url, body = sent[0]
+    assert url.startswith(config.OLLAMA_URL) and "/api/chat" in url    # this computer, not Google
+    assert body["messages"][0]["role"] == "system"
+    assert ai.site_briefing(_flagged_site(), generate=False) == "Line 1. Line 2."  # saved for next time
+
+
+def test_saved_local_briefing_still_shows_offline_and_on_public_site(monkeypatch, tmp_path):
+    import ai
+    import local_llm
+    monkeypatch.setattr(config, "DB_PATH", tmp_path / "test.db")
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "")
+    monkeypatch.setattr(ai, "_local_check", [-1e9, False])
+    monkeypatch.setattr(local_llm, "available", lambda timeout=1.0: True)
+
+    class Reply:
+        status_code = 200
+
+        def json(self):
+            return {"message": {"content": "Saved briefing."}}
+
+    monkeypatch.setattr(ai.requests, "post", lambda *a, **k: Reply())
+    ai.site_briefing(_flagged_site(), generate=True)
+    monkeypatch.setattr(ai.requests, "post", lambda *a, **k: 1 / 0)  # no model calls from here on
+    monkeypatch.setattr(ai, "_local_check", [-1e9, False])
+    monkeypatch.setattr(local_llm, "available", lambda timeout=1.0: False)  # Ollama off
+    assert ai.site_briefing(_flagged_site()) == "Saved briefing."
+    monkeypatch.setattr(config, "PUBLIC_MODE", True)                          # public demo
+    assert ai.site_briefing(_flagged_site()) == "Saved briefing."

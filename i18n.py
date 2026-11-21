@@ -21,7 +21,7 @@ S = {
     "src_sb": ("Safe Browsing", "التصفح الآمن"),
     "src_maps": ("Google Maps", "خرائط Google"),
     "src_ai": ("AI briefings", "ملخصات الذكاء الاصطناعي"),
-    "off_no_key": ("off, no key", "متوقف، لا يوجد مفتاح"),
+    "off_no_key": ("off", "متوقف"),
     "public_badge": ("Public demo: read-only", "نسخة عامة: للقراءة فقط"),
     "public_banner": ("**Hackathon prototype, not an official Dubai Police or UAE government service.** Sites "
                       "listed here are automated, unverified leads, not confirmed scams. Do not visit them. To "
@@ -173,21 +173,21 @@ S = {
     "ask_free": ("Free questions need the local language model (Ollama). It is not running, so only the set "
                  "questions are available.",
                  "الأسئلة الحرة تحتاج إلى النموذج اللغوي المحلي (Ollama). إنه غير مشغّل، لذلك تتوفر الأسئلة الجاهزة فقط."),
-    "translating": ("Translating the report with Gemini...", "جارٍ ترجمة التقرير عبر Gemini..."),
+    "translating": ("Translating the report with the AI model...", "جارٍ ترجمة التقرير عبر نموذج الذكاء الاصطناعي..."),
 
     # --- AI ---------------------------------------------------------------------
     "ai_button": ("AI briefing", "ملخص بالذكاء الاصطناعي"),
-    "ai_thinking": ("Writing the briefing with Gemini (only our saved facts are sent)...",
-                    "جارٍ كتابة الملخص عبر Gemini (تُرسل حقائقنا المحفوظة فقط)..."),
-    "ai_off": ("AI briefings are off: no Gemini key (GEMINI_API_KEY in .env). Everything else works without it.",
-               "ملخصات الذكاء الاصطناعي متوقفة: لا يوجد مفتاح Gemini ‏(GEMINI_API_KEY في ‎.env). كل شيء آخر يعمل بدونه."),
+    "ai_thinking": ("Writing the briefing (the AI model reads only our saved facts)...",
+                    "جارٍ كتابة الملخص (يقرأ نموذج الذكاء الاصطناعي حقائقنا المحفوظة فقط)..."),
+    "ai_off": ("AI briefings are off: start the local model (Ollama). Everything else works without it.",
+               "ملخصات الذكاء الاصطناعي متوقفة: شغّل النموذج المحلي (Ollama). كل شيء آخر يعمل بدونه."),
     "ai_off_public": ("AI briefings are off in the public demo. Saved briefings are still shown.",
                       "ملخصات الذكاء الاصطناعي متوقفة في النسخة العامة. تظهر الملخصات المحفوظة فقط."),
     "ai_failed": ("The AI briefing could not be made: {err} Nothing else is affected.",
                   "تعذّر إنشاء ملخص الذكاء الاصطناعي: {err} لم يتأثر أي شيء آخر."),
-    "ai_note": ("Gemini only read the facts shown on this page. It did not open the website and did not change "
+    "ai_note": ("The AI model only read the facts shown on this page. It did not open the website and did not change "
                 "the score.",
-                "قرأ Gemini الحقائق المعروضة في هذه الصفحة فقط. لم يفتح الموقع ولم يغيّر النتيجة."),
+                "قرأ نموذج الذكاء الاصطناعي الحقائق المعروضة في هذه الصفحة فقط. لم يفتح الموقع ولم يغيّر النتيجة."),
 
     # --- Campaigns --------------------------------------------------------------
     "campaigns_title": (":material/hub: Possible campaigns ({n})", ":material/hub: الحملات المحتملة ({n})"),
@@ -252,7 +252,7 @@ S = {
     "demo_remove": ("Remove demo data", "حذف البيانات التجريبية"),
     "demo_added": ("Added {n} demo rows. See the Dashboard tab.", "أُضيف {n} صفاً تجريبياً. انظر لوحة المتابعة."),
     "demo_removed": ("Demo data removed.", "حُذفت البيانات التجريبية."),
-    "on": ("on", "مفعّل"), "off_short": ("off (no key)", "متوقف (لا يوجد مفتاح)"),
+    "on": ("on", "مفعّل"), "off_short": ("off", "متوقف"),
 }
 
 

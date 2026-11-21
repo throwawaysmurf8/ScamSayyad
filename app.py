@@ -3,7 +3,7 @@
 Start it with run.bat, or:  .venv\\Scripts\\python -m streamlit run app.py --server.address localhost
 
 This file only draws the screens; all the real work happens in the other modules.
-Screen text lives in i18n.py (English + Arabic). AI briefings come from ai.py (Gemini).
+Screen text lives in i18n.py (English + Arabic). AI briefings come from ai.py (local model, or Gemini with a key).
 """
 import csv
 from pathlib import Path
@@ -193,21 +193,21 @@ def llm_ready():
 
 
 def ai_briefing_block(kind, key, **args):
-    """Officer briefing. With a working Gemini key: a saved AI briefing or a button to make one.
-    Without one (now): an automatic briefing from our rules + the ML second opinion, shown at once."""
+    """Officer briefing: a saved AI briefing if there is one; otherwise the automatic briefing from our
+    rules + the ML second opinion (shown at once), plus a button to have the AI write one."""
     make = ai.site_briefing if kind == "site" else ai.campaign_briefing
     saved = make(lang=LANG, generate=False, **args)
     if saved:
         show_ai_text(saved)
         return
+    if kind == "site":
+        site = args["site"]
+        ml = None if is_official(site["reasons"]) else ml_for([site["url"]])[0]
+        show_local_briefing(briefing.site_briefing(site, args.get("campaign"), ml, LANG))
+    else:
+        c = args["campaign"]
+        show_local_briefing(briefing.campaign_briefing(c, ml_for(c["websites"]), LANG))
     if not ai.available():
-        if kind == "site":
-            site = args["site"]
-            ml = None if is_official(site["reasons"]) else ml_for([site["url"]])[0]
-            show_local_briefing(briefing.site_briefing(site, args.get("campaign"), ml, LANG))
-        else:
-            c = args["campaign"]
-            show_local_briefing(briefing.campaign_briefing(c, ml_for(c["websites"]), LANG))
         return
     if st.button(T("ai_button"), key=key, icon=":material/smart_toy:"):
         try:
@@ -656,7 +656,7 @@ with tab_about:
     st.markdown(ml_plans() or ABOUT[LANG][ABOUT[LANG].find("###"):])
     st.markdown(f"Google Safe Browsing: **{T('on') if config.SAFE_BROWSING_KEY else T('off_short')}** · "
                 f"Google Maps: **{T('on') if config.PLACES_KEY else T('off_short')}** · "
-                f"Gemini: **{T('on') if ai.available() else T('off_short')}**")
+                f"AI: **{ai.engine() or T('off_short')}**")
 
 # Drawn last so it already includes anything a hunt or check above just added.
 with tab_dash:

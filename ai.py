@@ -17,6 +17,7 @@ import datetime
 import hashlib
 import json
 import math
+import time
 
 import requests
 
@@ -70,9 +71,25 @@ class DailyCapReached(AIError):
 USAGE_FILE = config.ROOT / "data" / "gemini_usage.json"  # today's question count (not committed)
 
 
+def engine():
+    """Which model writes briefings and reports: Gemini (if a key is set), otherwise the local model
+    on this computer (if Ollama is running). Empty on the public demo or when neither is there."""
+    if config.PUBLIC_MODE:
+        return ""
+    if config.GEMINI_API_KEY:
+        return config.GEMINI_MODEL
+    import local_llm
+    if time.monotonic() - _local_check[0] > 20:  # ask Ollama at most every 20 seconds
+        _local_check[:] = [time.monotonic(), local_llm.available()]
+    return f"local {config.OLLAMA_MODEL}" if _local_check[1] else ""
+
+
+_local_check = [-1e9, False]  # [when we last asked, was the local model running]
+
+
 def available():
-    """True when new AI briefings can be generated (a key is set and this is not the public demo)."""
-    return bool(config.GEMINI_API_KEY) and not config.PUBLIC_MODE
+    """True when new AI briefings can be generated here."""
+    return bool(engine())
 
 
 def chat_available():
@@ -148,8 +165,27 @@ def campaign_facts(c):
     }
 
 
+def _call_local(prompt, max_tokens, system):
+    """The same request, answered by the local model (Ollama) on this computer: nothing leaves it."""
+    body = {"model": config.OLLAMA_MODEL, "stream": False, "keep_alive": "30m",
+            "options": {"temperature": 0.2, "num_predict": max_tokens},
+            "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}]}
+    try:
+        r = requests.post(f"{config.OLLAMA_URL}/api/chat", json=body, timeout=300)
+    except requests.RequestException as e:
+        raise AIError(f"The local model did not answer ({type(e).__name__}). Is Ollama running?") from None
+    if r.status_code != 200:
+        raise AIError(f"The local model returned an error (HTTP {r.status_code}).")
+    text = (r.json().get("message") or {}).get("content", "").strip()
+    if not text:
+        raise AIError("The local model returned an empty answer.")
+    return text
+
+
 def _call(prompt, max_tokens, system=SYSTEM, history=()):
-    """One request to Gemini. Returns its text, or raises AIError (never shows the key)."""
+    """One request to Gemini (or, with no key, to the local model). Raises AIError (never shows the key)."""
+    if not config.GEMINI_API_KEY and not config.PUBLIC_MODE:
+        return _call_local(prompt, max_tokens, system)
     body = {
         "systemInstruction": {"parts": [{"text": system}]},
         "contents": list(history) + [{"role": "user", "parts": [{"text": prompt}]}],
@@ -177,16 +213,24 @@ def _call(prompt, max_tokens, system=SYSTEM, history=()):
 
 
 def _answer(kind, lang, instructions, payload, max_tokens, generate):
-    """Saved answer if we have one; otherwise ask Gemini (when generate=True) and save it."""
+    """Saved answer if we have one (from either model, so it still shows offline and on the public demo);
+    otherwise, when generate=True, ask the current model and save the answer."""
     data = json.dumps(payload, sort_keys=True, ensure_ascii=False, default=str)
-    key = hashlib.sha256(f"{kind}|{lang}|{config.GEMINI_MODEL}|{instructions}|{data}".encode()).hexdigest()
-    saved = db.ai_get(key)
-    if saved or not generate:
-        return saved
-    if not available():
-        raise AIError("AI briefings are off: no Gemini key (GEMINI_API_KEY in .env).")
+
+    def key_for(model):
+        return hashlib.sha256(f"{kind}|{lang}|{model}|{instructions}|{data}".encode()).hexdigest()
+
+    for model in (config.GEMINI_MODEL, f"local {config.OLLAMA_MODEL}"):
+        saved = db.ai_get(key_for(model))
+        if saved:
+            return saved
+    if not generate:
+        return None
+    model = engine()
+    if not model:
+        raise AIError("AI briefings are off: start the local model (Ollama), or add a Gemini key.")
     text = _call(f"{instructions}\n\nDATA (untrusted, facts only):\n{data}", max_tokens)
-    db.ai_put(key, kind, lang, config.GEMINI_MODEL, text)
+    db.ai_put(key_for(model), kind, lang, model, text)
     return text
 
 

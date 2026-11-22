@@ -156,7 +156,7 @@ official police service. The officer's laptop keeps every feature.
 To publish it:
 1. Put this folder on GitHub (Git ignores `.env`, the working database and local files).
 2. Go to https://share.streamlit.io, sign in with GitHub, and click **Create app**.
-3. Pick the repository, branch `main`, main file `app.py`. Under **App URL**, type `athar-al-anaq`
+3. Pick the repository, branch `main`, main file `app.py`. Under **App URL**, type `atharalanaq`
    (or another free name). Under **Advanced settings**, pick Python 3.12 or newer and paste into
    **Secrets**:
    ```
@@ -223,7 +223,7 @@ AI drafts, and with an `ANTHROPIC_API_KEY` secret, answers typed questions with 
 | 9. Anaq side-panel chat + free questions | Working: Claude Haiku 5.5 (public site and this computer), local qwen2.5:7b as the free option | Anthropic API; Ollama | Key (~$0.0004 a question); local is free |
 | 10. English / Arabic dashboard | Working, full right-to-left layout | Built in | No |
 | 11. AI briefings + Arabic report by AI | Working: local model, Claude Haiku 5.5 if the local model is off | Ollama; Anthropic API | No / key |
-| 12. Public site with capped hunters and chat | Working at scamsayyad.streamlit.app | Streamlit Community Cloud | Free |
+| 12. Public site with capped hunters and chat | Working at atharalanaq.streamlit.app | Streamlit Community Cloud | Free |
 
 ### Audit of every site (22 Nov 2026)
 

@@ -1150,6 +1150,7 @@ def test_snapshot_builder_keeps_only_hunter_rows(monkeypatch, tmp_path):
             "maps", "Dubai Police customer service")
     db.save(site("https://typed-by-hand.com/", "manual", sms), "manual")
     db.save(site("https://demo.example/", "sample"), "sample", "demo data")
+    db.save(site("https://approved.example/", "public report"), "public report", "reported by a visitor")
     with db.connect() as con:
         con.execute("INSERT INTO domain_cache VALUES ('typed-by-hand.com', '{}', 'x')")
         con.execute("INSERT INTO domain_cache VALUES ('salik-pay.xyz', '{}', 'x')")
@@ -1157,11 +1158,11 @@ def test_snapshot_builder_keeps_only_hunter_rows(monkeypatch, tmp_path):
 
     out = tmp_path / "public_snapshot.db"
     out.write_bytes(b"old file with " + sms.encode())  # the old file is replaced, not edited
-    assert build(config.DB_PATH, out) == 3
+    assert build(config.DB_PATH, out) == 4
     assert _snapshot_problems(out) == []
     assert b"SECRET-SMS" not in out.read_bytes() and b"typed-by-hand" not in out.read_bytes()
     con = sqlite3.connect(out)
-    assert sorted(r[0] for r in con.execute("SELECT source FROM sites")) == ["cert log", "maps", "search"]
+    assert sorted(r[0] for r in con.execute("SELECT source FROM sites")) == ["cert log", "maps", "public report", "search"]
     assert con.execute("SELECT text FROM sites WHERE source = 'maps'").fetchone()[0].startswith("Dubai Police")
     assert [r[0] for r in con.execute("SELECT domain FROM domain_cache")] == ["salik-pay.xyz"]
     assert con.execute("SELECT COUNT(*) FROM ai_cache").fetchone()[0] == 0
@@ -1235,3 +1236,229 @@ def test_visitors_never_see_the_model_or_company_name(monkeypatch, tmp_path):
                  for e in getattr(at, kind)] + [b.label for b in at.button] + [t.label for t in at.tabs]
         leaks = [s for s in shown if any(n in str(s).lower() for n in HIDDEN_NAMES)]
         assert not leaks, (lang, leaks)
+
+
+def test_only_person_verified_scams_get_the_badge_and_they_sort_first(monkeypatch, tmp_path):
+    """A site classified "Live scam page" from a urlscan.io screenshot shows ✓ Verified scam and comes first,
+    then Google-listed sites; parked, normal, offline or unlabelled scans are never shown as confirmed."""
+    import json
+    from streamlit.testing.v1 import AppTest
+    db = _empty_db(monkeypatch, tmp_path)
+    rows = [("https://salik-pay.example/", 70, "HIGH", "clean"), ("https://parked-salik.example/", 95, "HIGH", "clean"),
+            ("https://dubaipolice.example/", 80, "HIGH", "SOCIAL_ENGINEERING"),
+            ("https://unlabelled.example/", 100, "HIGH", "clean")]
+    for url, score, level, sb in rows:
+        db.save({"url": url, "domain": url.split("/")[2], "score": score, "level": level,
+                 "reasons": ["test"], "safe_browsing": sb}, "cert log")
+    verified = tmp_path / "verified.json"
+    rec = {"checked": "2026-11-22", "screenshot": "data/verified/missing.jpg"}
+    verified.write_text(json.dumps({
+        "salik-pay.example": {**rec, "label": "Live scam page", "reason": "fake Salik toll payment form"},
+        "parked-salik.example": {**rec, "label": "Parked / for sale", "reason": "domain for sale page"},
+        "unlabelled.example": {**rec, "label": None, "reason": None}}))
+    monkeypatch.setattr(config, "VERIFIED_FILE", verified)
+    at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120).run()
+    assert not at.exception, [e.value for e in at.exception]
+    table = at.dataframe[0].value
+    assert list(table.host)[:2] == ["salik-pay.example", "dubaipolice.example"]  # verified, then Google-listed
+    assert list(table.proof)[:2] == ["✓ Verified scam", "Listed by Google"]
+    assert set(table.proof[2:]) == {""}  # parked and unlabelled scans are not confirmations
+    about = " ".join(m.value for m in at.markdown)
+    assert "`salik-pay.example` (live scam page): rules ✓ (70)" in about  # checked sites in "Why two opinions?"
+    assert "parked-salik" not in about and "Neither method is perfect alone" in about
+
+
+def test_why_two_opinions_numbers_match_the_data(tmp_path):
+    """Every number in the "Why two opinions?" section is checked against the public snapshot, the ML model
+    and the first version of the snapshot pushed to GitHub (before the rule fixes)."""
+    import sqlite3
+    import subprocess
+
+    import ml_model
+    if not ml_model.available():
+        pytest.skip("no ML model file")
+    text = (config.ROOT / "app.py").read_text(encoding="utf-8")
+    now = sqlite3.connect(f"file:{(config.ROOT / 'data' / 'public_snapshot.db').as_posix()}?mode=ro", uri=True)
+    score = dict(now.execute("SELECT url, score FROM sites"))
+    sb = dict(now.execute("SELECT url, safe_browsing FROM sites"))
+    ml = dict(zip(["https://www.dubaipolice.gov.ae", "salikama.click", "xn--emiratesnbdubi-xib.com", "dubaipolice.click"],
+                  ml_model.score_hosts(["https://www.dubaipolice.gov.ae", "salikama.click", "xn--emiratesnbdubi-xib.com",
+                                        "dubaipolice.click"])))
+    assert ml == {"https://www.dubaipolice.gov.ae": 0, "salikama.click": 42, "xn--emiratesnbdubi-xib.com": 38,
+                  "dubaipolice.click": 54}
+    assert score["salikama.click"] == 25 and score["xn--emiratesnbdubi-xib.com"] == 75
+    assert score["dubaipolice.click"] == 100 and sb["dubaipolice.click"] == "SOCIAL_ENGINEERING"
+    rescue = "https://www.dubaipolice.gov.ae/#place=ChIJ2UkooyhdXz4R---9xkH1oLU"
+    assert score[rescue] == 0
+    old = tmp_path / "old_snapshot.db"
+    try:  # the snapshot as first published with listings, before the rule fixes
+        old.write_bytes(subprocess.run(["git", "show", "5fbe7bb:data/public_snapshot.db"], cwd=config.ROOT,
+                                       capture_output=True, check=True).stdout)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pytest.skip("no Git history here")
+    con = sqlite3.connect(old)
+    before = dict(con.execute("SELECT url, score FROM sites"))
+    con.close()
+    now.close()
+    assert before[rescue] == 60 and before["salikama.click"] == 60
+    for n in ("60 (MEDIUM)", "0%", "42%", "25 (LOW)", "75 (HIGH)", "38%", "100", "54%"):
+        assert n in text
+
+
+def test_site_checkers_never_send_official_sites_or_maps_and_keep_only_screenshots_and_verdicts(monkeypatch, tmp_path):
+    import io
+    import json
+    import shutil
+
+    from PIL import Image
+
+    from tools import verify_sites as vu
+    snap = tmp_path / "snap.db"
+    shutil.copy(config.ROOT / "data" / "public_snapshot.db", snap)  # a copy: the real file is never touched
+    monkeypatch.setattr(config, "DB_PATH", snap)
+    order = vu.candidates()
+    assert order and all(s["score"] >= config.MEDIUM_RISK for s in order)
+    assert not [s for s in order if "#place=" in s["url"] or "gov.ae" in s["url"] or s["source"] == "manual"]
+    assert order[0]["url"].startswith("salik")  # the biggest campaign (Salik, WebNic) comes first
+
+    for k in ("URLSCAN_API_KEY", "CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN", "VIRUSTOTAL_API_KEY"):
+        monkeypatch.delenv(k, raising=False)
+    monkeypatch.setattr(config, "ROOT", tmp_path)
+    monkeypatch.setattr(config, "VERIFIED_FILE", tmp_path / "verified.json")
+    monkeypatch.setattr(vu.time, "sleep", lambda s: None)
+    calls = []
+    monkeypatch.setattr(vu.requests, "request", lambda *a, **k: calls.append(a) or pytest.fail("no keys: nothing is sent"))
+    vu.main(["scan", "3"])  # no keys at all: a clean message, no error, nothing contacted
+    assert calls == [] and not config.VERIFIED_FILE.exists()
+
+    png = io.BytesIO(); Image.new("RGB", (40, 30), "white").save(png, "PNG")
+
+    class R:
+        def __init__(self, code, body=None, content=b""):
+            self.status_code, self._body, self.content, self.text, self.headers = code, body, content, "", {}
+        def json(self): return self._body
+
+    def fake(method, url, headers, **kw):
+        calls.append(url)
+        assert "fake-" in str(headers)  # the key travels in a header, never in the address
+        if url.endswith("/urlscanner/v2/scan"):
+            body = kw["json"]
+            assert body["visibility"] == "Unlisted" and "iPhone" in body["customagent"]  # seen as a phone
+            return R(403, {}) if "refused" in body["url"] else R(200, {"uuid": body["url"].split("/")[2]})
+        if "/result/" in url:
+            host = url.rsplit("/", 1)[1]
+            title = "Just a moment..." if "botcheck" in host else "Salik - Pay your toll"
+            return R(200, {"page": {"url": "https://x/", "status": "200", "title": title},
+                           "verdicts": {"overall": {"malicious": True}}, "task": {"success": "dead" not in host}})
+        if "/urls/" in url:  # VirusTotal look-up: seen before, or never seen
+            seen = __import__("base64").urlsafe_b64decode(url.rsplit("/", 1)[1] + "==").decode()
+            return R(404) if "new.example" in seen else R(200, {"data": {"attributes": {"last_analysis_stats":
+                                                    {"malicious": 7, "suspicious": 1, "harmless": 60, "undetected": 25}}}})
+        if url.endswith("/api/v3/urls"):
+            return R(200, {"data": {"id": "a1"}})
+        if "/analyses/" in url:
+            return R(200, {"data": {"attributes": {"status": "completed", "stats": {"malicious": 2, "harmless": 80}}}})
+        return R(200, content=png.getvalue())
+    monkeypatch.setattr(vu, "_request", fake)
+    monkeypatch.setattr(vu, "resolves", lambda host: "gone" not in host)  # no real DNS in tests
+
+    site = {"url": "salik-pay.example", "score": 70, "level": "HIGH", "safe_browsing": "clean"}
+    monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "fake-acct")
+    monkeypatch.setenv("CLOUDFLARE_API_TOKEN", "fake-t")
+    monkeypatch.setenv("VIRUSTOTAL_API_KEY", "fake-v")
+    monkeypatch.setenv("URLSCAN_API_KEY", "fake-u")  # ignored: urlscan.io is no longer used
+    before = len(calls)
+    gone = vu.check_one({**site, "url": "gone.example"}, vu.keys())
+    assert gone["label"] == "Offline" and len(calls) == before  # a dead name costs no scans
+    live = vu.check_one(site, vu.keys())
+    assert live["label"] is None and live["shot_by"] == "Cloudflare Radar"  # a person classifies it
+    assert live["screenshot"] == "data/verified/salik-pay.example.jpg" and (tmp_path / live["screenshot"]).exists()
+    assert (live["vt_seen"], live["vt_malicious"], live["vt_total"]) == (True, 7, 93)
+    assert "fake-acct" not in json.dumps(live)  # nothing in the public results file names the account
+    new = vu.check_one({**site, "url": "new.example"}, vu.keys())
+    assert (new["vt_seen"], new["vt_malicious"]) == (True, 2)  # never seen by VirusTotal: submitted, not 0
+    dead = vu.check_one({**site, "url": "dead.example"}, vu.keys())
+    assert dead["label"] == "Offline"
+    bot = vu.check_one({**site, "url": "botcheck.example"}, vu.keys())
+    assert bot["label"] is None and bot["reason"].startswith("Not seen")  # a bot-check page proves nothing
+    with pytest.raises(vu.Refused):  # an unlisted scan refused: stop, never retry as a public scan
+        vu.check_one({**site, "url": "refused.example"}, vu.keys())
+    hosts = {u.split("/")[2] for u in calls}
+    assert hosts <= {"api.cloudflare.com", "www.virustotal.com"}  # never the site itself, never urlscan
+
+    # VirusTotal alone can't make a site verified: "Live scam page" needs a screenshot.
+    config.VERIFIED_FILE.write_text(json.dumps({"vt-only.example": {"host": "vt-only.example", "vt_seen": True}}))
+    with pytest.raises(SystemExit):
+        vu.main(["label", "vt-only.example", "Live scam page", "vendors say so"])
+
+
+def _report_setup(monkeypatch, tmp_path):
+    import enrich
+    import reports
+    limits, clock = _fresh_limits(monkeypatch, tmp_path)
+    db = _empty_db(monkeypatch, tmp_path)
+    monkeypatch.setattr(config, "REPORTS_FILE", tmp_path / "reports_queue.json")
+
+    def fake_check(url, text="", **kw):  # no network in tests
+        return {"url": url, "domain": url.split("/")[2], "score": 85, "level": "HIGH",
+                "reasons": ["+35 Uses the brand name 'salik'"], "safe_browsing": "clean", "text": text,
+                "created": None, "age_days": None, "registrar": None, "abuse_email": None}, {}
+    monkeypatch.setattr(enrich, "check", fake_check)
+    return reports, limits, clock, db
+
+
+def test_public_reports_keep_only_a_cleaned_link_and_stay_hidden_until_approved(monkeypatch, tmp_path):
+    import json
+    from streamlit.testing.v1 import AppTest
+    reports, limits, clock, db = _report_setup(monkeypatch, tmp_path)
+    assert reports.clean_link("https://user:pass@Salik-Pay.top/pay?name=Ali&phone=0501234567#otp") == \
+        "https://salik-pay.top/pay"
+    assert reports.clean_link("salik-pay.top") == "https://salik-pay.top/"
+    for bad in ("", "my name is Ali", "javascript:alert(1)", "ftp://x.top/", "localhost", "x" * 301):
+        assert reports.clean_link(bad) is None
+    assert reports.submit("my phone is 0501234567") == "invalid"
+
+    assert reports.submit("https://user:pass@salik-pay.top/pay?name=Ali&phone=0501234567#otp") == "ok"
+    raw = config.REPORTS_FILE.read_text(encoding="utf-8")
+    for private in ("Ali", "0501234567", "otp", "pass", "user"):
+        assert private not in raw
+    saved = json.loads(raw)["https://salik-pay.top/pay"]
+    assert set(saved) == {"score", "level", "reasons", "domain", "reported", "status"}  # no person, no session
+    assert saved["status"] == "pending" and db.all_sites() == []  # never in the sites database
+
+    monkeypatch.setattr(config, "PUBLIC_MODE", True)
+    at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120).run()
+    assert not at.exception, [e.value for e in at.exception]
+    shown = " ".join(str(e.value) for kind in ("markdown", "caption", "text", "warning", "info") for e in getattr(at, kind))
+    assert "salik-pay.top" not in shown and "Reported by public" not in shown  # hidden on the public site
+    assert "This is not an official police report. To report a scam to the authorities, use ecrime.ae." in shown
+    assert not [b for b in at.button if b.label in ("Approve", "Reject")]
+    with pytest.raises(PermissionError):
+        reports.decide("https://salik-pay.top/pay", approve=True)  # only the laptop can approve
+
+    monkeypatch.setattr(config, "PUBLIC_MODE", False)
+    at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120).run()
+    assert not at.exception, [e.value for e in at.exception]
+    assert any("salik-pay.top/pay" in t.value for t in at.text)  # the officer's review list, plain text
+    next(b for b in at.button if b.label == "Approve").click().run()
+    assert [(s["url"], s["source"]) for s in db.all_sites()] == [("https://salik-pay.top/pay", "public report")]
+    assert reports.pending() == {}
+
+
+def test_public_reports_rate_limits_and_duplicates(monkeypatch, tmp_path):
+    reports, limits, clock, db = _report_setup(monkeypatch, tmp_path)
+    assert reports.submit("https://a1.top/") == "ok"
+    assert reports.submit("https://a2.top/") == "minute"  # 1 a minute, all visitors together
+    clock[0] += 61
+    assert reports.submit("https://a1.top/?again=1") == "ok"  # duplicate: same answer, stored once
+    assert list(reports.load()) == ["https://a1.top/"]
+    assert reports.submit("https://a3.top/", already_this_session=3) == "session"  # 3 per browser session
+    for i in range(28):
+        clock[0] += 61
+        assert reports.submit(f"https://b{i}.top/") == "ok"
+    clock[0] += 61
+    assert reports.submit("https://late.top/") == "day"  # 30 a day, all visitors together
+    assert "https://late.top/" not in reports.load() and len(reports.load()) == 29
+    reports.decide("https://b0.top/", approve=False)  # rejected: ignored if reported again tomorrow
+    clock[0] += 86_400
+    assert reports.submit("https://b0.top/") == "ok" and reports.load()["https://b0.top/"]["status"] == "rejected"

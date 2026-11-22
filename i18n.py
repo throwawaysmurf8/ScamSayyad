@@ -25,10 +25,10 @@ S = {
     "off_no_key": ("off", "متوقف"),
     "public_badge": ("Public demo", "نسخة عامة"),
     "public_banner": ("**Hackathon prototype, not an official Abu Dhabi Police or UAE government service.** Sites "
-                      "listed here are automated, unverified leads, not confirmed scams. Do not visit them. To "
+                      "listed here are automated leads, not confirmed scams, unless marked ✓ Verified scam. Do not visit them. To "
                       "report a scam, use the official UAE eCrime platform (ecrime.ae).",
                       "**نموذج أولي لهاكاثون، وليس خدمة رسمية من شرطة أبوظبي أو حكومة الإمارات.** المواقع المدرجة "
-                      "مؤشرات آلية غير مؤكدة، وليست عمليات احتيال مثبتة. لا تزرها. للإبلاغ عن احتيال استخدم منصة "
+                      "مؤشرات آلية، وليست عمليات احتيال مثبتة، إلا ما عليه علامة ✓ احتيال مؤكَّد. لا تزرها. للإبلاغ عن احتيال استخدم منصة "
                       "eCrime الرسمية (ecrime.ae)."),
     "tab_dash": ("Dashboard", "لوحة المتابعة"),
     "tab_check": ("Check a link", "فحص رابط"),
@@ -234,6 +234,56 @@ S = {
                     "لخرائط Google يومياً، وعملية واحدة في كل مرة، ويتوقف كل زر {c} دقيقة بعد كل عملية. تظهر النتائج "
                     "الجديدة في لوحة المتابعة للجميع."),
     "review_label": ("⚑ Needs review", "⚑ يحتاج مراجعة"),
+    "verified_label": ("✓ Verified scam", "✓ احتيال مؤكَّد"),
+    "report_title": ("Report a suspicious site", "أبلغ عن موقع مشبوه"),
+    "report_notice": ("This is not an official police report. To report a scam to the authorities, use ecrime.ae.",
+                      "هذا ليس بلاغاً رسمياً للشرطة. للإبلاغ عن احتيال لدى الجهات المختصة، استخدم ecrime.ae."),
+    "report_input": ("Link only (no name, e-mail, phone or message text)",
+                     "الرابط فقط (بدون اسم أو بريد إلكتروني أو هاتف أو نص رسالة)"),
+    "report_btn": ("Send for review", "أرسل للمراجعة"),
+    "report_thanks": ("Thank you. The link was received for review by an officer. It is not shown publicly unless "
+                      "an officer approves it.",
+                      "شكراً لك. استُلم الرابط لمراجعته من قبل ضابط. ولن يظهر للعامة إلا إذا وافق عليه ضابط."),
+    "report_invalid": ("That doesn't look like a website link. Enter one link, for example https://example.com/page.",
+                       "لا يبدو هذا رابط موقع. أدخل رابطاً واحداً، مثلاً https://example.com/page."),
+    "report_session": ("You've sent {n} reports in this visit, the most allowed. Thank you.",
+                       "أرسلت {n} بلاغات في هذه الزيارة، وهو الحد المسموح. شكراً لك."),
+    "report_minute": ("Another report was just sent. Please try again in a minute.",
+                      "أُرسل بلاغ آخر للتو. يُرجى المحاولة بعد دقيقة."),
+    "report_day": ("Today's reports are full. Please try again tomorrow.",
+                   "اكتمل عدد بلاغات اليوم. يُرجى المحاولة غداً."),
+    "review_title": ("Reported by public: {n} waiting for review", "مُبلَّغ عنها من العامة: {n} بانتظار المراجعة"),
+    "review_empty": ("No reported links are waiting.", "لا توجد روابط مُبلَّغ عنها بانتظار المراجعة."),
+    "review_approve": ("Approve", "موافقة"),
+    "review_reject": ("Reject", "رفض"),
+    "two_checked": ("- **Checked by a person from safe screenshots** (Cloudflare Radar; rules flag at "
+                    "40+, the ML at 50%+):",
+                    "- **تحقّق منها شخص من لقطات شاشة آمنة** (Cloudflare Radar؛ القواعد تُنبّه من 40، "
+                    "والتعلّم الآلي من 50%):"),
+    "two_row": ("{host} ({label}): rules {rules} ({score}), ML {ml} ({p}%)",
+                "{host} ({label}): القواعد {rules} ({score})، التعلّم الآلي {ml} ({p}%)"),
+    "two_scam": ("live scam page", "صفحة احتيال تعمل"),
+    "two_normal": ("normal website", "موقع عادي"),
+    "two_lesson": ("Neither method is perfect alone, so when they disagree, Athar Al Anaq asks a human (the Needs "
+                   "review label).",
+                   "لا توجد طريقة مثالية وحدها، لذلك عندما يختلفان، يطلب أثر العناق رأي إنسان (علامة «يحتاج مراجعة»)."),
+    "google_label": ("Listed by Google", "مدرج لدى Google"),
+    "col_proof": ("Confirmed", "تأكيد"),
+    "col_proof_help": ("✓ Verified scam: a person saw a live scam page in a safe screenshot taken by an outside "
+                       "scanner (Cloudflare Radar). "
+                       "Listed by Google: Google Safe Browsing lists it as dangerous. Every other site is an "
+                       "unverified lead.",
+                       "✓ احتيال مؤكَّد: شاهد شخص صفحة احتيال تعمل في لقطة شاشة آمنة التقطها ماسح خارجي "
+                       "(Cloudflare Radar). "
+                       "مدرج لدى Google: تدرجه Google Safe Browsing كموقع خطر. كل موقع آخر مؤشر غير مؤكد."),
+    "verified_card": ("**✓ Verified scam** (checked {date}): {reason}. A person saw this in a screenshot taken safely "
+                      "by {by}; we never opened the site.",
+                      "**✓ احتيال مؤكَّد** (فُحص في {date}): {reason}. شاهد شخص ذلك في لقطة شاشة التقطها {by} "
+                      "بأمان؛ لم نفتح الموقع أبداً."),
+    "verified_shot": ("Screenshot by {by}, {date}. A picture only: nothing on it can be clicked.",
+                      "لقطة شاشة من {by}، {date}. صورة فقط: لا يمكن النقر على أي شيء فيها."),
+    "verified_vt": ("VirusTotal: {n} of {total} security vendors flag it.",
+                    "VirusTotal: {n} من {total} من شركات الأمن تصنّفه خطراً."),
     "col_review": ("Review", "مراجعة"),
     "review_only": ("Needs review only", "ما يحتاج مراجعة فقط"),
     "review_only_help": ("Flagged sites (score 40 or more) where the rule score and the ML second opinion differ "

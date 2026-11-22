@@ -25,6 +25,7 @@ import local_llm
 import maps_scanner
 import ml_model
 import report
+import reports
 import search_scanner
 from enrich import check, check_and_save
 from report import code_span, escape_md
@@ -97,6 +98,27 @@ def load_samples():
 def hostname(url):
     """Full website name, e.g. 'emiratesnbd.com-verify-io.bond' (the 'domain' field keeps only the end)."""
     return parse(url)[1]
+
+
+VERIFIED_FILE = config.VERIFIED_FILE
+
+
+@st.cache_data
+def _verified(path, mtime):
+    import json
+    path = Path(path)
+    data = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    return {h: r for h, r in data.items() if r.get("label") == "Live scam page"}
+
+
+def verified_scams():
+    """Sites a person classified as a live scam page from an outside scanner's screenshot (tools/verify_sites.py).
+    Only these are shown as verified; every other site stays an unverified lead."""
+    return _verified(str(VERIFIED_FILE), VERIFIED_FILE.stat().st_mtime if VERIFIED_FILE.exists() else 0)
+
+
+def verified_record(url):
+    return verified_scams().get(hostname(url).removeprefix("www."))
 
 
 def hostname_readable(url):
@@ -268,6 +290,15 @@ def show_result(res, campaign=None):
         top.markdown(f"## :{color}[{res['score']}]<span style='font-size:1rem;opacity:.7'> / 100</span>",
                      unsafe_allow_html=True)
         badge.badge(T("risk_badge", level=T(res["level"])), icon=icon, color=color)
+        proof = verified_record(res["url"])
+        if proof:
+            by = proof.get("shot_by") or "Cloudflare Radar"
+            st.success(T("verified_card", date=proof["checked"], reason=escape_md(proof["reason"]), by=by),
+                       icon=":material/verified:")
+            if proof.get("vt_seen"):
+                st.caption(T("verified_vt", n=proof["vt_malicious"], total=proof["vt_total"]))
+            if proof.get("screenshot") and (config.ROOT / proof["screenshot"]).exists():
+                st.image(str(config.ROOT / proof["screenshot"]), caption=T("verified_shot", date=proof["checked"], by=by))
 
         # Full website name, with the imitated brand highlighted when it appears as-is.
         # Drawn as escaped HTML, not Markdown: Markdown would turn "www.…" into a clickable
@@ -420,8 +451,12 @@ def render_dashboard():
     view = df[(df.score >= min_score) & (df.source.isin(chosen) | (is_demo & show_samples))]
     if show_samples and n_demo:
         st.warning(T("demo_on", n=int(view.source.eq("sample").sum())), icon=":material/science:")
-    # Highest risk first; newest first among equal scores.
-    view = view.sort_values(["score", "first_seen"], ascending=[False, False]).reset_index(drop=True)
+    # Verified scams first, then Google-listed sites, then highest risk; newest first among equal scores.
+    view = view.assign(
+        verified=view.url.map(lambda u: verified_record(u) is not None),
+        google=view.safe_browsing.fillna("").str.contains("_"))
+    view = view.sort_values(["verified", "google", "score", "first_seen"],
+                            ascending=[False, False, False, False]).reset_index(drop=True)
     table = view.assign(
         level=view.level.map(lambda lv: f"{LEVELS[lv][1]} {T(lv)}"),
         host=view.url.map(hostname_readable),
@@ -430,12 +465,13 @@ def render_dashboard():
         why=view.reasons.map(lambda r: tr(r[0]) if r else ""),
         age_days=view.age_days.map(lambda a: T("unknown") if pd.isna(a) else str(int(a))),
         review=view.review.map(lambda r: T("review_label") if r else ""),
-    )[["score", "level", "host", "brand", "why", "source", "age_days", "first_seen", "url", "ml", "review"]]
+        proof=[T("verified_label") if v else T("google_label") if g else "" for v, g in zip(view.verified, view.google)],
+    )[["score", "level", "proof", "host", "brand", "why", "source", "age_days", "first_seen", "url", "ml", "review"]]
     if not ml_model.available():
         table = table.drop(columns=["ml", "review"])  # no model file: no columns, everything else as normal
     else:
-        table = table[["score", "level", "ml", "review", "host", "brand", "why", "source", "age_days", "first_seen",
-                       "url"]]
+        table = table[["score", "level", "proof", "ml", "review", "host", "brand", "why", "source", "age_days",
+                       "first_seen", "url"]]
 
     if ml_model.available():
         pairs = [(s >= config.MEDIUM_RISK, m >= 50) for s, m in zip(shown_real.score, shown_ml) if m is not None]
@@ -448,6 +484,7 @@ def render_dashboard():
             "score": st.column_config.ProgressColumn(T("col_score"), min_value=0, max_value=100, format="%d",
                                                      width="small"),
             "level": st.column_config.TextColumn(T("col_risk"), width="small"),
+            "proof": st.column_config.TextColumn(T("col_proof"), width="small", help=T("col_proof_help")),
             "host": st.column_config.TextColumn(T("col_site"), width=380, help=T("col_site_help")),
             "brand": st.column_config.TextColumn(T("col_brand"), width=100, help=T("col_brand_help")),
             "why": st.column_config.TextColumn(T("col_reason"), width=540),
@@ -501,6 +538,42 @@ def render_dashboard():
 
 
 # ----------------------------------------------------------------------------- Check a link
+def report_box():
+    """Public site: a visitor reports a link (nothing else). It goes to a private review queue, never to the
+    dashboard; an officer approves or rejects it on the laptop (reports.py)."""
+    with st.container(border=True):
+        st.subheader(T("report_title"))
+        st.warning(T("report_notice"), icon=":material/info:")
+        with st.form("report_form", clear_on_submit=True, border=False):
+            link = st.text_input(T("report_input"), max_chars=300, placeholder="https://example-fake-site.top/pay")
+            sent = st.form_submit_button(T("report_btn"), icon=":material/flag:")
+        if sent and link.strip():
+            done = st.session_state.get("reports_sent", 0)
+            outcome = reports.submit(link, done)
+            if outcome == "ok":
+                st.session_state["reports_sent"] = done + 1
+                st.success(T("report_thanks"), icon=":material/check:")
+            else:
+                st.info(T(f"report_{outcome}", n=config.REPORTS_PER_SESSION), icon=":material/hourglass_empty:")
+
+
+def report_review():
+    """Laptop only: links visitors reported, waiting for an officer. Shown as plain text, never as links."""
+    waiting = reports.pending()
+    with st.expander(T("review_title", n=len(waiting)), icon=":material/inbox:", expanded=bool(waiting)):
+        if not waiting:
+            st.caption(T("review_empty"))
+        for i, (link, r) in enumerate(sorted(waiting.items(), key=lambda kv: -kv[1]["score"])):
+            text, yes, no = st.columns([6, 1, 1], vertical_alignment="center")
+            text.text(f"{r['score']:3} {r['level']:6} {link}  ({r['reported']})")
+            if yes.button(T("review_approve"), key=f"approve_{i}", icon=":material/check:"):
+                reports.decide(link, approve=True)
+                st.rerun()
+            if no.button(T("review_reject"), key=f"reject_{i}", icon=":material/close:"):
+                reports.decide(link, approve=False)
+                st.rerun()
+
+
 with tab_check:
     form, result = st.columns([2, 3], gap="large")
     with form:
@@ -524,6 +597,8 @@ with tab_check:
                                    file_name=f"takedown_{res['domain']}.md", mime="text/markdown")
         else:
             st.info(T("check_empty"), icon=":material/arrow_back:")
+    if config.PUBLIC_MODE:
+        report_box()
 
 # ----------------------------------------------------------------------------- Hunt
 # On the public demo every scan button shares server-side limits (limits.py): a daily cap per group, a
@@ -677,6 +752,16 @@ can add an Arabic version below the English one, built from templates.
 **Data sources:** RDAP + UAE WHOIS (domain age), crt.sh (certificate logs), Bing via `ddgs` (search),
 Google Safe Browsing, Google Places and a cloud AI service (optional keys).
 
+**Why two opinions?** The rules give the score and explain every point; the ML reads only the website name
+and gives a second opinion. On our own data, each has caught the other's mistakes:
+- **The ML caught rules mistakes.** The Maps listing "Dubai Police Help- Rescue" links the real
+  `dubaipolice.gov.ae`, but its foreign phone number gave it 60 (MEDIUM) under the old rules; the ML gives that
+  site 0%. `salikama.click` (Salik used as a first name) also scored 60 under the old rules; the ML gave it 42%,
+  below its 50% line. Both rules were fixed: such listings now score 0, and `salikama.click` scores 25 (LOW).
+- **The rules caught what the ML missed.** `xn--emiratesnbdubi-xib.com` (victims see `emiratesnbdubåi.com`)
+  scores 75 (HIGH) for the bank's name plus punycode; the ML gives it only 38%. `dubaipolice.click` scores 100
+  and Google lists it as phishing, yet the ML gives it only 54%, barely over its line.
+
 ### Future plans
 - **A machine-learning model that learns new scam patterns.** It would be trained on sites Google has confirmed
   as phishing and on leads officers have confirmed as scams, so the system learns patterns we haven't written
@@ -713,6 +798,16 @@ Google Safe Browsing و Google Places وخدمة ذكاء اصطناعي سحا�
 
 **عناق، مساعد أثر العناق (ذكاء اصطناعي):** اسأل أي شيء عن مؤشرات اليوم. يجيب عناق من حقائقنا فقط (لا يفتح أي موقع ولا يغيّر أي
 نتيجة)، بإيجاز وتكلفة منخفضة، وكل إجابة موسومة كمسودة ذكاء اصطناعي.
+
+**لماذا رأيان؟** القواعد تعطي النتيجة وتشرح كل نقطة؛ والتعلّم الآلي يقرأ اسم الموقع فقط ويعطي رأياً ثانياً. وفي
+بياناتنا نفسها، اكتشف كلٌّ منهما أخطاء الآخر:
+- **التعلّم الآلي اكتشف أخطاء في القواعد.** إدراج خرائط Google «Dubai Police Help- Rescue» يربط بالموقع الحقيقي
+  `dubaipolice.gov.ae`، لكن رقم هاتفه الأجنبي أعطاه 60 (متوسطة) بالقواعد القديمة؛ ويعطي التعلّم الآلي ذلك الموقع 0%.
+  وحصل `salikama.click` (سالك هنا اسم شخص) أيضاً على 60 بالقواعد القديمة؛ وأعطاه التعلّم الآلي 42%، تحت حدّه البالغ 50%.
+  أُصلحت القاعدتان: هذه الإدراجات نتيجتها الآن 0، و`salikama.click` نتيجته 25 (منخفضة).
+- **القواعد اكتشفت ما فات التعلّم الآلي.** `xn--emiratesnbdubi-xib.com` (يراه الضحايا `emiratesnbdubåi.com`) نتيجته
+  75 (عالية) لاسم البنك مع punycode؛ ويعطيه التعلّم الآلي 38% فقط. و`dubaipolice.click` نتيجته 100 وتدرجه Google
+  كموقع تصيّد، ومع ذلك يعطيه التعلّم الآلي 54% فقط، فوق حدّه بقليل.
 
 ### خطط مستقبلية
 - **نموذج تعلّم آلي يتعلّم أنماط احتيال جديدة.** يُدرَّب على مواقع أكدت Google أنها تصيّد احتيالي، وعلى مؤشرات أكد
@@ -760,8 +855,31 @@ Training data: {'; '.join(m['sources'])}.
 """
 
 
+def two_opinions_checked():
+    """'Why two opinions?', last part: for each scanner check a person classified as a live scam page or a
+    normal website, whether the rules (40+) and the ML (50%+) each got it right. Then the lesson."""
+    import json
+    data = json.loads(VERIFIED_FILE.read_text(encoding="utf-8")) if VERIFIED_FILE.exists() else {}
+    checked = [(h, r) for h, r in data.items() if r.get("label") in ("Live scam page", "Normal website")]
+    by_host = {hostname(s["url"]).removeprefix("www."): s for s in db.unique_sites()}
+    rows = [(h, r, by_host[h]) for h, r in checked if h in by_host]
+    lines = []
+    if rows:
+        mls = ml_for([s["url"] for _, _, s in rows])
+        for (h, r, s), ml in zip(rows, mls):
+            scam = r["label"] == "Live scam page"
+            rules_ok = (s["score"] >= config.MEDIUM_RISK) == scam
+            ml_ok = None if ml is None else (ml >= 50) == scam
+            lines.append(T("two_row", host=code_span(h), label=T("two_scam") if scam else T("two_normal"),
+                           rules=("✓" if rules_ok else "✗"), score=s["score"],
+                           ml="–" if ml_ok is None else ("✓" if ml_ok else "✗"), p="–" if ml is None else ml))
+    out = (T("two_checked") + "\n" + "\n".join(f"  - {line}" for line in lines) + "\n\n") if lines else ""
+    return out + T("two_lesson")
+
+
 with tab_about:
     st.markdown(ABOUT[LANG].split("### Future plans")[0].split("### خطط مستقبلية")[0])
+    st.markdown(two_opinions_checked())
     st.markdown(ml_plans() or ABOUT[LANG][ABOUT[LANG].find("###"):])
     st.markdown(f"Google Safe Browsing: **{T('on') if config.SAFE_BROWSING_KEY else T('off_short')}** · "
                 f"Google Maps: **{T('on') if config.PLACES_KEY else T('off_short')}** · "
@@ -769,6 +887,8 @@ with tab_about:
 
 # Drawn last so it already includes anything a hunt or check above just added.
 with tab_dash:
+    if not config.PUBLIC_MODE:
+        report_review()
     render_dashboard()
 
 

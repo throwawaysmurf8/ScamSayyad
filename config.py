@@ -7,6 +7,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent
 DB_PATH = ROOT / "data" / "scamshield.db"
+REPORTS_FILE = ROOT / "data" / "reports_queue.json"  # links visitors reported: private, never committed
+VERIFIED_FILE = ROOT / "data" / "verified.json"  # sites a person confirmed from a urlscan.io screenshot (tools/verify_sites.py)
 FIXTURES = ROOT / "data" / "fixtures"
 
 # --- API keys -------------------------------------------------------------
@@ -56,6 +58,9 @@ PUBLIC_SCANS_PER_DAY = int(os.environ.get("PUBLIC_SCANS_PER_DAY", "30"))  # watc
 PUBLIC_MAPS_PER_DAY = int(os.environ.get("PUBLIC_MAPS_PER_DAY", "20"))  # Maps scans per day (4 Google requests each)
 SCAN_COOLDOWN_SECONDS = int(os.environ.get("SCAN_COOLDOWN_SECONDS", "120"))  # a scan button rests this long after a scan
 CHECKS_PER_MINUTE = int(os.environ.get("CHECKS_PER_MINUTE", "10"))  # "Check a link", everyone together
+REPORTS_PER_MINUTE = 1  # "Report a suspicious site", all visitors together
+REPORTS_PER_DAY = 30
+REPORTS_PER_SESSION = 3  # per browser session
 # "Needs review": a flagged site (40+) whose rule score and ML second opinion (0-100%) differ by this many points.
 REVIEW_GAP = int(os.environ.get("REVIEW_GAP", "60"))
 

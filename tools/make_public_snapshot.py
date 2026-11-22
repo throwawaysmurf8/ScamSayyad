@@ -5,7 +5,8 @@ Run:  .venv/Scripts/python tools/make_public_snapshot.py
 Then: .venv/Scripts/python tools/make_public_answers.py   (with Ollama running; refills Anaq's answers)
 
 What it keeps and removes:
-  * keeps only rows found by the hunters: cert log, search and maps (snapshots of those included);
+  * keeps only rows found by the hunters: cert log, search and maps (snapshots of those included), plus
+    links visitors reported that an officer approved ("public report");
     "manual" rows (Check a link) and "sample" demo rows are left out;
   * blanks the message (SMS) text on every row except Maps listings, whose text is the public
     Google listing (name, phone, address);
@@ -22,7 +23,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import config  # noqa: E402
 import db  # noqa: E402
 
-HUNTER_SOURCES = ("cert log%", "search%", "maps%")  # an allowlist: anything else stays out
+HUNTER_SOURCES = ("cert log%", "search%", "maps%", "public report")  # an allowlist (public reports: officer-approved)
 
 
 def build(src, out):

@@ -22,3 +22,4 @@ data/ml/raw/
 data/usage_today.json
 data/public_live.db
 data/audit.csv
+data/reports_queue.json

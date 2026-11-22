@@ -4,7 +4,8 @@ Everything is counted on the server, for all visitors together (a new tab or bro
   * daily caps: Anaq's questions, Google Maps scans, the other scans (watcher + search together);
   * a cooldown: after a scan finishes, that button rests for everyone for SCAN_COOLDOWN_SECONDS;
   * one scan at a time: while any scan runs, the other scan buttons wait;
-  * "Check a link": at most CHECKS_PER_MINUTE checks a minute, everyone together.
+  * "Check a link": at most CHECKS_PER_MINUTE checks a minute, everyone together;
+  * "Report a suspicious site": at most REPORTS_PER_MINUTE a minute and REPORTS_PER_DAY a day, everyone together.
 
 The counters live in data/usage_today.json (not committed). They survive page reloads, new visitors and
 code updates, but NOT a full restart of the cloud server (a reboot, or the app waking from sleep): the
@@ -40,7 +41,7 @@ def _load():
         # A new day: the counts start again. Cooldowns, the running scan and link checks carry over.
         old = state if isinstance(state, dict) else {}
         state = {"day": _today(), "counts": {}, "last_run": old.get("last_run", {}),
-                 "running": old.get("running"), "checks": old.get("checks", [])}
+                 "running": old.get("running"), "checks": old.get("checks", []), "reports": old.get("reports", [])}
     return state
 
 
@@ -120,3 +121,18 @@ def take_check(per_minute):
         state["checks"] = recent + [now()]
         _save(state)
         return True
+
+
+def take_report(per_minute, per_day):
+    """Count one public report. Returns "" if allowed, else "minute" or "day" (and counts nothing)."""
+    with _lock:
+        state = _load()
+        if state["counts"].get("reports", 0) >= per_day:
+            return "day"
+        recent = [t for t in state.get("reports", []) if now() - t < 60]
+        if len(recent) >= per_minute:
+            return "minute"
+        state["reports"] = recent + [now()]
+        state["counts"]["reports"] = state["counts"].get("reports", 0) + 1
+        _save(state)
+        return ""

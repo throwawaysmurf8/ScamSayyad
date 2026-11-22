@@ -391,7 +391,7 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
 | `data/fixtures/` | Saved copies of real crt.sh and search responses, used automatically when the internet or a service is down. Refreshed on every successful run. |
 | `tests/test_scorer.py` | Automated checks: official sites score 0, every sample scam scores MEDIUM or higher, short brand names like "rta" don't match inside "portal", and so on. |
 | `setup.bat` / `run.bat` | One-click install and start for Windows. `run.bat` opens the browser for you; close its window to stop the dashboard. |
-| `.streamlit/config.toml` | Streamlit settings. It skips Streamlit's first-run e-mail prompt, which would otherwise freeze `run.bat`, and sets the colors for light and dark mode (teal for actions; red, orange and green only for risk levels). |
+| `.streamlit/config.toml` | Streamlit settings. It skips Streamlit's first-run e-mail prompt, which would otherwise freeze `run.bat`, and sets the desert colours for light and dark mode (date-palm brown / dune gold for actions; red, orange and green only for risk levels). |
 | `requirements.txt` | The exact library versions this was tested with. |
 | `.env.example` | Template for the optional API keys. Copy it to `.env`. |
 | `pytest.ini`, `tests/__init__.py`, `tests/conftest.py` | Tell pytest where to find the code; `conftest.py` blanks the real API keys so tests never make paid calls. |

@@ -227,12 +227,23 @@ S = {
                     "ستظهر هنا النتيجة والأسباب وبيانات تسجيل النطاق."),
 
     # --- Hunt ---------------------------------------------------------------------
-    "hunt_public": ("On this public demo each hunter runs up to {n} times a day and the Google Maps scan {m} times "
-                    "a day, shared by all visitors. New finds join the Dashboard for everyone.",
-                    "في هذه النسخة العامة يعمل كل باحث حتى {n} مرة يومياً، وفحص خرائط Google حتى {m} مرات يومياً، "
-                    "مشتركة بين جميع الزوار. تظهر النتائج الجديدة في لوحة المتابعة للجميع."),
-    "hunt_cap": ("Today's limit ({n}) is reached on the public demo. Please try again tomorrow.",
-                 "تم بلوغ الحد اليومي ({n}) في النسخة العامة. يُرجى المحاولة غداً."),
+    "hunt_public": ("Limits on this public demo, shared by all visitors: {n} scans a day for the watcher and search "
+                    "together, {m} Google Maps scans a day, one scan at a time, and each button rests {c} minutes after "
+                    "a scan. New finds join the Dashboard for everyone.",
+                    "حدود هذه النسخة العامة، مشتركة بين جميع الزوار: {n} عملية بحث يومياً للمراقب والبحث معاً، و{m} فحصاً "
+                    "لخرائط Google يومياً، وعملية واحدة في كل مرة، ويتوقف كل زر {c} دقيقة بعد كل عملية. تظهر النتائج "
+                    "الجديدة في لوحة المتابعة للجميع."),
+    "scans_left_other": ("{n} of {cap} scans left today (watcher and search together)",
+                         "متبقٍّ اليوم {n} من {cap} (المراقب والبحث معاً)"),
+    "scans_left_maps": ("{n} of {cap} Maps scans left today", "متبقٍّ اليوم {n} من {cap} من فحوص الخرائط"),
+    "scan_cap": ("Daily scan limit reached, try again tomorrow.", "تم بلوغ الحد اليومي لعمليات البحث، حاول مجدداً غداً."),
+    "scan_busy": ("Another scan is running. This button opens when it finishes.",
+                  "هناك عملية بحث جارية. سيعمل هذا الزر عند انتهائها."),
+    "scan_cooldown": ("Available again in {t}", "متاح مجدداً بعد {t}"),
+    "scan_cooldown_short": ("This button is resting after a scan. Please wait a moment.",
+                            "هذا الزر في استراحة بعد عملية بحث. يُرجى الانتظار قليلاً."),
+    "check_rate": ("Too many link checks right now (at most {n} a minute for everyone). Please try again in a few seconds.",
+                   "عدد كبير من الفحوص الآن (بحد أقصى {n} في الدقيقة للجميع). يُرجى المحاولة بعد ثوانٍ."),
     "watcher_title": (":material/new_releases: New-domain watcher", ":material/new_releases: مراقب النطاقات الجديدة"),
     "watcher_note": ("Searches public certificate logs (crt.sh) for recently created websites whose names start with "
                      "a UAE brand. crt.sh can be slow or down; saved snapshots are used when it is.",

@@ -128,8 +128,21 @@ can get an AI Arabic version below it).
 
 The public site is called **Athar Al Anaq** (أثر العناق, "the caracal's tracks": our mascot Anaq follows the trail scammers leave). It starts from a copy of real results
 (`data/public_snapshot.db`) and lets visitors try "Check a link" without saving anything. The hunters
-and the **Google Maps scan are on, with a daily limit** shared by all visitors (each hunter 20 runs a
-day, the Maps scan 5 runs a day = 20 Google requests), so no visitor can run up costs. New finds join
+and the **Google Maps scan are on, with limits counted on the server for all visitors together**
+(`limits.py`), so nobody can spam them or run up costs:
+
+- **Daily caps:** 30 scans a day for the watcher and search together, 20 Google Maps scans a day
+  (4 Google requests each). When a cap is used up the button is disabled with "Daily scan limit
+  reached, try again tomorrow." The scans left today show next to each button.
+- **Cooldown:** after a scan finishes, that button rests for everyone for 2 minutes, with a countdown.
+- **One scan at a time:** while any scan runs, the other scan buttons wait.
+- **Check a link:** at most 10 checks a minute, everyone together.
+
+The counters are kept in `data/usage_today.json` on the server. They survive page reloads, new tabs,
+new visitors and code updates, but **not a full restart of the cloud server** (a reboot, or the app
+waking from sleep), because Streamlit Community Cloud wipes its disk then; the day's counts start from
+zero again. Surviving that would need an outside database (for example a free hosted Redis or
+Postgres). Google's and Anthropic's own quota and spend limits are the hard ceiling. New finds join
 that site's Dashboard until the app restarts. The free-text search box and the demo-data buttons are
 hidden. Anaq's side chat answers with **Claude Haiku 5.5**, capped at 10 questions per visitor and 100 a
 day for everyone (`ANTHROPIC_API_KEY` in the Secrets); Gemini stays off. The local llama model (Ollama)

@@ -717,8 +717,7 @@ def test_side_chat_uses_claude_haiku_low_effort(monkeypatch, tmp_path):
 
 
 def test_daily_limits_stop_at_the_cap(monkeypatch, tmp_path):
-    import limits
-    monkeypatch.setattr(limits, "FILE", tmp_path / "usage.json")
+    limits, _ = _fresh_limits(monkeypatch, tmp_path)
     assert [limits.take("maps", 3) for _ in range(4)] == [True, True, True, False]  # 4th scan refused
     assert limits.take("hunts", 20)                                                # other limits unaffected
 
@@ -778,27 +777,118 @@ def test_listing_with_an_official_website_always_scores_zero():
     assert score_listing("Dubai Police Fines", "+91 95177 56947", "https://dubaipolice-fines.top/")["score"] >= 70
 
 
-def test_public_site_hunts_with_daily_limits(monkeypatch):
-    """Public demo: the hunters and the Maps scan are on but capped per day; no free-text search, no
-    demo-data buttons, no Anaq chat box. The laptop has everything."""
+def _fresh_limits(monkeypatch, tmp_path, start=1_800_000_000.0):
+    """limits.py with its own counter file and a fake clock that tests move by hand."""
     import limits
+    clock = [start]
+    monkeypatch.setattr(limits, "FILE", tmp_path / "usage.json")
+    monkeypatch.setattr(limits, "now", lambda: clock[0])
+    return limits, clock
+
+
+def test_public_site_hunts_with_shared_limits(monkeypatch, tmp_path):
+    """Public demo: the hunters and the Maps scan are on, each with today's remaining scans beside it; a used-up
+    cap, a resting button or a running scan disables the button for everyone. No free-text search, no
+    demo-data buttons, no Anaq chat box. The laptop has everything, with no limits."""
+    import json
     from streamlit.testing.v1 import AppTest
+    limits, clock = _fresh_limits(monkeypatch, tmp_path)
     monkeypatch.setattr(config, "PUBLIC_MODE", True)
     monkeypatch.setattr(config, "PLACES_KEY", "test-key")
     at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120).run()
     assert not at.exception, [e.value for e in at.exception]
-    labels = {b.label for b in at.button}
-    assert {"Run watcher", "Run search scan", "Run Maps scan"} <= labels
-    assert not labels & {"Load demo data", "Remove demo data"}
+    buttons = {b.label: b for b in at.button}
+    assert {"Run watcher", "Run search scan", "Run Maps scan"} <= set(buttons)
+    assert not any(buttons[k].disabled for k in ("Run watcher", "Run search scan", "Run Maps scan"))
+    assert not set(buttons) & {"Load demo data", "Remove demo data"}
     assert not [t for t in at.text_input if "search" in t.label.lower()]
     assert len(at.chat_input) == 0
-    # Once today's limit is used up, pressing the button runs nothing and says so.
-    monkeypatch.setattr(limits, "take", lambda name, cap: False)
-    next(b for b in at.button if b.label == "Run Maps scan").click().run()
-    assert any("limit" in i.value for i in at.info)
+    captions = " ".join(c.value for c in at.caption)
+    assert "20 of 20 Maps scans left today" in captions and "30 of 30 scans left today" in captions
+    # Today's Maps scans used up: only the Maps button closes, and says why.
+    limits.FILE.write_text(json.dumps({"day": limits._today(), "counts": {"maps": 20, "other": 4},
+                                       "last_run": {}, "running": None, "checks": []}))
+    at.run()
+    buttons = {b.label: b for b in at.button}
+    assert buttons["Run Maps scan"].disabled and not buttons["Run watcher"].disabled
+    captions = " ".join(c.value for c in at.caption)
+    assert "Daily scan limit reached, try again tomorrow." in captions and "26 of 30 scans left today" in captions
+    # A scan running somewhere: every scan button waits.
+    limits.FILE.write_text(json.dumps({"day": limits._today(), "counts": {}, "last_run": {},
+                                       "running": {"kind": "search", "since": clock[0]}, "checks": []}))
+    at.run()
+    assert all(b.disabled for b in at.button if b.label in ("Run watcher", "Run search scan", "Run Maps scan"))
     monkeypatch.setattr(config, "PUBLIC_MODE", False)
     at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120).run()
     assert {"Run watcher", "Run search scan", "Load demo data"} <= {b.label for b in at.button}
+
+
+def test_scan_caps_are_shared_and_daily(monkeypatch, tmp_path):
+    limits, clock = _fresh_limits(monkeypatch, tmp_path)
+    results = []
+    for i in range(31):  # the watcher and the search share one cap of 30
+        kind = "watcher" if i % 2 else "search"
+        ok, why = limits.start_scan(kind, "other", 30, cooldown=0)
+        if ok:
+            limits.end_scan(kind)
+        results.append(why)
+    assert results[:30] == [""] * 30 and results[30] == "cap"
+    assert [limits.start_scan("maps", "maps", 20, 0)[0] and limits.end_scan("maps") is None for _ in range(20)] == [True] * 20
+    assert limits.start_scan("maps", "maps", 20, 0) == (False, "cap")
+    assert limits.scan_status("maps", "maps", 20, 0)["left"] == 0
+    clock[0] += 24 * 3600  # the next UAE day: counts start again
+    assert limits.start_scan("maps", "maps", 20, 0) == (True, "")
+
+
+def test_scan_cooldown_and_one_at_a_time(monkeypatch, tmp_path):
+    limits, clock = _fresh_limits(monkeypatch, tmp_path)
+    assert limits.start_scan("maps", "maps", 20, 120) == (True, "")
+    assert limits.start_scan("watcher", "other", 30, 120) == (False, "busy")  # another scan is running
+    assert limits.scan_status("watcher", "other", 30, 120)["busy"]
+    clock[0] += 30
+    limits.end_scan("maps")
+    assert limits.start_scan("maps", "maps", 20, 120) == (False, "cooldown")  # this button rests 2 minutes
+    assert limits.scan_status("maps", "maps", 20, 120)["cooldown"] == 120
+    clock[0] += 90
+    assert limits.scan_status("maps", "maps", 20, 120)["cooldown"] == 30      # the countdown
+    assert limits.start_scan("watcher", "other", 30, 120) == (True, "")       # other buttons are not resting
+    limits.end_scan("watcher")
+    clock[0] += 31
+    assert limits.start_scan("maps", "maps", 20, 120) == (True, "")           # rested: open again
+    clock[0] += limits.STALE_SCAN_SECONDS + 1                                 # a crashed scan never blocks forever
+    assert limits.start_scan("search", "other", 30, 120) == (True, "")
+
+
+def test_counters_survive_a_restart_of_the_app(monkeypatch, tmp_path):
+    """The counts live in a file, not in memory: a fresh app process reads the same numbers."""
+    import importlib
+    limits, clock = _fresh_limits(monkeypatch, tmp_path)
+    limits.start_scan("maps", "maps", 20, 0)
+    limits.end_scan("maps")
+    path = limits.FILE
+    fresh = importlib.reload(limits)
+    monkeypatch.setattr(fresh, "FILE", path)
+    monkeypatch.setattr(fresh, "now", lambda: clock[0])
+    assert fresh.scan_status("maps", "maps", 20, 0)["left"] == 19
+
+
+def test_link_checks_are_limited_per_minute(monkeypatch, tmp_path):
+    limits, clock = _fresh_limits(monkeypatch, tmp_path)
+    assert [limits.take_check(10) for _ in range(11)] == [True] * 10 + [False]
+    clock[0] += 61
+    assert limits.take_check(10)
+
+
+def test_check_a_link_says_when_the_minute_limit_is_reached(monkeypatch, tmp_path):
+    from streamlit.testing.v1 import AppTest
+    limits, clock = _fresh_limits(monkeypatch, tmp_path)
+    monkeypatch.setattr(config, "PUBLIC_MODE", True)
+    for _ in range(10):
+        limits.take_check(10)
+    at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120).run()
+    at.text_input[0].input("http://adpol1ce-fines.xyz/pay").run()
+    next(b for b in at.button if b.label == "Check link").click().run()
+    assert any("Too many link checks" in i.value for i in at.info)
 
 
 def test_registrar_spellings_are_merged_before_grouping():

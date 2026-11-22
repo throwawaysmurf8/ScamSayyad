@@ -47,12 +47,15 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 # A fast, low-cost model. Google renames models over time: if Gemini says the model is not
 # found, put the current "Flash-Lite" model name in .env as GEMINI_MODEL=...
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite")
-# Public-site limits, so strangers can't run up the bill (limits.py). The daily caps are "soft" (they reset
-# if the cloud server restarts); the hard limits are the quotas / spend limits in Google's and Anthropic's consoles.
+# Public-site limits, so strangers can't spam the buttons or run up the bill (limits.py). All are counted on the
+# server for every visitor together. They reset if the cloud server fully restarts; the hard limits are the
+# quotas / spend limits in Google's and Anthropic's consoles.
 CHAT_DAILY_CAP = int(os.environ.get("CHAT_DAILY_CAP", "100"))  # Anaq questions per day, all visitors combined
 CHAT_PER_VISITOR = int(os.environ.get("CHAT_PER_VISITOR", "10"))  # Anaq questions per visit
-PUBLIC_HUNTS_PER_DAY = int(os.environ.get("PUBLIC_HUNTS_PER_DAY", "20"))  # per hunter: certificate watcher, web search (each)
-PUBLIC_MAPS_PER_DAY = int(os.environ.get("PUBLIC_MAPS_PER_DAY", "5"))  # Maps scans: 4 Google requests each, so 5 scans = 20 requests
+PUBLIC_SCANS_PER_DAY = int(os.environ.get("PUBLIC_SCANS_PER_DAY", "30"))  # watcher + search scans together, per day
+PUBLIC_MAPS_PER_DAY = int(os.environ.get("PUBLIC_MAPS_PER_DAY", "20"))  # Maps scans per day (4 Google requests each)
+SCAN_COOLDOWN_SECONDS = int(os.environ.get("SCAN_COOLDOWN_SECONDS", "120"))  # a scan button rests this long after a scan
+CHECKS_PER_MINUTE = int(os.environ.get("CHECKS_PER_MINUTE", "10"))  # "Check a link", everyone together
 
 # Anaq's side-panel chat with Claude Haiku (Anthropic API). Optional: with ANTHROPIC_API_KEY set, the chat
 # uses Claude on this computer and on the public demo; without it, the local model / Gemini as before.
@@ -68,8 +71,8 @@ OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b")
 # Set SCAMSHIELD_PUBLIC = "1" in the cloud app's Secrets. On the public site:
 #   * it starts from a copy of real results (data/public_snapshot.db, refreshed by hand); "Check a link"
 #     never saves, and only the capped hunters add finds (lost when the app restarts);
-#   * the hunters and the Google Maps scan run, but only a few times a day (PUBLIC_HUNTS_PER_DAY,
-#     PUBLIC_MAPS_PER_DAY), so visitors can't run up costs; the free-text search box and demo-data buttons
+#   * the hunters and the Google Maps scan run with shared daily caps, a cooldown and one scan at a time
+#     (PUBLIC_SCANS_PER_DAY, PUBLIC_MAPS_PER_DAY, SCAN_COOLDOWN_SECONDS); the free-text search box and demo-data buttons
 #     are hidden;
 #   * Anaq's side panel answers with Claude Haiku 5.5, capped (CHAT_PER_VISITOR per visitor, CHAT_DAILY_CAP
 #     a day for everyone); Gemini stays off. Without a Claude key it shows answers prepared earlier by the

@@ -488,7 +488,9 @@ with tab_check:
         msg = st.text_area(T("check_msg"), placeholder="Abu Dhabi Police: unpaid traffic fine. Pay within 24 hours...")
         go = st.button(T("check_btn"), type="primary", icon=":material/search:", disabled=not url.strip())
     with result:
-        if go:
+        if go and config.PUBLIC_MODE and not limits.take_check(config.CHECKS_PER_MINUTE):
+            st.info(T("check_rate", n=config.CHECKS_PER_MINUTE), icon=":material/hourglass_empty:")
+        elif go:
             with st.spinner(T("checking")):
                 if config.PUBLIC_MODE:  # public demo: check only, never write to the shared data
                     res = check(url.strip(), text=msg.strip())[0]
@@ -502,52 +504,113 @@ with tab_check:
             st.info(T("check_empty"), icon=":material/arrow_back:")
 
 # ----------------------------------------------------------------------------- Hunt
-def allowed_today(kind, cap):
-    """On the public demo, count one run against today's limit; say so and refuse once it's used up."""
-    if not config.PUBLIC_MODE or limits.take(kind, cap):
-        return True
-    st.info(T("hunt_cap", n=cap), icon=":material/hourglass_empty:")
-    return False
+# On the public demo every scan button shares server-side limits (limits.py): a daily cap per group, a
+# cooldown after each scan, and one scan at a time. The officer's laptop has no limits.
+SCAN_GROUPS = {"watcher": ("other", "PUBLIC_SCANS_PER_DAY"), "search": ("other", "PUBLIC_SCANS_PER_DAY"),
+               "maps": ("maps", "PUBLIC_MAPS_PER_DAY")}
+
+
+def _scan_limits(kind):
+    group, cap_name = SCAN_GROUPS[kind]
+    return group, getattr(config, cap_name), config.SCAN_COOLDOWN_SECONDS
+
+
+@st.fragment(run_every=1)
+def _scan_wait(kind):
+    """Counts down while this button rests or another scan runs; re-enables the button when it may run."""
+    s = limits.scan_status(kind, *_scan_limits(kind))
+    if s["left"] and not s["busy"] and not s["cooldown"]:
+        st.rerun(scope="app")
+    if s["busy"]:
+        st.caption(T("scan_busy"))
+    elif s["cooldown"]:
+        st.caption(T("scan_cooldown", t=f"{s['cooldown'] // 60}:{s['cooldown'] % 60:02d}"))
+
+
+def scan_button(kind, label, ready=True):
+    """The scan button, with today's remaining scans beside it on the public demo. Returns True when a
+    scan may run now; the caller must then call limits.end_scan(kind) when it finishes."""
+    if not config.PUBLIC_MODE:
+        return st.button(label, type="primary", icon=":material/play_arrow:", disabled=not ready, key=f"run_{kind}")
+    group, cap, cooldown = _scan_limits(kind)
+    s = limits.scan_status(kind, group, cap, cooldown)
+    blocked = not s["left"] or s["busy"] or s["cooldown"]
+    left_col, info_col = st.columns([1, 2], vertical_alignment="center")
+    pressed = left_col.button(label, type="primary", icon=":material/play_arrow:", disabled=not ready or bool(blocked),
+                              key=f"run_{kind}")
+    with info_col:
+        st.caption(T("scans_left_" + group, n=s["left"], cap=cap))
+        if not s["left"]:
+            st.caption(T("scan_cap"))
+        elif s["busy"] or s["cooldown"]:
+            _scan_wait(kind)
+    if not pressed:
+        return False
+    ok, why = limits.start_scan(kind, group, cap, cooldown)  # checked again: someone may have just started one
+    if not ok:
+        st.info(T({"cap": "scan_cap", "busy": "scan_busy"}.get(why, "scan_cooldown_short")),
+                icon=":material/hourglass_empty:")
+    return ok
+
+
+def run_scan(kind, work):
+    """Run a scan and always free the public slot afterwards, even if the scan fails."""
+    if not config.PUBLIC_MODE:
+        work()
+        return
+    try:
+        work()
+    finally:
+        limits.end_scan(kind)
+    st.rerun()  # redraw at once, so every button shows the new cooldown and today's count
 
 
 with tab_hunt:
-    if config.PUBLIC_MODE:  # hunters run with a daily limit; no free-text search, no demo-data buttons
-        st.info(T("hunt_public", n=config.PUBLIC_HUNTS_PER_DAY, m=config.PUBLIC_MAPS_PER_DAY),
-                icon=":material/hourglass_empty:")
+    if config.PUBLIC_MODE:  # shared limits; no free-text search, no demo-data buttons
+        st.info(T("hunt_public", n=config.PUBLIC_SCANS_PER_DAY, m=config.PUBLIC_MAPS_PER_DAY,
+                  c=config.SCAN_COOLDOWN_SECONDS // 60), icon=":material/hourglass_empty:")
     with st.container(border=True):
         st.subheader(T("watcher_title"))
         st.caption(T("watcher_note"))
         prefixes = st.multiselect(T("prefixes"), config.CT_PREFIXES, default=["adpolice", "salik", "emiratespost"])
         days = st.slider(T("days_slider"), 1, 90, config.CT_RECENT_DAYS)
-        if (st.button(T("run_watcher"), type="primary", icon=":material/play_arrow:", disabled=not prefixes)
-                and allowed_today("watcher", config.PUBLIC_HUNTS_PER_DAY)):
-            with st.status(T("watcher_running"), expanded=True) as s:
-                res = ct_watcher.run(prefixes, days, log=st.write)
-                s.update(label=T("watcher_done", n=len(res)), state="complete")
+        if scan_button("watcher", T("run_watcher"), ready=bool(prefixes)):
+            def watcher():
+                with st.status(T("watcher_running"), expanded=True) as s:
+                    res = ct_watcher.run(prefixes, days, log=st.write)
+                    s.update(label=T("watcher_done", n=len(res)), state="complete")
+                st.session_state["scan_done"] = T("watcher_done", n=len(res))
+            run_scan("watcher", watcher)
 
     with st.container(border=True):
         st.subheader(T("search_title"))
         st.caption(T("search_note"))
         queries = st.multiselect(T("queries"), config.SEARCH_QUERIES, default=config.SEARCH_QUERIES[:2])
         extra = "" if config.PUBLIC_MODE else st.text_input(T("extra_query"), max_chars=100)
-        if (st.button(T("run_search"), type="primary", icon=":material/play_arrow:",
-                      disabled=not (queries or extra.strip()))
-                and allowed_today("search", config.PUBLIC_HUNTS_PER_DAY)):
-            with st.status(T("searching"), expanded=True) as s:
-                res = search_scanner.run(queries + ([extra.strip()] if extra.strip() else []), log=st.write)
-                s.update(label=T("search_done", n=len(res)), state="complete")
+        if scan_button("search", T("run_search"), ready=bool(queries or extra.strip())):
+            def search():
+                with st.status(T("searching"), expanded=True) as s:
+                    res = search_scanner.run(queries + ([extra.strip()] if extra.strip() else []), log=st.write)
+                    s.update(label=T("search_done", n=len(res)), state="complete")
+                st.session_state["scan_done"] = T("search_done", n=len(res))
+            run_scan("search", search)
 
     with st.container(border=True):
         st.subheader(T("maps_title"))
         if config.PLACES_KEY:
             st.caption(T("maps_note"))
-            if (st.button(T("run_maps"), type="primary", icon=":material/play_arrow:")
-                    and allowed_today("maps", config.PUBLIC_MAPS_PER_DAY)):
-                with st.status(T("maps_running"), expanded=True) as s:
-                    res = maps_scanner.run(log=st.write)
-                    s.update(label=T("maps_done", n=len(res)), state="complete")
+            if scan_button("maps", T("run_maps")):
+                def maps():
+                    with st.status(T("maps_running"), expanded=True) as s:
+                        res = maps_scanner.run(log=st.write)
+                        s.update(label=T("maps_done", n=len(res)), state="complete")
+                    st.session_state["scan_done"] = T("maps_done", n=len(res))
+                run_scan("maps", maps)
         else:
             st.caption(T("maps_off"))
+
+    if st.session_state.get("scan_done"):
+        st.success(st.session_state.pop("scan_done"), icon=":material/check:")
 
     if not config.PUBLIC_MODE:  # demo data would mix made-up sites into the shared public results
         with st.container(border=True):

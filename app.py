@@ -492,7 +492,7 @@ with tab_check:
             st.info(T("check_rate", n=config.CHECKS_PER_MINUTE), icon=":material/hourglass_empty:")
         elif go:
             with st.spinner(T("checking")):
-                if config.PUBLIC_MODE:  # public demo: check only, never write to the shared data
+                if config.PUBLIC_MODE:  # public: scored for this visitor only, never saved to the shared data
                     res = check(url.strip(), text=msg.strip())[0]
                 else:
                     res = check_and_save(url.strip(), text=msg.strip(), source="manual")

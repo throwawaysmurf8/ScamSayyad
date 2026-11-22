@@ -39,7 +39,10 @@ def search(query, n=config.SEARCH_RESULTS_PER_QUERY):
 
 def run(queries=None, log=print):
     results = []
-    for q in queries or config.SEARCH_QUERIES:
+    queries = queries or config.SEARCH_QUERIES
+    if config.PUBLIC_MODE:  # the public site only runs our fixed searches, never a visitor's own words
+        queries = [q for q in queries if q in config.SEARCH_QUERIES]
+    for q in queries:
         hits, source = search(q)
         note = " (live search failed; using saved snapshot)" if "snapshot" in source else ""
         log(f"[{q}] {len(hits)} results{note}")

@@ -1001,3 +1001,47 @@ def test_parcel_words_and_real_address_in_front():
     assert any("track" in x for x in r["reasons"])
     why = explain_level(r["score"], r["level"], r["reasons"])
     assert any("address in front" in t for _, t in why["strong"])           # counted as a strong sign
+
+
+def _empty_db(monkeypatch, tmp_path):
+    import db
+    monkeypatch.setattr(config, "DB_PATH", tmp_path / "shared.db")
+    db.connect().close()
+    return db
+
+
+def test_public_check_a_link_is_shown_but_never_saved(monkeypatch, tmp_path):
+    """Public site: "Check a link" scores the link for that visitor only; the shared database is untouched."""
+    import enrich
+    from streamlit.testing.v1 import AppTest
+    from scorer import score_url
+    db = _empty_db(monkeypatch, tmp_path)
+    _fresh_limits(monkeypatch, tmp_path)
+    monkeypatch.setattr(config, "PUBLIC_MODE", True)
+    monkeypatch.setattr(enrich, "check", lambda url, text="", **kw: (score_url(url, text), {}))  # no network
+    at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120).run()
+    at.text_input[0].input("http://adpol1ce-fines.xyz/pay").run()
+    next(b for b in at.button if b.label == "Check link").click().run()
+    assert not at.exception, [e.value for e in at.exception]
+    assert any("adpol1ce-fines.xyz" in m.value for m in at.markdown)  # the visitor sees the result
+    assert db.all_sites() == []                                         # nothing saved for anyone else
+
+
+def test_public_site_never_saves_visitor_input(monkeypatch, tmp_path):
+    """Backstops behind the screen: a visitor's own link can't be saved, and the hunters only run the
+    fixed brand and search lists, whatever arrives."""
+    import enrich
+    import search_scanner
+    import ct_watcher
+    db = _empty_db(monkeypatch, tmp_path)
+    monkeypatch.setattr(config, "PUBLIC_MODE", True)
+    with pytest.raises(PermissionError):
+        enrich.check_and_save("http://visitor-link.example/pay", source="manual")
+    searched, watched = [], []
+    monkeypatch.setattr(search_scanner, "search", lambda q: (searched.append(q), ([], "search"))[1])
+    search_scanner.run([config.SEARCH_QUERIES[0], "my own words"], log=lambda *_: None)
+    assert searched == [config.SEARCH_QUERIES[0]]
+    monkeypatch.setattr(ct_watcher, "fetch", lambda p: (watched.append(p), [])[1])
+    ct_watcher.run(["salik", "notabrand"], days=7, log=lambda *_: None)
+    assert watched == ["salik"]
+    assert db.all_sites() == []

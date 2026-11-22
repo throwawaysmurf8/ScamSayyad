@@ -306,8 +306,12 @@ def check_and_save(url, text="", source="manual", query="", lookup=True):
     """Check a URL (re-using cached domain facts) and store the result. Used by every hunter.
 
     lookup=False skips the slow registry call for domains we haven't cached yet.
+    On the public site a visitor's own link ("manual") is never saved: use check() there instead.
     """
     import db  # imported here so scorer/enrich still work without the database
+
+    if config.PUBLIC_MODE and source == "manual":
+        raise PermissionError("The public site never saves a visitor's own link to the shared database.")
 
     from scorer import name_endings, name_stem
     domain = parse(url)[2]

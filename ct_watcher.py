@@ -52,6 +52,8 @@ def new_domains(rows, days):
 def run(prefixes=None, days=config.CT_RECENT_DAYS, log=print):
     """Search every prefix, score new domains, save them. Returns the list of results."""
     prefixes = prefixes or config.CT_PREFIXES
+    if config.PUBLIC_MODE:  # the public site only watches our fixed brand list
+        prefixes = [p for p in prefixes if p in config.CT_PREFIXES]
     results, lookups = [], 0
     for prefix in prefixes:
         snapshot = config.FIXTURES / f"crtsh_{prefix.strip('-')}.json"

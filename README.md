@@ -127,7 +127,10 @@ can get an AI Arabic version below it).
 ## Public demo: Athar Al Anaq on Streamlit Community Cloud
 
 The public site is called **Athar Al Anaq** (أثر العناق, "the caracal's tracks": our mascot Anaq follows the trail scammers leave). It starts from a copy of real results
-(`data/public_snapshot.db`) and lets visitors try "Check a link" without saving anything. The hunters
+(`data/public_snapshot.db`). **Nothing a visitor types is saved there:** "Check a link" shows the
+result to that visitor only, and the hunters only run the fixed brand and search lists (the free-text
+search box is hidden, and the code refuses anything else even if it arrives). Only those fixed hunter
+scans add finds to the shared Dashboard. The hunters
 and the **Google Maps scan are on, with limits counted on the server for all visitors together**
 (`limits.py`), so nobody can spam them or run up costs:
 

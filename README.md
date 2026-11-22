@@ -362,11 +362,11 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
   each site's card. It is logistic regression (scikit-learn) on 3–5-letter chunks of the name plus simple
   counts (length, dots, hyphens, digits). It never opens a website and **never changes the rule-based
   score**. It is hidden for official, allowlisted sites, and disappears if `data/ml/model.npz` is missing.
-  - **"Needs review" label:** when the rule score and the ML score differ by 60 points or more
-    (`REVIEW_GAP`), the site gets "⚑ Needs review" in the table and on its card, and the "Needs review
-    only" switch lists them at any score. Today that is 846 sites, all the same way round: the ML thinks
-    the name looks scam-like but the rules cleared it (mostly the `.ph` bulk batch, personal pages on
-    free platforms and people named Salik). None is on the default 60+ view.
+  - **"Needs review" label:** a flagged site (rule score 40+) whose ML score differs from the rule score
+    by 60 points or more (`REVIEW_GAP`) gets "⚑ Needs review" in the table and on its card, and the
+    "Needs review only" switch lists them. Sites the rules cleared never get it (846 cleared names, mostly
+    the `.ph` bulk batch, look scam-like to the ML, which would bury the real cases). Today: 2 sites,
+    `uaepassloginflow.prototype.disprz.com` and `emiratesnbd.verify-address.com.es` (rules 40, ML 100%).
   - **Training data (lists only; no site in them is opened):** the PhiUSIIL Phishing URL dataset
     (UCI ML Repository, CC BY 4.0; Prasad & Chandra 2024, https://doi.org/10.1016/j.cose.2023.103545)
     and the Tranco top 100,000 sites plus all 718 UAE (.ae) sites in its top million, so it learns what

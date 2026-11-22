@@ -174,6 +174,8 @@ def similar(url_or_host, candidates, k=5):
 
 
 def needs_review(rule_score, ml_score):
-    """True when the rules and the ML second opinion disagree by REVIEW_GAP points or more (an officer should
-    look). Official sites and sites without an ML score (Maps listings) never need review."""
-    return ml_score is not None and abs(rule_score - ml_score) >= config.REVIEW_GAP
+    """True for a FLAGGED site (rule score MEDIUM or higher) where the ML second opinion differs from the rule
+    score by REVIEW_GAP points or more: an officer should look. Sites the rules cleared, official sites and
+    sites without an ML score (Maps listings) never need review."""
+    return (ml_score is not None and rule_score >= config.MEDIUM_RISK
+            and abs(rule_score - ml_score) >= config.REVIEW_GAP)

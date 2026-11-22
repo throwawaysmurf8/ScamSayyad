@@ -1088,10 +1088,11 @@ def test_every_hunter_runs_the_official_check(monkeypatch, tmp_path):
     assert calls == ["ct_watcher", "search_scanner", "maps_scanner"]
 
 
-def test_needs_review_when_rules_and_ml_differ_by_60_points():
+def test_needs_review_only_for_flagged_sites_60_points_apart():
     import ml_model
-    assert ml_model.needs_review(0, 60) and ml_model.needs_review(90, 30) and ml_model.needs_review(0, 100)
-    assert not ml_model.needs_review(0, 59) and not ml_model.needs_review(70, 20)
+    assert ml_model.needs_review(40, 100) and ml_model.needs_review(90, 30) and ml_model.needs_review(100, 0)
+    assert not ml_model.needs_review(70, 20)                                  # only 50 apart
+    assert not ml_model.needs_review(0, 100) and not ml_model.needs_review(35, 100)  # cleared by the rules
     assert not ml_model.needs_review(100, None)  # no ML score (Maps listing or official site): never
 
 
@@ -1101,13 +1102,14 @@ def test_dashboard_shows_the_needs_review_label(monkeypatch, tmp_path):
     if not ml_model.available():
         pytest.skip("no ML model file")
     db = _empty_db(monkeypatch, tmp_path)
-    for url, score in (("https://salikdev.example/", 0), ("https://adpolice-fines-pay.top/", 90)):
-        db.save({"url": url, "domain": url.split("/")[2], "score": score, "level": "HIGH" if score >= 70 else "LOW",
+    for url, score, level in (("https://uaepass-login.example/", 40, "MEDIUM"), ("https://adpolice-fines-pay.top/", 90, "HIGH"),
+                              ("https://salikdev.example/", 0, "LOW")):
+        db.save({"url": url, "domain": url.split("/")[2], "score": score, "level": level,
                  "reasons": ["test"], "safe_browsing": "clean"}, "search")
-    monkeypatch.setattr(ml_model, "score_hosts", lambda urls: [100 if "salikdev" in u else 95 for u in urls])
+    monkeypatch.setattr(ml_model, "score_hosts", lambda urls: [95 if "adpolice" in u else 100 for u in urls])
     at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120).run()
     assert not at.exception, [e.value for e in at.exception]
     next(t for t in at.toggle if t.label == "Needs review only").set_value(True).run()
     table = at.dataframe[0].value
-    assert list(table.host) == ["salikdev.example"]          # shown at any score; the agreeing site is not
+    assert list(table.host) == ["uaepass-login.example"]  # flagged, 60 apart; not the agreeing or the cleared one
     assert table.review.iloc[0] == "⚑ Needs review"

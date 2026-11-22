@@ -236,10 +236,10 @@ S = {
     "review_label": ("⚑ Needs review", "⚑ يحتاج مراجعة"),
     "col_review": ("Review", "مراجعة"),
     "review_only": ("Needs review only", "ما يحتاج مراجعة فقط"),
-    "review_only_help": ("Sites where the rule score and the ML second opinion differ by {gap} points or more. "
-                         "Shown at any score when this is on.",
-                         "المواقع التي يختلف فيها تقييم القواعد عن الرأي الثاني للتعلم الآلي بـ {gap} نقطة أو أكثر. "
-                         "تظهر بأي تقييم عند تفعيل هذا الخيار."),
+    "review_only_help": ("Flagged sites (score 40 or more) where the rule score and the ML second opinion differ "
+                         "by {gap} points or more. Shown at any score from 40 up when this is on.",
+                         "المواقع المُعلَّمة (40 فأكثر) التي يختلف فيها تقييم القواعد عن الرأي الثاني للتعلم الآلي بـ {gap} "
+                         "نقطة أو أكثر. تظهر بأي تقييم من 40 فأكثر عند تفعيل هذا الخيار."),
     "review_count": ("⚑ {n} of these need review: the rules and the ML differ by {gap}+ points.",
                      "⚑ {n} منها تحتاج مراجعة: القواعد والتعلم الآلي يختلفان بـ {gap} نقطة أو أكثر."),
     "review_card": ("**Needs review:** the rules give {score}/100 but the ML second opinion says {ml}%, "

@@ -1,7 +1,8 @@
 """'Report a suspicious site': visitors send only a link. It is scored automatically and kept in a private
 review queue (data/reports_queue.json, never committed), apart from the sites database, so it never shows
 on any dashboard until an officer approves it on the laptop. Approved links join the database with source
-"public report". This is not an official police report: the authorities' channel is ecrime.ae.
+"public report". This is not an official police report: the authorities' channels are in
+config.REPORT_CHANNELS (Abu Dhabi Police Aman Service first).
 
 What is kept for each report: the cleaned link (scheme, website name and path only: anything after "?" or
 "#", and any "user:password@", is dropped because it can carry personal data), its score, level and

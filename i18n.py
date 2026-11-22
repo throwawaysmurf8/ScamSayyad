@@ -8,14 +8,13 @@ import re
 
 S = {
     # --- Header ---------------------------------------------------------------
-    "tagline": ("The scam hunter for the UAE. *Athar Al Anaq* (أثر العناق) means \"the caracal's tracks\": our mascot "
-                "**Anaq** (عناق الأرض), the desert's sharp-eared hunter, follows the trail scammers leave.",
-                "صائد المواقع الاحتيالية في الإمارات. تميمتنا **عناق** (عناق الأرض)، الصيّاد الصحراوي حادّ السمع، "
-                "يتتبّع الأثر الذي يتركه المحتالون."),
-    "subtitle": ("Built for the ScamShield AI hackathon (42 Abu Dhabi × Abu Dhabi Police). Hunts for websites impersonating UAE police, government and banks. Scores are leads for "
-                 "officer review, not verdicts. Suspicious pages are never opened.",
-                 "صُمّم لهاكاثون ScamShield AI (‏42 أبوظبي × شرطة أبوظبي). يبحث عن المواقع التي تنتحل صفة الشرطة والجهات الحكومية والبنوك في الإمارات. النتائج مؤشرات "
-                 "يراجعها الضابط، وليست أحكاماً. لا تُفتح الصفحات المشبوهة أبداً."),
+    "tagline": ("ATHAR (أثر, \"trace\") identifies websites that impersonate UAE authorities and banks from the traces "
+                "their operators leave: certificate logs, search results, map listings and registration records.",
+                "أثر: يرصد المواقع التي تنتحل صفة الجهات الحكومية والبنوك في دولة الإمارات من خلال الآثار التي يتركها "
+                "مشغّلوها: سجلات الشهادات ونتائج البحث وإدراجات الخرائط وبيانات التسجيل."),
+    "subtitle": ("Results are leads for officer review, not findings. Suspicious pages are never opened by this "
+                 "system.",
+                 "النتائج مؤشرات يراجعها الضابط، وليست أحكاماً. لا يفتح هذا النظام الصفحات المشبوهة أبداً."),
     "language": ("Language", "اللغة"),
     "src_ct": ("Certificate logs", "سجلات الشهادات"),
     "src_search": ("Web search", "بحث الويب"),
@@ -23,13 +22,14 @@ S = {
     "src_maps": ("Google Maps", "خرائط Google"),
     "src_ai": ("AI briefings", "ملخصات الذكاء الاصطناعي"),
     "off_no_key": ("off", "متوقف"),
-    "public_badge": ("Public demo", "نسخة عامة"),
-    "public_banner": ("**Hackathon prototype, not an official Abu Dhabi Police or UAE government service.** Sites "
-                      "listed here are automated leads, not confirmed scams, unless marked ✓ Verified scam. Do not visit them. To "
-                      "report a scam, use the official UAE eCrime platform (ecrime.ae).",
-                      "**نموذج أولي لهاكاثون، وليس خدمة رسمية من شرطة أبوظبي أو حكومة الإمارات.** المواقع المدرجة "
-                      "مؤشرات آلية، وليست عمليات احتيال مثبتة، إلا ما عليه علامة ✓ احتيال مؤكَّد. لا تزرها. للإبلاغ عن احتيال استخدم منصة "
-                      "eCrime الرسمية (ecrime.ae)."),
+    "public_badge": ("Public demonstration",
+                     "عرض عام"),
+    "public_banner": ("Sites listed here are automated leads, not confirmed scams, unless marked Confirmed. Do not visit "
+                      "them. To report a scam, contact the Abu Dhabi Police Aman Service: call 8002626, send an SMS to "
+                      "2828, or use the Abu Dhabi Police Smart App.",
+                      "المواقع المدرجة هنا مؤشرات آلية، وليست عمليات احتيال مؤكَّدة، إلا ما وُسم بـ«مؤكَّد». لا تزرها. "
+                      "للإبلاغ عن احتيال، تواصل مع خدمة أمان في شرطة أبوظبي: اتصل على 8002626، أو أرسل رسالة نصية إلى 2828، "
+                      "أو استخدم تطبيق شرطة أبوظبي الذكي."),
     "tab_dash": ("Dashboard", "لوحة المتابعة"),
     "tab_check": ("Check a link", "فحص رابط"),
     "tab_hunt": ("Hunt for scams", "البحث عن الاحتيال"),
@@ -100,8 +100,10 @@ S = {
                 ":material/model_training: **رأي ثانٍ (تعلّم آلي):** {p}٪ تشابه مع أسماء الاحتيال ({verdict}). نموذج "
                 "منفصل مدرَّب على بيانات تصيّد عامة، ولا يغيّر النتيجة أعلاه."),
     "ml_agrees": ("agrees with the rules", "يتفق مع القواعد"),
-    "ml_disagrees_more": ("the model is more worried than the rules", "النموذج أكثر قلقاً من القواعد"),
-    "ml_disagrees_less": ("the model is less worried than the rules", "النموذج أقل قلقاً من القواعد"),
+    "ml_disagrees_more": ("the model rates it higher than the rules",
+                          "يقيّمه النموذج أعلى من القواعد"),
+    "ml_disagrees_less": ("the model rates it lower than the rules",
+                          "يقيّمه النموذج أدنى من القواعد"),
     "demo_row": ("Demo data: this is a made-up example, not a real detection.",
                  "بيانات تجريبية: هذا مثال مختلق وليس اكتشافاً حقيقياً."),
     "found_by_line": ("Found by {src}{query} · first seen {first}", "المصدر: {src}{query} · أول ظهور {first}"),
@@ -128,7 +130,7 @@ S = {
     "dates_range": ("{a} to {b}", "من {a} إلى {b}"),
 
     # --- Takedown report panel --------------------------------------------------
-    "report_title": ("**Takedown report**", "**تقرير الإزالة**"),
+    "takedown_title": ("Takedown report", "تقرير الإزالة"),
     "report_ready": ("Ready for officer review. Includes the registrar's abuse contact.",
                      "جاهز لمراجعة الضابط. يتضمن جهة اتصال المسجِّل للإبلاغ عن الإساءة."),
     "report_download": ("Download takedown report", "تنزيل تقرير الإزالة"),
@@ -140,47 +142,57 @@ S = {
                            "يبقى التقرير الإنجليزي أولاً، ويُضاف التقرير نفسه بالعربية أسفله. يُبنى من قوالب ثابتة "
                            "بالحقائق نفسها، دون الحاجة إلى الذكاء الاصطناعي."),
     "briefing_title": ("Officer briefing", "ملخص للضابط"),
-    "ask_title": ("Ask Anaq", "اسأل عناق"),
-    "side_title": ("Anaq, the Athar Al Anaq assistant (AI)", "عناق، مساعد أثر العناق (ذكاء اصطناعي)"),
-    "side_sub": ("Ask about today's leads, campaigns or a site", "اسأل عن مؤشرات اليوم أو الحملات أو موقع معيّن"),
-    "side_about_all": ("Talking about: the whole dashboard. Select a site in the table to ask about it.",
-                       "الحديث عن: لوحة المتابعة كاملة. اختر موقعاً في الجدول لتسأل عنه."),
-    "side_about_site": ("Talking about: the whole dashboard and {site}", "الحديث عن: لوحة المتابعة و{site}"),
-    "side_try": ("Try", "جرّب"),
+    "ask_title": ("Questions about this site",
+                  "أسئلة عن هذا الموقع"),
+    "side_title": ("ATHAR Assistant (AI)",
+                   "مساعد أثر (ذكاء اصطناعي)"),
+    "side_sub": ("Questions on current leads, campaigns or a selected site",
+                 "أسئلة عن المؤشرات الحالية أو الحملات أو موقع محدد"),
+    "side_about_all": ("Scope: all leads. Select a site in Leads to include it.",
+                       "النطاق: جميع المؤشرات. اختر موقعاً في صفحة المؤشرات لإدراجه."),
+    "side_about_site": ("Scope: all leads and {site}",
+                        "النطاق: جميع المؤشرات و{site}"),
+    "side_try": ("Suggested questions",
+                 "أسئلة مقترحة"),
     "side_q1": ("Summarise today's biggest threats", "لخّص أكبر التهديدات اليوم"),
     "side_q2": ("Which campaign should we act on first, and why?", "أي حملة يجب أن نبدأ بها، ولماذا؟"),
-    "side_q3": ("Explain the selected site in simple words", "اشرح الموقع المختار بكلمات بسيطة"),
-    "side_input": ("Ask Anaq anything about the leads...", "اسأل عناق أي شيء عن المؤشرات..."),
+    "side_q3": ("Explain the selected site in plain terms",
+                "اشرح الموقع المختار بعبارات واضحة"),
+    "side_input": ("Ask the ATHAR Assistant about the leads",
+                   "اسأل مساعد أثر عن المؤشرات"),
     "side_clear": ("New conversation", "محادثة جديدة"),
-    "side_off": ("Anaq's chat needs the local AI model. Start it, then reload this page.",
-                 "تحتاج محادثة عناق إلى نموذج الذكاء الاصطناعي المحلي. شغّله ثم أعد تحميل الصفحة."),
-    "side_off_public": ("Anaq's chat is off on this public demo right now. Each site's card still has "
-                        "Ask Anaq's ready-made questions.",
-                        "محادثة عناق متوقفة حالياً في هذا العرض العام. وما زالت أسئلة «اسأل عناق» الجاهزة متاحة في بطاقة كل موقع."),
-    "side_saved_note": ("On this public demo, Anaq shows answers it prepared earlier on the officer's computer. "
-                        "Typed questions work on the officer's version.",
-                        "في هذا العرض العام، يعرض عناق إجابات أعدّها مسبقاً على جهاز الضابط. "
-                        "الأسئلة المكتوبة متاحة في نسخة الضابط."),
-    "side_saved_label": ("AI-generated draft, prepared by the local model on the officer's computer — "
-                         "not an official police answer",
-                         "مسودة مولّدة بالذكاء الاصطناعي، أعدّها النموذج المحلي على جهاز الضابط — "
-                         "ليست إجابة رسمية من الشرطة"),
-    "side_saved_missing": ("No prepared answer for the current data yet.",
-                           "لا توجد إجابة مُعدّة للبيانات الحالية بعد."),
-    "side_cap_day": ("Anaq has answered today's quota of questions on this public demo. Please come back tomorrow.",
-                     "أجاب عناق عن الحد اليومي من الأسئلة في هذا العرض العام. يُرجى العودة غداً."),
-    "side_cap_visitor": ("You've reached the question limit for this visit. Reload the page later to ask more.",
-                         "وصلت إلى حد الأسئلة لهذه الزيارة. أعد تحميل الصفحة لاحقاً لطرح المزيد."),
-    "side_cloud_label": ("Anaq, the Athar Al Anaq assistant (AI) · AI-generated draft — officer review required",
-                         "عناق، مساعد أثر العناق (ذكاء اصطناعي) · مسودة مولّدة بالذكاء الاصطناعي — تتطلب مراجعة الضابط"),
-    "ask_own": ("Or ask your own question", "أو اطرح سؤالك الخاص"),
-    "ask_own_ph": ("e.g. Is this part of the same campaign as the Salik sites?", "مثلاً: هل هذا جزء من حملة مواقع سالك نفسها؟"),
+    "side_off": ("The assistant requires the local AI model. Start it, then reload this page.",
+                 "يتطلب المساعد نموذج الذكاء الاصطناعي المحلي. شغّله ثم أعد تحميل الصفحة."),
+    "side_off_public": ("The assistant chat is unavailable on this public demonstration at present. The prepared questions in "
+                        "each site file remain available.",
+                        "محادثة المساعد غير متاحة حالياً في هذا العرض العام. وتبقى الأسئلة الجاهزة في ملف كل موقع متاحة."),
+    "side_saved_note": ("On this public demonstration, the assistant shows answers prepared earlier on the officer's "
+                        "computer. Typed questions are available in the officer's version.",
+                        "في هذا العرض العام، يعرض المساعد إجابات أُعدّت مسبقاً على جهاز الضابط. الأسئلة المكتوبة متاحة في "
+                        "نسخة الضابط."),
+    "side_saved_label": ("AI-generated draft, prepared by the local model on the officer's computer. Not an official police "
+                         "answer.",
+                         "مسودة مولّدة بالذكاء الاصطناعي، أعدّها النموذج المحلي على جهاز الضابط. ليست إجابة رسمية من الشرطة."),
+    "side_saved_missing": ("No prepared answer is available for the current data.",
+                           "لا توجد إجابة مُعدّة للبيانات الحالية."),
+    "side_cap_day": ("The daily question limit for this public demonstration has been reached. The assistant is available "
+                     "again tomorrow.",
+                     "بلغ هذا العرض العام الحد اليومي للأسئلة. يتاح المساعد مجدداً غداً."),
+    "side_cap_visitor": ("The question limit for this visit has been reached. Reload the page later to continue.",
+                         "تم بلوغ حد الأسئلة لهذه الزيارة. أعد تحميل الصفحة لاحقاً للمتابعة."),
+    "side_cloud_label": ("ATHAR Assistant (AI) · AI-generated draft, officer review required",
+                         "مساعد أثر (ذكاء اصطناعي) · مسودة مولّدة بالذكاء الاصطناعي، تتطلب مراجعة الضابط"),
+    "ask_own": ("Or enter a question",
+                "أو اكتب سؤالاً"),
+    "ask_own_ph": ("For example: is this part of the same campaign as the Salik sites?",
+                   "مثلاً: هل هذا جزء من حملة مواقع سالك نفسها؟"),
     "ask_btn": ("Ask", "اسأل"),
-    "side_thinking_cloud": ("Anaq is thinking (only our facts are sent)...",
-                            "عناق يفكّر (تُرسل حقائقنا فقط)..."),
-    "ask_thinking": ("Anaq is thinking (local model, only our facts are used)...",
-                     "عناق يفكّر (نموذج محلي، تُستخدم حقائقنا فقط)..."),
-    "ask_failed": ("Anaq could not answer: {err}", "تعذّر على عناق الإجابة: {err}"),
+    "side_thinking_cloud": ("Preparing the answer (only recorded facts are sent)…",
+                            "جارٍ إعداد الإجابة (تُرسل الحقائق المسجّلة فقط)…"),
+    "ask_thinking": ("Preparing the answer (local model, recorded facts only)…",
+                     "جارٍ إعداد الإجابة (نموذج محلي، الحقائق المسجّلة فقط)…"),
+    "ask_failed": ("The assistant could not answer: {err}",
+                   "تعذّر على المساعد الإجابة: {err}"),
     "ask_pick": ("Pick a question", "اختر سؤالاً"),
     "ask_label": ("Answer calculated from our data (rules + ML), no AI service", "إجابة محسوبة من بياناتنا (قواعد + تعلّم آلي)، دون خدمة ذكاء اصطناعي"),
     "ask_free": ("Free questions need the local AI model. It is not running, so only the set "
@@ -236,22 +248,24 @@ S = {
     "review_label": ("⚑ Needs review", "⚑ يحتاج مراجعة"),
     "verified_label": ("✓ Verified scam", "✓ احتيال مؤكَّد"),
     "report_title": ("Report a suspicious site", "أبلغ عن موقع مشبوه"),
-    "report_notice": ("This is not an official police report. To report a scam to the authorities, use ecrime.ae.",
-                      "هذا ليس بلاغاً رسمياً للشرطة. للإبلاغ عن احتيال لدى الجهات المختصة، استخدم ecrime.ae."),
+    "report_notice": ("This is not an official police report. To report a scam to the authorities, contact the Abu Dhabi "
+                      "Police Aman Service: call 8002626, send an SMS to 2828, or use the Abu Dhabi Police Smart App.",
+                      "هذا ليس بلاغاً رسمياً للشرطة. للإبلاغ عن احتيال لدى الجهات المختصة، تواصل مع خدمة أمان في شرطة "
+                      "أبوظبي: اتصل على 8002626، أو أرسل رسالة نصية إلى 2828، أو استخدم تطبيق شرطة أبوظبي الذكي."),
     "report_input": ("Link only (no name, e-mail, phone or message text)",
                      "الرابط فقط (بدون اسم أو بريد إلكتروني أو هاتف أو نص رسالة)"),
     "report_btn": ("Send for review", "أرسل للمراجعة"),
-    "report_thanks": ("Thank you. The link was received for review by an officer. It is not shown publicly unless "
-                      "an officer approves it.",
-                      "شكراً لك. استُلم الرابط لمراجعته من قبل ضابط. ولن يظهر للعامة إلا إذا وافق عليه ضابط."),
-    "report_invalid": ("That doesn't look like a website link. Enter one link, for example https://example.com/page.",
-                       "لا يبدو هذا رابط موقع. أدخل رابطاً واحداً، مثلاً https://example.com/page."),
-    "report_session": ("You've sent {n} reports in this visit, the most allowed. Thank you.",
-                       "أرسلت {n} بلاغات في هذه الزيارة، وهو الحد المسموح. شكراً لك."),
-    "report_minute": ("Another report was just sent. Please try again in a minute.",
-                      "أُرسل بلاغ آخر للتو. يُرجى المحاولة بعد دقيقة."),
-    "report_day": ("Today's reports are full. Please try again tomorrow.",
-                   "اكتمل عدد بلاغات اليوم. يُرجى المحاولة غداً."),
+    "report_thanks": ("The link has been received for officer review. It will not be shown publicly unless an officer "
+                      "approves it.",
+                      "استُلم الرابط لمراجعته من قبل ضابط. ولن يظهر للعامة إلا إذا وافق عليه ضابط."),
+    "report_invalid": ("The entry is not a website link. Enter a single link, for example https://example.com/page.",
+                       "المُدخل ليس رابط موقع. أدخل رابطاً واحداً، مثلاً https://example.com/page."),
+    "report_session": ("The maximum of {n} reports for this visit has been reached.",
+                       "تم بلوغ الحد الأقصى البالغ {n} بلاغات لهذه الزيارة."),
+    "report_minute": ("A report was received moments ago. Please try again in one minute.",
+                      "استُلم بلاغ قبل لحظات. يُرجى المحاولة بعد دقيقة."),
+    "report_day": ("The daily report limit has been reached. Please try again tomorrow.",
+                   "تم بلوغ الحد اليومي للبلاغات. يُرجى المحاولة غداً."),
     "review_title": ("Reported by public: {n} waiting for review", "مُبلَّغ عنها من العامة: {n} بانتظار المراجعة"),
     "review_empty": ("No reported links are waiting.", "لا توجد روابط مُبلَّغ عنها بانتظار المراجعة."),
     "review_approve": ("Approve", "موافقة"),
@@ -262,9 +276,10 @@ S = {
                 "{host} ({label}): القواعد {rules} ({score})، التعلّم الآلي {ml} ({p}%)"),
     "two_scam": ("live scam page", "صفحة احتيال تعمل"),
     "two_normal": ("normal website", "موقع عادي"),
-    "two_lesson": ("Neither method is perfect alone, so when they disagree, Athar Al Anaq asks a human (the Needs "
-                   "review label).",
-                   "لا توجد طريقة مثالية وحدها، لذلك عندما يختلفان، يطلب أثر العناق رأي إنسان (علامة «يحتاج مراجعة»)."),
+    "two_lesson": ("Neither method is reliable on its own. Where they disagree, ATHAR refers the site to an officer (the "
+                   "Needs review label).",
+                   "لا يُعتمد على أيّ من الطريقتين وحدها. وعند اختلافهما، يحيل أثر الموقع إلى ضابط (علامة «يحتاج "
+                   "مراجعة»)."),
     "google_label": ("Listed by Google", "مدرج لدى Google"),
     "col_proof": ("Outside checks", "فحوص خارجية"),
     "officer_label": ("Approved by an officer", "وافق عليه ضابط"),
@@ -284,12 +299,12 @@ S = {
                       "**تم التحقق: ليس احتيالاً** (فُحص في {date}): {reason}. شاهد شخص ذلك في لقطة شاشة التقطها {by} "
                       "بأمان، لذلك استُبعد من المؤشرات."),
     "cloaked_label": ("Hides from scanners (bot check)", "يختبئ من أدوات الفحص (فحص الروبوتات)"),
-    "cloaked_card": ("**Hides from scanners (bot check):** when {by} visited on {date}, this site showed only a "
-                     "bot-check page, a trick scam sites use to hide from security scanners. This is not a verified "
-                     "scam: nobody has seen the page behind it.",
+    "cloaked_card": ("**Hides from scanners (bot check):** when {by} visited on {date}, this site showed only a bot-check "
+                     "page, a technique scam sites use to hide from security scanners. This is not a confirmation: the "
+                     "page behind it has not been seen.",
                      "**يختبئ من أدوات الفحص (فحص الروبوتات):** عندما زاره {by} في {date}، لم يُظهر هذا الموقع سوى صفحة "
-                     "فحص روبوتات، وهي حيلة تستخدمها مواقع الاحتيال للاختباء من أدوات الفحص الأمني. هذا ليس احتيالاً "
-                     "مؤكَّداً: لم يرَ أحد الصفحة التي خلفها."),
+                     "فحص روبوتات، وهي أسلوب تستخدمه مواقع الاحتيال للاختباء من أدوات الفحص الأمني. هذا ليس تأكيداً: لم "
+                     "تُشاهَد الصفحة التي خلفها."),
     "col_proof_help": ("✓ Verified scam: a person saw a live scam page in a safe screenshot taken by an outside "
                        "scanner (Cloudflare Radar). "
                        "Listed by Google: Google Safe Browsing lists it as dangerous. Hides from scanners: it showed "
@@ -321,14 +336,16 @@ S = {
     "scans_left_other": ("{n} of {cap} scans left today (watcher and search together)",
                          "متبقٍّ اليوم {n} من {cap} (المراقب والبحث معاً)"),
     "scans_left_maps": ("{n} of {cap} Maps scans left today", "متبقٍّ اليوم {n} من {cap} من فحوص الخرائط"),
-    "scan_cap": ("Daily scan limit reached, try again tomorrow.", "تم بلوغ الحد اليومي لعمليات البحث، حاول مجدداً غداً."),
+    "scan_cap": ("The daily scan limit has been reached. Scans are available again tomorrow.",
+                 "تم بلوغ الحد اليومي لعمليات الفحص. تتاح مجدداً غداً."),
     "scan_busy": ("Another scan is running. This button opens when it finishes.",
                   "هناك عملية بحث جارية. سيعمل هذا الزر عند انتهائها."),
     "scan_cooldown": ("Available again in {t}", "متاح مجدداً بعد {t}"),
-    "scan_cooldown_short": ("This button is resting after a scan. Please wait a moment.",
-                            "هذا الزر في استراحة بعد عملية بحث. يُرجى الانتظار قليلاً."),
-    "check_rate": ("Too many link checks right now (at most {n} a minute for everyone). Please try again in a few seconds.",
-                   "عدد كبير من الفحوص الآن (بحد أقصى {n} في الدقيقة للجميع). يُرجى المحاولة بعد ثوانٍ."),
+    "scan_cooldown_short": ("This agent is paused after a scan. Please wait a moment.",
+                            "هذا الوكيل متوقف مؤقتاً بعد عملية فحص. يُرجى الانتظار قليلاً."),
+    "check_rate": ("The link-check limit has been reached (at most {n} a minute across all visitors). Please try again "
+                   "shortly.",
+                   "تم بلوغ حد فحص الروابط (بحد أقصى {n} في الدقيقة لجميع الزوار). يُرجى المحاولة بعد قليل."),
     "watcher_title": (":material/new_releases: New-domain watcher", ":material/new_releases: مراقب النطاقات الجديدة"),
     "watcher_note": ("Searches public certificate logs (crt.sh) for recently created websites whose names start with "
                      "a UAE brand. crt.sh can be slow or down; saved snapshots are used when it is.",
@@ -341,8 +358,8 @@ S = {
                         "جارٍ البحث في سجلات الشهادات (نحو 30 ثانية لكل بداية)..."),
     "watcher_done": ("Watcher finished: {n} new hostnames", "انتهى المراقب: {n} اسم موقع جديد"),
     "search_title": (":material/travel_explore: Search-results scanner", ":material/travel_explore: فاحص نتائج البحث"),
-    "search_note": ("Searches the web like a victim would and scores every result.",
-                    "يبحث في الويب كما يفعل الضحية ويقيّم كل نتيجة."),
+    "search_note": ("Runs the searches a member of the public would run and scores every result.",
+                    "يجري عمليات البحث التي قد يجريها أحد أفراد الجمهور ويقيّم كل نتيجة."),
     "queries": ("Risky searches", "عمليات بحث خطرة"),
     "extra_query": ("Add your own search (optional)", "أضف بحثاً خاصاً بك (اختياري)"),
     "run_search": ("Run search scan", "تشغيل فحص البحث"),
@@ -364,6 +381,12 @@ S = {
     "demo_added": ("Added {n} demo rows. See the Dashboard tab.", "أُضيف {n} صفاً تجريبياً. انظر لوحة المتابعة."),
     "demo_removed": ("Demo data removed.", "حُذفت البيانات التجريبية."),
     "on": ("on", "مفعّل"), "off_short": ("off", "متوقف"),
+    "proposed": ("Prototype proposed for Abu Dhabi Police",
+                 "نموذج أولي مقترح لشرطة أبوظبي"),
+    "disclaimer": ("Hackathon prototype built for the ScamShield AI hackathon (42 Abu Dhabi × Abu Dhabi Police). It is "
+                   "not an official Abu Dhabi Police or UAE government service.",
+                   "نموذج أولي صُمّم لهاكاثون ScamShield AI (‏42 أبوظبي × شرطة أبوظبي). وهو ليس خدمة رسمية من شرطة "
+                   "أبوظبي أو حكومة دولة الإمارات."),
 }
 
 

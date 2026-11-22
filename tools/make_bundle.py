@@ -1,4 +1,4 @@
-"""Writes ScamShield_for_Claude.md: the whole project in one file, to upload to claude.ai.
+"""Writes ATHAR_for_Claude.md: the whole project in one file, to upload to claude.ai.
 
 Run:  .venv/Scripts/python tools/make_bundle.py
 
@@ -9,7 +9,7 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT = ROOT / "ScamShield_for_Claude.md"
+OUT = ROOT / "ATHAR_for_Claude.md"
 LANG = {".py": "python", ".md": "markdown", ".bat": "bat", ".vbs": "vb", ".toml": "toml", ".ini": "ini",
         ".txt": "text", ".example": "text", ".gitignore": "text", ".json": "json"}
 
@@ -18,8 +18,8 @@ keep = [f for f in files if not f.startswith(("data/", "assets/", ".devcontainer
         and (Path(f).suffix in LANG or Path(f).name in LANG)]
 keep.sort(key=lambda f: (f != "README.md", f.count("/"), f))
 
-parts = ["# Athar Al Anaq (ScamShield UAE) - full project in one file\n\n"
-         "Hackathon MVP for ScamShield AI (42 Abu Dhabi + UAE police). Every source file is below, each under its "
+parts = ["# ATHAR (أثر) - full project in one file\n\n"
+         "Hackathon prototype for the ScamShield AI hackathon (42 Abu Dhabi + Abu Dhabi Police). Every source file is below, each under its "
          "own heading. The README comes first. API keys, the databases, the trained model file, images and saved "
          "snapshots are not included.\n"]
 for f in keep:

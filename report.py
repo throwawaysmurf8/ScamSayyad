@@ -14,7 +14,15 @@ import db
 from scorer import decode_punycode, explain_level, parse
 
 SAFE_BROWSING_REPORT = "https://safebrowsing.google.com/safebrowsing/report_phish/"
-ECRIME = "https://www.ecrime.ae"
+
+
+def channels_text(lang="en"):
+    """The official reporting channels, as numbered lines starting at 3 (after the registrar and Google)."""
+    (main, main_ar, how, how_ar, _), *alts = config.REPORT_CHANNELS
+    alt = "; ".join(f"{(n_ar if lang == 'ar' else n)}: {url}" for n, n_ar, _, _, url in alts)
+    if lang == "ar":
+        return f"3. {main_ar}: {how_ar}\n4. بدائل: {alt}"
+    return f"3. {main}: {how}\n4. Alternatives: {alt}"
 
 
 def is_reportable(site):
@@ -80,10 +88,10 @@ def build(site):
     message_heading = "Google Maps listing (name | phone | address)" if is_listing else "Message that carried the link"
     send_to = (f"1. Google Maps: report the listing as fake (its \"Suggest an edit\" / report option).\n"
                f"2. If the listing's website is not official, its registrar abuse team: {abuse}\n"
-               f"3. UAE eCrime platform: {ECRIME}") if is_listing else (
+               + channels_text()) if is_listing else (
                f"1. Registrar abuse team: {abuse}\n"
                f"2. Google Safe Browsing (blocks it in Chrome/Android): {SAFE_BROWSING_REPORT}\n"
-               f"3. UAE eCrime platform: {ECRIME}")
+               + channels_text())
     if is_listing:  # the website may be the real one: the listing (and its phone) is what goes
         action = (f"This Google Maps listing {'appears to' if site.get('level') == 'HIGH' else 'may'} "
                   "impersonate a UAE government or financial brand, for example with a phone number that "
@@ -91,14 +99,14 @@ def build(site):
                   "law-enforcement follow-up.")
     return f"""# Takedown request - {title}
 
-**Generated:** {db.now()}  |  **Tool:** ScamShield (automated lead - verify before acting)
+**Generated:** {db.now()}  |  **Tool:** ATHAR prototype (automated lead - verify before acting)
 
 ## Target
 - **URL:** {code_span(site['url'])}
 - **Website (full name):** {code_span(parse(site['url'])[1])}{decoded_line}
 - **Registered domain:** {code_span(site.get('domain', ''))}
 - **Risk score:** {site.get('score')}/100 ({site.get('level')})
-- **First seen by ScamShield:** {site.get('first_seen', 'now')}
+- **First seen by ATHAR:** {site.get('first_seen', 'now')}
 - **Found by:** {code_span(found_by)}
 
 ## Why it was flagged
@@ -158,7 +166,7 @@ def build_ar(site):
                   "لا يخص العلامة. يُرجى إزالة الإدراج والاحتفاظ بسجل تعديلاته لمتابعة جهات إنفاذ القانون.")
         send_to = (f"1. خرائط Google: أبلغ عن الإدراج كمزيف (خيار «اقتراح تعديل» أو الإبلاغ).\n"
                    f"2. إذا لم يكن موقع الإدراج رسمياً، فريق الإساءة لدى مسجِّله: {abuse}\n"
-                   f"3. منصة eCrime الإماراتية: {ECRIME}")
+                   + channels_text("ar"))
     else:
         title = "موقع إلكتروني مشتبه بأنه احتيالي"
         action = (f"{sure} هذا النطاق ينتحل صفة علامة حكومية أو مالية إماراتية لجمع مدفوعات أو بيانات شخصية من "
@@ -167,7 +175,7 @@ def build_ar(site):
                   " والاحتفاظ بسجلات التسجيل لمتابعة جهات إنفاذ القانون.")
         send_to = (f"1. فريق الإساءة لدى المسجِّل: {abuse}\n"
                    f"2. Google Safe Browsing (يحظره في Chrome وأندرويد): {SAFE_BROWSING_REPORT}\n"
-                   f"3. منصة eCrime الإماراتية: {ECRIME}")
+                   + channels_text("ar"))
     text = (site.get("text") or "").strip().replace("```", "'''")
     show_text = text and (site.get("source", "manual") == "manual" or is_listing)
     heading = "إدراج خرائط Google (الاسم | الهاتف | العنوان)" if is_listing else "الرسالة التي حملت الرابط"
@@ -179,7 +187,7 @@ def build_ar(site):
 - **اسم الموقع الكامل:** {code_span(parse(site['url'])[1])}{decoded_line}
 - **النطاق المسجَّل:** {code_span(site.get('domain', ''))}
 - **درجة الخطورة:** {site.get('score')}/100 ({level_ar})
-- **أول ظهور لدى ScamShield:** {site.get('first_seen', 'الآن')}
+- **أول ظهور لدى أثر:** {site.get('first_seen', 'الآن')}
 - **المصدر:** {code_span(found_by)}
 
 ## أسباب الإبلاغ

@@ -28,7 +28,7 @@ TIMEOUT = 45
 def fetch(prefix):
     """Return raw crt.sh rows for domains starting with `prefix` (unexpired certificates)."""
     r = requests.get("https://crt.sh/", params={"q": prefix + "%", "output": "json", "exclude": "expired"},
-                     timeout=TIMEOUT, headers={"User-Agent": "ScamShield-hackathon/1.0"})
+                     timeout=TIMEOUT, headers={"User-Agent": "ATHAR-prototype/1.0"})
     r.raise_for_status()
     return r.json()
 

@@ -24,7 +24,7 @@ import config
 from scorer import parse, score_listing, score_url
 
 TIMEOUT = 10
-HEADERS = {"User-Agent": "ScamShield-hackathon/1.0"}
+HEADERS = {"User-Agent": "ATHAR-prototype/1.0"}
 # Only plain domain names (letters, digits, hyphens, dots) are ever sent to a registry.
 VALID_DOMAIN = re.compile(r"[a-z0-9-]+(\.[a-z0-9-]+)+")
 
@@ -103,7 +103,7 @@ def safe_browsing(url):
     if not config.SAFE_BROWSING_KEY:
         return None
     body = {
-        "client": {"clientId": "scamshield-hackathon", "clientVersion": "1.0"},
+        "client": {"clientId": "athar-prototype", "clientVersion": "1.0"},
         "threatInfo": {
             "threatTypes": ["MALWARE", "SOCIAL_ENGINEERING", "UNWANTED_SOFTWARE",
                             "POTENTIALLY_HARMFUL_APPLICATION"],
@@ -201,7 +201,7 @@ def safe_browsing_many(urls):
     for i in range(0, len(urls), SAFE_BROWSING_BATCH):
         chunk = urls[i:i + SAFE_BROWSING_BATCH]
         body = {
-            "client": {"clientId": "scamshield-hackathon", "clientVersion": "1.0"},
+            "client": {"clientId": "athar-prototype", "clientVersion": "1.0"},
             "threatInfo": {
                 "threatTypes": ["MALWARE", "SOCIAL_ENGINEERING", "UNWANTED_SOFTWARE",
                                 "POTENTIALLY_HARMFUL_APPLICATION"],
@@ -322,7 +322,7 @@ def test_safe_browsing_key():
     """Explain in plain words whether the Safe Browsing key works. Never prints the key."""
     if not config.SAFE_BROWSING_KEY:
         return "No key found. Put GOOGLE_SAFE_BROWSING_KEY=... in the .env file (see README)."
-    body = {"client": {"clientId": "scamshield-hackathon", "clientVersion": "1.0"},
+    body = {"client": {"clientId": "athar-prototype", "clientVersion": "1.0"},
             "threatInfo": {"threatTypes": ["MALWARE"], "platformTypes": ["ANY_PLATFORM"],
                            "threatEntryTypes": ["URL"], "threatEntries": [{"url": SAFE_BROWSING_TEST_URL}]}}
     try:

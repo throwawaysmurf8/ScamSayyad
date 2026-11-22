@@ -1,7 +1,7 @@
 """Audits EVERY saved site (all scores) and sorts it into: likely real scam / likely false positive / unclear.
 
 Run:  .venv/Scripts/python tools/audit_sites.py
-Reads data/scamshield.db only; changes no score. Writes data/audit.csv (one row per site, with the
+Reads data/athar.db only; changes no score. Writes data/audit.csv (one row per site, with the
 group and the reason) and prints a summary. The rules here are for review: none of them is used for
 scoring until approved.
 """

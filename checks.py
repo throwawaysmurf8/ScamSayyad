@@ -1,4 +1,4 @@
-"""What outside checks say about a site, in one place for the dashboard and Anaq.
+"""What outside checks say about a site, in one place for the dashboard and the assistant.
 
 * confirmed scam: Google Safe Browsing lists it, OR a person saw a live scam page in a safe Cloudflare Radar
   screenshot (data/verified.json, tools/verify_sites.py), OR an officer approved a visitor's report of it;

@@ -1,4 +1,4 @@
-"""Stores every checked site in a local SQLite file (data/scamshield.db).
+"""Stores every checked site in a local SQLite file (data/athar.db).
 
 * Each URL is stored once. Re-checking updates the score but never changes
   `first_seen`, so the dashboard always shows when we FIRST spotted a site.

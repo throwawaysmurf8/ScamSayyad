@@ -1,4 +1,4 @@
-"""Athar Al Anaq / ScamShield police dashboard (Streamlit), in English and Arabic.
+"""ATHAR (أثر) police dashboard (Streamlit), in English and Arabic.
 
 Start it with run.bat, or:  .venv\\Scripts\\python -m streamlit run app.py --server.address localhost
 
@@ -32,7 +32,7 @@ from enrich import check, check_and_save
 from report import code_span, escape_md
 from scorer import decode_punycode, explain_level, parse, score_url
 
-st.set_page_config(page_title="Athar Al Anaq · أثر العناق", page_icon=str(Path(__file__).parent / "assets" / "caracal.svg"), layout="wide",
+st.set_page_config(page_title="ATHAR · أثر", page_icon=str(Path(__file__).parent / "assets" / "caracal.svg"), layout="wide",
                    initial_sidebar_state="expanded")
 
 # Each risk level gets a color AND a shape, so it never relies on color alone.
@@ -168,26 +168,26 @@ def show_local_briefing(text):
             f"solid #B07A4A;padding:.4rem .8rem'>{html.escape(text)}</div>")
 
 
-ANAQ_AVATAR = str(config.ROOT / "assets" / "caracal_avatar.svg")  # the AI assistant's face
+ASSISTANT_AVATAR = str(config.ROOT / "assets" / "caracal_avatar.svg")  # the AI assistant's face
 
 
-def anaq_says(text, label):
-    """One answer from Anaq, as a chat bubble with the caracal's face. Plain text, never links."""
-    with st.chat_message("assistant", avatar=ANAQ_AVATAR):
+def assistant_says(text, label):
+    """One answer from the assistant, as a chat bubble with the caracal's face. Plain text, never links."""
+    with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
         st.caption(label)
         text = text.replace("**", "")  # the model sometimes adds Markdown bold; we show plain text
         st.html(f"<div dir='{'rtl' if LANG == 'ar' else 'ltr'}' style='white-space:pre-wrap'>{html.escape(text)}</div>")
 
 
-def ask_anaq(site, campaign, sites):
-    """'Ask Anaq': set questions about this site, answered exactly from our data (rules + ML)."""
+def ask_assistant(site, campaign, sites):
+    """Questions about one site: set questions about this site, answered exactly from our data (rules + ML)."""
     labels = {k: v[1 if LANG == "ar" else 0] for k, v in assistant.QUESTIONS.items()}
     choice = st.pills(T("ask_pick"), list(labels), format_func=labels.get, key=f"ask_{site['url']}_{LANG}",
                       label_visibility="collapsed")
     if choice:
         with st.chat_message("user", avatar=":material/person:"):
             st.markdown(labels[choice])
-        anaq_says(assistant.answer(choice, site, campaign, sites, LANG), f"**{T('ask_label')}**")
+        assistant_says(assistant.answer(choice, site, campaign, sites, LANG), f"**{T('ask_label')}**")
     if not llm_ready():
         st.caption(T("ask_free"))
         return
@@ -201,7 +201,7 @@ def ask_anaq(site, campaign, sites):
                 st.text(question.strip())  # typed by the officer: shown as plain text
             with st.spinner(T("ask_thinking")):
                 text = local_llm.ask(question, site, campaign, sites, LANG)
-            anaq_says(text, f"**{local_llm.LABEL[LANG]}**")
+            assistant_says(text, f"**{local_llm.LABEL[LANG]}**")
         except local_llm.LLMError as e:
             st.error(T("ask_failed", err=str(e)), icon=":material/error:")
 
@@ -389,8 +389,8 @@ with head:
     # Our mascot Anaq, the Arabian caracal (our own drawing, assets/caracal.svg). Shown once, small:
     # the brand defers to the content.
     mascot.image(str(config.ROOT / "assets" / "caracal.svg"), width=78)
-    title.html(f"{BRAND_CSS}<div class='ss-brand'><span class='ss-name'>Athar Al Anaq</span>"
-               f"<span class='ss-name-ar'>أثر العناق</span></div>")
+    title.html(f"{BRAND_CSS}<div class='ss-brand'><span class='ss-name'>ATHAR</span>"
+               f"<span class='ss-name-ar'>أثر</span></div>")
     title.markdown(T("tagline"))
 st.caption(T("subtitle"))
 
@@ -541,11 +541,11 @@ def render_dashboard():
                     ai_briefing_block("site", key=f"ai_site_{site['url']}", site=site, campaign=in_campaign)
             with st.container(border=True):
                 face, head = st.columns([1, 9], vertical_alignment="center")
-                face.image(ANAQ_AVATAR, width=34)
+                face.image(ASSISTANT_AVATAR, width=34)
                 head.markdown(f"**{T('ask_title')}**")
-                ask_anaq(site, in_campaign, sites)
+                ask_assistant(site, in_campaign, sites)
             with st.container(border=True):
-                st.markdown(T("report_title"))
+                st.markdown(f"**{T('takedown_title')}**")
                 if report.is_reportable(site):
                     st.caption(T("report_ready"))
                     takedown_panel(site, key=site["url"])
@@ -765,7 +765,7 @@ confidence, first action), built on this computer from the rule findings and the
 button adds a draft from the local AI model (or the cloud AI if it's off). No score is ever changed. The takedown report
 can add an Arabic version below the English one, built from templates.
 
-**Anaq, the Athar Al Anaq assistant (AI):** ask anything about today's leads. Anaq answers from our facts only
+**ATHAR Assistant (AI):** questions about the current leads. The assistant answers from recorded facts only
 (never opens a site, never changes a score), tersely and cheaply; every answer is labelled an AI draft.
 
 **Data sources:** RDAP + UAE WHOIS (domain age), crt.sh (certificate logs), Bing via `ddgs` (search),
@@ -815,7 +815,7 @@ and gives a second opinion. On our own data, each has caught the other's mistake
 **مصادر البيانات:** RDAP و UAE WHOIS (عمر النطاق)، crt.sh (سجلات الشهادات)، Bing عبر `ddgs` (البحث)،
 Google Safe Browsing و Google Places وخدمة ذكاء اصطناعي سحابية (مفاتيح اختيارية).
 
-**عناق، مساعد أثر العناق (ذكاء اصطناعي):** اسأل أي شيء عن مؤشرات اليوم. يجيب عناق من حقائقنا فقط (لا يفتح أي موقع ولا يغيّر أي
+**مساعد أثر (ذكاء اصطناعي):** أسئلة عن المؤشرات الحالية. يجيب المساعد من الحقائق المسجّلة فقط (لا يفتح أي موقع ولا يغيّر أي
 نتيجة)، بإيجاز وتكلفة منخفضة، وكل إجابة موسومة كمسودة ذكاء اصطناعي.
 
 **لماذا رأيان؟** القواعد تعطي النتيجة وتشرح كل نقطة؛ والتعلّم الآلي يقرأ اسم الموقع فقط ويعطي رأياً ثانياً. وفي
@@ -911,13 +911,13 @@ with tab_dash:
     render_dashboard()
 
 
-# ----------------------------------------------------------------------------- Anaq, the side-panel assistant
+# ----------------------------------------------------------------------------- The ATHAR Assistant (side panel)
 def side_assistant():
-    """Anaq on the side: chat about the whole dashboard, or the site selected in the table.
+    """The assistant on the side: chat about the whole dashboard, or the site selected in the table.
     Answers come from Claude Haiku 5.5 when its key is set (on the public demo with daily and per-visitor caps),
     otherwise the local language model (Ollama). Either way the model sees only our facts."""
     face, head = st.columns([1, 4], vertical_alignment="center")
-    face.image(ANAQ_AVATAR, width=48)
+    face.image(ASSISTANT_AVATAR, width=48)
     head.markdown(f"**{T('side_title')}**")
     head.caption(T("side_sub"))
     if config.PUBLIC_MODE and not ai.chat_available():
@@ -931,12 +931,12 @@ def side_assistant():
         st.info(T("side_off_public") if config.PUBLIC_MODE else T("side_off"), icon=":material/info:")
         return
     label = T("side_cloud_label") if cloud else local_llm.LABEL[LANG]
-    history = st.session_state.setdefault("anaq_chat", [])  # [(question, answer), ...]
+    history = st.session_state.setdefault("assistant_chat", [])  # [(question, answer), ...]
     for q, a in history:
         with st.chat_message("user", avatar=":material/person:"):
             st.text(q)
-        anaq_says(a, f"**{label}**")
-    if cloud and config.PUBLIC_MODE and st.session_state.get("anaq_asked", 0) >= config.CHAT_PER_VISITOR:
+        assistant_says(a, f"**{label}**")
+    if cloud and config.PUBLIC_MODE and st.session_state.get("assistant_asked", 0) >= config.CHAT_PER_VISITOR:
         st.info(T("side_cap_visitor"), icon=":material/hourglass_empty:")
         return
     starters = [T("side_q1"), T("side_q2")] + ([T("side_q3")] if selected else [])
@@ -953,19 +953,19 @@ def side_assistant():
                                                 st.session_state.get("selected_campaign"))
                 answer = (ai.chat if cloud else local_llm.chat)(question, history, data, LANG)
             history.append((question, answer))
-            st.session_state["anaq_asked"] = st.session_state.get("anaq_asked", 0) + 1
+            st.session_state["assistant_asked"] = st.session_state.get("assistant_asked", 0) + 1
             st.rerun()
         except ai.DailyCapReached:
             st.info(T("side_cap_day"), icon=":material/hourglass_empty:")
         except (local_llm.LLMError, ai.AIError) as e:
             st.error(T("ask_failed", err=str(e)), icon=":material/error:")
     if history and st.button(T("side_clear"), icon=":material/refresh:"):
-        st.session_state["anaq_chat"] = []
+        st.session_state["assistant_chat"] = []
         st.rerun()
 
 
 def saved_answers():
-    """Public demo without a cloud AI: Anaq's answers to the starter questions, written earlier by the
+    """Public demo without a cloud AI: the assistant's answers to the starter questions, written earlier by the
     local model on the officer's computer (tools/make_public_answers.py) and shipped in the snapshot."""
     st.caption(T("side_saved_note"))
     picked = st.pills(T("side_try"), [T("side_q1"), T("side_q2")], key=f"side_saved_{LANG}")
@@ -976,7 +976,7 @@ def saved_answers():
     with st.chat_message("user", avatar=":material/person:"):
         st.text(picked)
     if answer:
-        anaq_says(answer, f"**{T('side_saved_label')}**")
+        assistant_says(answer, f"**{T('side_saved_label')}**")
     else:
         st.info(T("side_saved_missing"), icon=":material/info:")
 

@@ -1,8 +1,8 @@
 """Builds the public demo's database (data/public_snapshot.db) from the working one, keeping only
-what the hunters found. Replaces copying scamshield.db by hand.
+what the hunters found. Replaces copying athar.db by hand.
 
 Run:  .venv/Scripts/python tools/make_public_snapshot.py
-Then: .venv/Scripts/python tools/make_public_answers.py   (with Ollama running; refills Anaq's answers)
+Then: .venv/Scripts/python tools/make_public_answers.py   (with Ollama running; refills the assistant's answers)
 
 What it keeps and removes:
   * keeps only rows found by the hunters: cert log, search and maps (snapshots of those included), plus
@@ -56,6 +56,6 @@ def build(src, out):
 
 if __name__ == "__main__":
     out = config.ROOT / "data" / "public_snapshot.db"
-    n = build(config.ROOT / "data" / "scamshield.db", out)
+    n = build(config.ROOT / "data" / "athar.db", out)
     print(f"Saved {n} hunter-found sites to {out.relative_to(config.ROOT)}. Saved AI answers were cleared:")
-    print("run tools/make_public_answers.py (with Ollama running) before pushing, or Anaq has no starter answers.")
+    print("run tools/make_public_answers.py (with Ollama running) before pushing, or the assistant has no starter answers.")

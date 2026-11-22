@@ -1,4 +1,4 @@
-"""'Ask Anaq': an assistant that answers set questions about one site, from our own data.
+"""Questions about one site: an assistant that answers set questions about one site, from our own data.
 
 Every answer is calculated (rules, the ML model, the campaign grouping, the database), so it is exact
 and explainable, needs no internet and no AI service, and changes no score. Questions typed freely

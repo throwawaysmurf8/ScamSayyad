@@ -44,7 +44,7 @@ def download():
     RAW.mkdir(parents=True, exist_ok=True)
     for url, name in [(PHIUSIIL_URL, "phiusiil.zip"), (TRANCO_URL, "tranco.zip")]:
         print("downloading", url)
-        r = requests.get(url, timeout=300, headers={"User-Agent": "ScamShield-hackathon/1.0"})
+        r = requests.get(url, timeout=300, headers={"User-Agent": "ATHAR-prototype/1.0"})
         r.raise_for_status()
         (RAW / name).write_bytes(r.content)
 

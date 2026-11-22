@@ -1,5 +1,5 @@
 @echo off
-REM Starts the ScamShield dashboard and opens it in your browser (http://localhost:8501).
+REM Starts the ATHAR dashboard and opens it in your browser (http://localhost:8501).
 REM Close this window to stop the dashboard.
 cd /d "%~dp0"
 if not exist .venv\Scripts\python.exe (echo Run setup.bat first. & pause & exit /b 1)

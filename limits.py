@@ -1,7 +1,7 @@
 """Shared limits for the public demo, so nobody can spam the buttons or run up costs.
 
 Everything is counted on the server, for all visitors together (a new tab or browser changes nothing):
-  * daily caps: Anaq's questions, Google Maps scans, the other scans (watcher + search together);
+  * daily caps: the assistant's questions, Google Maps scans, the other scans (watcher + search together);
   * a cooldown: after a scan finishes, that button rests for everyone for SCAN_COOLDOWN_SECONDS;
   * one scan at a time: while any scan runs, the other scan buttons wait;
   * "Check a link": at most CHECKS_PER_MINUTE checks a minute, everyone together;

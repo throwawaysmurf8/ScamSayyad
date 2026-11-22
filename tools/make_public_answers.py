@@ -3,7 +3,7 @@
 Run (with Ollama running):  .venv/Scripts/python tools/make_public_answers.py
 
 It reads data/public_snapshot.db and saves, inside that same file:
-  * Anaq's answers to the side panel's starter questions, in English and Arabic;
+  * the assistant's answers to the side panel's starter questions, in English and Arabic;
   * an AI briefing for every possible campaign, in English and Arabic.
 The public site then shows them instantly. Answers are tied to the data they were made from, so after
 refreshing the snapshot, run this again (old answers simply stop matching). Commit and push the

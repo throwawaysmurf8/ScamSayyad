@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 
 ROOT = Path(__file__).parent
-DB_PATH = ROOT / "data" / "scamshield.db"
+DB_PATH = ROOT / "data" / "athar.db"
 REPORTS_FILE = ROOT / "data" / "reports_queue.json"  # links visitors reported: private, never committed
 VERIFIED_FILE = ROOT / "data" / "verified.json"  # sites a person confirmed from a urlscan.io screenshot (tools/verify_sites.py)
 FIXTURES = ROOT / "data" / "fixtures"
@@ -36,7 +36,7 @@ try:
     _from_secrets(_st.secrets)
     if os.environ.get("SCAMSHIELD_PUBLIC") == "1":  # names only, never values: shows in the cloud app's log
         import sys
-        print("[Athar Al Anaq] secret names found:", sorted(_st.secrets.keys()),
+        print("[ATHAR] secret names found:", sorted(_st.secrets.keys()),
               "| keys loaded:", {n: bool(os.environ.get(n)) for n in _KEY_NAMES}, file=sys.stderr)
 except Exception:  # no secrets file (normal on the officer's computer) or no Streamlit
     pass
@@ -52,8 +52,8 @@ GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite")
 # Public-site limits, so strangers can't spam the buttons or run up the bill (limits.py). All are counted on the
 # server for every visitor together. They reset if the cloud server fully restarts; the hard limits are the
 # quotas / spend limits in Google's and Anthropic's consoles.
-CHAT_DAILY_CAP = int(os.environ.get("CHAT_DAILY_CAP", "100"))  # Anaq questions per day, all visitors combined
-CHAT_PER_VISITOR = int(os.environ.get("CHAT_PER_VISITOR", "10"))  # Anaq questions per visit
+CHAT_DAILY_CAP = int(os.environ.get("CHAT_DAILY_CAP", "100"))  # assistant questions per day, all visitors combined
+CHAT_PER_VISITOR = int(os.environ.get("CHAT_PER_VISITOR", "10"))  # assistant questions per visit
 PUBLIC_SCANS_PER_DAY = int(os.environ.get("PUBLIC_SCANS_PER_DAY", "30"))  # watcher + search scans together, per day
 PUBLIC_MAPS_PER_DAY = int(os.environ.get("PUBLIC_MAPS_PER_DAY", "20"))  # Maps scans per day (4 Google requests each)
 SCAN_COOLDOWN_SECONDS = int(os.environ.get("SCAN_COOLDOWN_SECONDS", "120"))  # a scan button rests this long after a scan
@@ -64,13 +64,13 @@ REPORTS_PER_SESSION = 3  # per browser session
 # "Needs review": a flagged site (40+) whose rule score and ML second opinion (0-100%) differ by this many points.
 REVIEW_GAP = int(os.environ.get("REVIEW_GAP", "60"))
 
-# Anaq's side-panel chat with Claude Haiku (Anthropic API). Optional: with ANTHROPIC_API_KEY set, the chat
+# The ATHAR Assistant's side-panel chat with Claude Haiku (Anthropic API). Optional: with ANTHROPIC_API_KEY set, the chat
 # uses Claude on this computer and on the public demo; without it, the local model / Gemini as before.
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL = os.environ.get("ANAQ_CLAUDE_MODEL", "claude-haiku-5-5")
 CLAUDE_EFFORT = os.environ.get("ANAQ_CLAUDE_EFFORT", "low")  # low = fast, short answers
 
-# Free questions to "Ask Anaq": a language model running on this computer with Ollama (local_llm.py).
+# Free questions about one site: a language model running on this computer with Ollama (local_llm.py).
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b")
 
@@ -81,11 +81,22 @@ OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b")
 #   * the hunters and the Google Maps scan run with shared daily caps, a cooldown and one scan at a time
 #     (PUBLIC_SCANS_PER_DAY, PUBLIC_MAPS_PER_DAY, SCAN_COOLDOWN_SECONDS); the free-text search box and demo-data buttons
 #     are hidden;
-#   * Anaq's side panel answers with Claude Haiku 5.5, capped (CHAT_PER_VISITOR per visitor, CHAT_DAILY_CAP
+#   * the assistant's side panel answers with Claude Haiku 5.5, capped (CHAT_PER_VISITOR per visitor, CHAT_DAILY_CAP
 #     a day for everyone); Gemini stays off. Without a Claude key it shows answers prepared earlier by the
 #     local model (tools/make_public_answers.py). Briefings on the public site are the saved ones;
 #   * visitors can still try "Check a link" (free; nothing is saved).
 # The officer's laptop keeps everything.
+# Where the public reports scams (checked on the web, 22 Nov 2026). Shown on the Report a site page,
+# in each site file and in every takedown report. (name, name in Arabic, how, how in Arabic, link or None)
+REPORT_CHANNELS = [
+    ("Abu Dhabi Police Aman Service", "خدمة أمان، شرطة أبوظبي",
+     "call 8002626, SMS 2828, or the Abu Dhabi Police Smart App",
+     "اتصال 8002626، رسالة نصية 2828، أو تطبيق شرطة أبوظبي الذكي", None),
+    ("Dubai Police eCrime", "منصة eCrime، شرطة دبي", "online report", "بلاغ إلكتروني", "https://ecrimehub.gov.ae"),
+    ("Ministry of Interior cybercrime platform", "منصة الجرائم الإلكترونية، وزارة الداخلية",
+     "moi.gov.ae or the MOI UAE app", "moi.gov.ae أو تطبيق وزارة الداخلية", "https://www.moi.gov.ae"),
+]
+
 PUBLIC_MODE = os.environ.get("SCAMSHIELD_PUBLIC", "") == "1"
 if PUBLIC_MODE:
     DB_PATH = ROOT / "data" / "public_snapshot.db"

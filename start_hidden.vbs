@@ -1,4 +1,4 @@
-' Starts the Athar Al Anaq dashboard in the background (no window), for this computer only.
+' Starts the ATHAR dashboard in the background (no window), for this computer only.
 ' Put a shortcut to this file in the Windows Startup folder so it runs at every log-in;
 ' then the dashboard is always ready at http://localhost:8501.
 ' To stop it: Task Manager > Details > end "pythonw.exe" (or restart the computer without the shortcut).

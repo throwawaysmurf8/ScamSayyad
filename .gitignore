@@ -3,7 +3,8 @@ __pycache__/
 .pytest_cache/
 
 # The working database stays private; data/public_snapshot.db is the copy the public demo shows.
-data/scamshield.db
+data/athar.db
+data/athar_empty_unused.db
 
 # Secret API keys: never upload these. Only the empty template (.env.example) is shared.
 .env
@@ -14,8 +15,8 @@ data/scamshield.db
 
 # Local-only files
 .claude/
-ScamShield_for_Claude.md
-ScamShield_pitch.pdf
+ATHAR_for_Claude.md
+ATHAR_pitch.pdf
 
 # Downloaded training lists (large; re-download with tools/train_ml.py --download)
 data/ml/raw/

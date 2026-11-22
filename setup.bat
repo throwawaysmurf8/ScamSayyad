@@ -5,5 +5,5 @@ python -m venv .venv || (echo Python not found. Install Python 3.12+ from python
 .venv\Scripts\python -m pip install --upgrade pip
 .venv\Scripts\python -m pip install -r requirements.txt
 echo.
-echo Setup done. Double-click run.bat to start ScamShield.
+echo Setup done. Double-click run.bat to start ATHAR.
 pause

@@ -477,7 +477,7 @@ def test_arabic_report_is_built_without_ai_and_sits_below_english():
     assert "AI-generated" not in both                                # nothing AI-written here
 
 
-# ---------------------------------------------------------------- Ask Anaq (assistant) + ML explanation, offline
+# ---------------------------------------------------------------- site questions (assistant) + ML explanation, offline
 def test_ml_explains_itself_with_parts_of_the_name(monkeypatch, tmp_path):
     ml = _tiny_model(monkeypatch, tmp_path)
     e = ml.explain("https://verify-account-login.top")
@@ -495,7 +495,7 @@ def test_similar_sites_finds_look_alike_names(monkeypatch, tmp_path):
     assert all(u != "https://salik-pay-now.top" for u, _ in found)            # never itself
 
 
-def test_ask_dhab_answers_every_question_in_both_languages(monkeypatch, tmp_path):
+def test_assistant_answers_every_question_in_both_languages(monkeypatch, tmp_path):
     import assistant
     _tiny_model(monkeypatch, tmp_path)
     site = _flagged_site(); before = dict(site)
@@ -508,7 +508,7 @@ def test_ask_dhab_answers_every_question_in_both_languages(monkeypatch, tmp_path
     assert "salik-pay.xyz" in assistant.answer("similar", site, None, others)
 
 
-def test_ask_dhab_does_not_use_ml_for_maps_listings_or_official_sites(monkeypatch, tmp_path):
+def test_assistant_does_not_use_ml_for_maps_listings_or_official_sites(monkeypatch, tmp_path):
     import assistant
     from scorer import score_listing
     _tiny_model(monkeypatch, tmp_path)
@@ -570,7 +570,7 @@ def test_free_question_errors_are_plain_messages(monkeypatch, tmp_path):
         local_llm.ask("   ", _flagged_site())
 
 
-# ---------------------------------------------------------------- Anaq side panel (whole-dashboard chat), fake model
+# ---------------------------------------------------------------- assistant side panel (whole-dashboard chat), fake model
 def test_side_panel_chat_uses_overview_facts_and_remembers(monkeypatch, tmp_path):
     import local_llm
     _tiny_model(monkeypatch, tmp_path)
@@ -618,7 +618,7 @@ def test_public_site_chat_uses_gemini_with_caps(monkeypatch, tmp_path):
     ai.chat("Why?", [("Which campaign?", "The salik campaign.")], data)
     roles = [c["role"] for c in sent[1]["contents"]]
     assert roles == ["user", "model", "user"]                     # follow-ups remember the last answer
-    assert "untrusted" in sent[1]["systemInstruction"]["parts"][0]["text"]  # same rules as local Anaq
+    assert "untrusted" in sent[1]["systemInstruction"]["parts"][0]["text"]  # same rules as the local assistant
     with pytest.raises(ai.DailyCapReached):                       # 3rd question today: refused, not sent
         ai.chat("And now?", [], data)
     assert len(sent) == 2
@@ -682,7 +682,7 @@ def test_prepared_public_answers_match_only_the_same_data():
 
 
 def test_side_chat_uses_claude_haiku_low_effort(monkeypatch, tmp_path):
-    """With an Anthropic key, Anaq's chat goes to Claude Haiku 5.5 at low effort (faked here)."""
+    """With an Anthropic key, the assistant's chat goes to Claude Haiku 5.5 at low effort (faked here)."""
     import types
     import anthropic
     import ai
@@ -789,7 +789,7 @@ def _fresh_limits(monkeypatch, tmp_path, start=1_800_000_000.0):
 def test_public_site_hunts_with_shared_limits(monkeypatch, tmp_path):
     """Public demo: the hunters and the Maps scan are on, each with today's remaining scans beside it; a used-up
     cap, a resting button or a running scan disables the button for everyone. No free-text search, no
-    demo-data buttons, no Anaq chat box. The laptop has everything, with no limits."""
+    demo-data buttons, no assistant chat box. The laptop has everything, with no limits."""
     import json
     from streamlit.testing.v1 import AppTest
     limits, clock = _fresh_limits(monkeypatch, tmp_path)
@@ -812,7 +812,7 @@ def test_public_site_hunts_with_shared_limits(monkeypatch, tmp_path):
     buttons = {b.label: b for b in at.button}
     assert buttons["Run Maps scan"].disabled and not buttons["Run watcher"].disabled
     captions = " ".join(c.value for c in at.caption)
-    assert "Daily scan limit reached, try again tomorrow." in captions and "26 of 30 scans left today" in captions
+    assert "The daily scan limit has been reached. Scans are available again tomorrow." in captions and "26 of 30 scans left today" in captions
     # A scan running somewhere: every scan button waits.
     limits.FILE.write_text(json.dumps({"day": limits._today(), "counts": {}, "last_run": {},
                                        "running": {"kind": "search", "since": clock[0]}, "checks": []}))
@@ -888,7 +888,7 @@ def test_check_a_link_says_when_the_minute_limit_is_reached(monkeypatch, tmp_pat
     at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120).run()
     at.text_input[0].input("http://adpol1ce-fines.xyz/pay").run()
     next(b for b in at.button if b.label == "Check link").click().run()
-    assert any("Too many link checks" in i.value for i in at.info)
+    assert any("The link-check limit has been reached" in i.value for i in at.info)
 
 
 def test_registrar_spellings_are_merged_before_grouping():
@@ -1212,15 +1212,15 @@ HIDDEN_NAMES = ("claude", "haiku", "5.5", "anthropic", "ollama", "qwen")
 
 
 def test_visitors_never_see_the_model_or_company_name(monkeypatch, tmp_path):
-    """The assistant is 'Anaq, the Athar Al Anaq assistant (AI)' everywhere on screen, in both languages;
-    the AI-draft labels stay, and the system prompt says who Anaq is without naming the model."""
+    """The assistant is 'ATHAR Assistant (AI)' everywhere on screen, in both languages;
+    the AI-draft labels stay, and the system prompt says who the assistant is without naming the model."""
     import ai
     import i18n
     import local_llm
     from streamlit.testing.v1 import AppTest
     screen = [v for pair in i18n.S.values() for v in pair] + list(local_llm.LABEL.values()) + list(ai.LABEL.values())
     assert not [s for s in screen if any(n in str(s).lower() for n in HIDDEN_NAMES)]
-    assert "Anaq, the Athar Al Anaq assistant (AI)" in i18n.S["side_title"][0]
+    assert i18n.S["side_title"] == ("ATHAR Assistant (AI)", "مساعد أثر (ذكاء اصطناعي)")
     assert all("officer review required" in t for t in (local_llm.LABEL["en"], ai.LABEL["en"], i18n.S["side_cloud_label"][0]))
     assert "Do not name the" in local_llm.SYSTEM and "Never claim to be human" in local_llm.SYSTEM
 
@@ -1269,7 +1269,7 @@ def test_only_person_verified_scams_get_the_badge_and_they_sort_first(monkeypatc
     assert list(table.host)[2] == "unlabelled.example"  # after verified and Google-listed: by score
     about = " ".join(m.value for m in at.markdown)
     assert "`salik-pay.example` (live scam page): rules ✓ (70)" in about  # checked sites in "Why two opinions?"
-    assert "parked-salik" not in about and "Neither method is perfect alone" in about
+    assert "parked-salik" not in about and "Neither method is reliable on its own" in about
 
 
 def test_why_two_opinions_numbers_match_the_data(tmp_path):
@@ -1435,7 +1435,7 @@ def test_public_reports_keep_only_a_cleaned_link_and_stay_hidden_until_approved(
     assert not at.exception, [e.value for e in at.exception]
     shown = " ".join(str(e.value) for kind in ("markdown", "caption", "text", "warning", "info") for e in getattr(at, kind))
     assert "salik-pay.top" not in shown and "Reported by public" not in shown  # hidden on the public site
-    assert "This is not an official police report. To report a scam to the authorities, use ecrime.ae." in shown
+    assert "This is not an official police report. To report a scam to the authorities, contact the Abu Dhabi Police Aman Service: call 8002626, send an SMS to 2828, or use the Abu Dhabi Police Smart App." in shown
     assert not [b for b in at.button if b.label in ("Approve", "Reject")]
     with pytest.raises(PermissionError):
         reports.decide("https://salik-pay.top/pay", approve=True)  # only the laptop can approve
@@ -1470,7 +1470,7 @@ def test_public_reports_rate_limits_and_duplicates(monkeypatch, tmp_path):
 
 def test_confirmed_scams_switch_and_verified_not_scams(monkeypatch, tmp_path):
     """"Confirmed scams only" keeps Google-listed, ✓ verified and officer-approved sites (any score), and the
-    cards follow it; sites verified as normal websites leave the leads; Anaq's facts list the confirmed ones."""
+    cards follow it; sites verified as normal websites leave the leads; the assistant's facts list the confirmed ones."""
     import json
 
     import campaigns

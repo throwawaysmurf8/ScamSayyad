@@ -127,10 +127,17 @@ can get an AI Arabic version below it).
 ## Public demo: Athar Al Anaq on Streamlit Community Cloud
 
 The public site is called **Athar Al Anaq** (أثر العناق, "the caracal's tracks": our mascot Anaq follows the trail scammers leave). It starts from a copy of real results
-(`data/public_snapshot.db`). **Nothing a visitor types is saved there:** "Check a link" shows the
-result to that visitor only, and the hunters only run the fixed brand and search lists (the free-text
-search box is hidden, and the code refuses anything else even if it arrives). Only those fixed hunter
-scans add finds to the shared Dashboard. The hunters
+(`data/public_snapshot.db`). **Nothing a visitor types reaches the shared Dashboard:** "Check a link"
+shows the result to that visitor only, and the hunters only run the fixed brand and search lists (the
+free-text search box is hidden, and the code refuses anything else even if it arrives). Only those fixed
+hunter scans add finds to the shared Dashboard. **"Report a suspicious site"** (`reports.py`) takes a link
+only (no name, e-mail, phone or message text; anything after "?" or "#" and any login part is dropped),
+says "This is not an official police report. To report a scam to the authorities, use ecrime.ae.", scores
+it and keeps it in a private review queue (`data/reports_queue.json`, never committed). A reported link
+never shows on the public Dashboard; on the laptop an officer approves or rejects it, and approved links
+join the Dashboard with source "public report". Limitation: the queue lives on whichever server received
+the report, so reports sent on the public site stay on the cloud server (the laptop can't see them) and
+are lost when it restarts; sharing them would need an outside database. The hunters
 and the **Google Maps scan are on, with limits counted on the server for all visitors together**
 (`limits.py`), so nobody can spam them or run up costs:
 
@@ -140,6 +147,8 @@ and the **Google Maps scan are on, with limits counted on the server for all vis
 - **Cooldown:** after a scan finishes, that button rests for everyone for 2 minutes, with a countdown.
 - **One scan at a time:** while any scan runs, the other scan buttons wait.
 - **Check a link:** at most 10 checks a minute, everyone together.
+- **Report a suspicious site:** at most 1 report a minute and 30 a day, everyone together, plus 3 per
+  browser session. A duplicate link gets the same thank-you and is stored once.
 
 The counters are kept in `data/usage_today.json` on the server. They survive page reloads, new tabs,
 new visitors and code updates, but **not a full restart of the cloud server** (a reboot, or the app
@@ -197,7 +206,11 @@ AI drafts, and with an `ANTHROPIC_API_KEY` secret, answers typed questions with 
   Streamlit "Deploy" button is hidden for the same reason.
 - **What leaves this computer:** a link checked in "Check a link" is sent to Google Safe
   Browsing (if a key is set) and its domain name to the public registries (rdap.org, or
-  whois.nic.ae for .ae). The hunters ask crt.sh and Bing. Suspicious pages are never opened.
+  whois.nic.ae for .ae). The hunters ask crt.sh and Bing, and the Maps scan asks Google Places.
+  Anaq's chat sends only the facts shown on the dashboard (never SMS text) to Anthropic (Claude), or to
+  the local model, which stays on this computer. The site checker (`tools/verify_sites.py`, run by hand)
+  sends flagged links to Cloudflare Radar URL Scanner (unlisted scans) and VirusTotal. Suspicious pages
+  are never opened by us: those services' own browsers visit them.
 - **Text from scammers is never rendered.** Website names, URLs, registry data and SMS text
   are shown as plain text or code, so they can't add links or images that would make your
   browser contact a scammer's server.
@@ -210,7 +223,7 @@ AI drafts, and with an `ANTHROPIC_API_KEY` secret, answers typed questions with 
 
 | Feature | Status | Data source | Key needed? |
 |---|---|---|---|
-| 1. Scoring engine: brand look-alikes, cheap domain endings, short links, no HTTPS, scam words, urgent SMS wording | Working, 71 automated tests | Built in | No |
+| 1. Scoring engine: brand look-alikes, cheap domain endings, short links, no HTTPS, scam words, urgent SMS wording | Working, 92 automated tests (whole project) | Built in | No |
 | 1b. Domain age, registrar, abuse e-mail | Working | RDAP (rdap.org); UAE WHOIS (whois.nic.ae) for .ae | No |
 | 1c. Google Safe Browsing | Working, tested live with a real key (`enrich.py --test-key`); skipped cleanly without a key | Google Safe Browsing v4 | Free key |
 | 2. New-domain watcher | Working | crt.sh certificate logs | No |
@@ -224,6 +237,9 @@ AI drafts, and with an `ANTHROPIC_API_KEY` secret, answers typed questions with 
 | 10. English / Arabic dashboard | Working, full right-to-left layout | Built in | No |
 | 11. AI briefings + Arabic report by AI | Working: local model, Claude Haiku 5.5 if the local model is off | Ollama; Anthropic API | No / key |
 | 12. Public site with capped hunters and chat | Working at atharalanaq.streamlit.app | Streamlit Community Cloud | Free |
+| 13. Safe site checks: screenshots and vendor verdicts | Working (43 sites checked, see below) | Cloudflare Radar URL Scanner; VirusTotal | Free keys |
+| 14. "Confirmed scams only" switch, ✓ Verified scam, "Verified: not a scam", "Hides from scanners" | Working: 4 confirmed (all Google-listed), 3 verified not scams | `checks.py` | No |
+| 15. "Report a suspicious site" with a private review queue | Working (tested live 22 Nov 2026) | `reports.py` | No |
 
 ### Audit of every site (22 Nov 2026)
 
@@ -242,6 +258,8 @@ false-alarm patterns, and these rules were added (`scorer.score_url`, step 7, an
 Result: 66 HIGH, 140 MEDIUM, 1,619 LOW of 1,825 unique sites; no site in a known false-positive
 pattern is flagged; 198 of 265 likely scams are flagged (the rest score just under 40). The public copy
 has 1,821 sites (1,615 LOW): the 4 links typed into "Check a link" while testing are left out of it.
+Its Dashboard counts 1,818 leads (66 HIGH, 137 MEDIUM, 1,615 LOW): the 3 sites a screenshot showed are
+not scams are left out (see "Safe site checks" below).
 
 **Official-site check after every hunt.** A full scan of both databases found no official or `.gov.ae`
 site flagged, no Maps listing above 0, and no `.ae`, `.abudhabi`, `.dubai` or government-looking site
@@ -249,6 +267,28 @@ among the 206 flagged. To keep it that way, every hunter (watcher, search, Maps)
 (`enrich.official_check`): any allowlisted or `.gov.ae` site scoring above 0 is re-scored back to 0 and
 the hunt log says so. The one exception is a site Google lists as dangerous (an official site that was
 hacked): it stays flagged and the log asks an officer to look.
+
+### Safe site checks (22 Nov 2026)
+
+`tools/verify_sites.py` checks flagged sites without us ever opening them: a DNS look-up first (a name
+that no longer exists is "Offline" and costs no scan), then an unlisted Cloudflare Radar scan as a phone
+(victims open these links from SMS) for a screenshot, then VirusTotal for how many security vendors flag
+the link. A person classifies each screenshot. Results are in `data/verified.json` and `data/verified/`.
+
+- **43 sites checked** (the biggest Salik campaigns, Emirates Post, Emirates NBD, Dubai Police, UAE PASS):
+  **0 live scam pages**, 22 offline (expired, not loading, or taken down: `dubaipoliceefines.pages.dev` is
+  blocked by Cloudflare "for legal reasons"), 7 parked or for sale, 3 normal websites, and 11 that showed
+  the scanner only a bot-check page.
+- **Hides from scanners (bot check):** those 11 get this note. Active scam kits hide behind bot checks
+  or their own gate ("turnstile token missing") so only visitors from the real SMS link see the page. The
+  note is never a confirmation. VirusTotal vendors flag several of them (`salik-emirates.click` 13 of 93,
+  `salik-emirates.xyz` 12, `salikaccount-onlinepayment.sbs` 10 of 91, `emiratespost-ioq.top` 7).
+- **Verified: not a scam:** `salik.shop` (a gifting business named Salik), `uaepass-kyc.adi.web3lab.dev`
+  (a developer's UAE PASS test app) and `uaepassloginflow.prototype.disprz.com` (a training company's
+  prototype login page) leave the leads list. Both the rules and the ML had flagged all three.
+- **Confirmed scams** (`checks.py`, the "Confirmed scams only" switch and Anaq's facts): sites Google Safe
+  Browsing lists, sites marked ✓ Verified scam from a screenshot, or reports an officer approved. Today:
+  4, all Google-listed. Every other site is an unconfirmed lead.
 
 ### Honest limitations
 
@@ -313,8 +353,8 @@ hacked): it stays flagged and the log asks an officer to look.
 - **Google Maps: no fake listings found so far.** On 21 Nov 2026 the Maps searches returned 24
   listings, all linking official websites. One ("Dubai Police Help- Rescue") was first flagged because
   its phone is a foreign number, but a manual check showed it is a real government listing. Since then
-  **a listing that links an official site (`.gov.ae` or the allowlist) always scores 0**, whatever its
-  phone; the phone check only counts for listings with an unofficial website or none. The official
+  **a listing that links an official site (`.gov.ae` or the allowlist) scores 0**, whatever its
+  phone (unless Google Safe Browsing lists that site); the phone check only counts for listings with an unofficial website or none. The official
   phone list in `config.py` is a starter list taken from the brands' own listings: confirm it with
   the brands before relying on it.
 - **The score is a lead, not a verdict.** A high score means "an officer should look at
@@ -369,8 +409,9 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
   - **"Needs review" label:** a flagged site (rule score 40+) whose ML score differs from the rule score
     by 60 points or more (`REVIEW_GAP`) gets "⚑ Needs review" in the table and on its card, and the
     "Needs review only" switch lists them. Sites the rules cleared never get it (846 cleared names, mostly
-    the `.ph` bulk batch, look scam-like to the ML, which would bury the real cases). Today: 2 sites,
-    `uaepassloginflow.prototype.disprz.com` and `emiratesnbd.verify-address.com.es` (rules 40, ML 100%).
+    the `.ph` bulk batch, look scam-like to the ML, which would bury the real cases). It flagged
+    `uaepassloginflow.prototype.disprz.com` and `emiratesnbd.verify-address.com.es` (rules 40, ML 100%);
+    a screenshot then showed the first is a company's prototype login page, so it left the leads. Today: 1.
   - **Training data (lists only; no site in them is opened):** the PhiUSIIL Phishing URL dataset
     (UCI ML Repository, CC BY 4.0; Prasad & Chandra 2024, https://doi.org/10.1016/j.cose.2023.103545)
     and the Tranco top 100,000 sites plus all 718 UAE (.ae) sites in its top million, so it learns what
@@ -389,8 +430,8 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
   - **Retrain:** `.venv\Scripts\python -I tools/train_ml.py --download` (about 2 minutes, no GPU).
     Results go to `data/ml/metrics.json`; the "How it works" tab shows them.
 - **Planned: a deep-learning model trained on UAE-specific, officer-confirmed data**, so it learns local
-  scam patterns. We don't have enough confirmed examples yet (4 Google-confirmed sites, no officer
-  confirmations), which is why rules come first: they explain every point of a score, and each
+  scam patterns. We don't have enough confirmed examples yet (4 Google-confirmed sites, no screenshot-
+  verified scam pages and no officer confirmations), which is why rules come first: they explain every point of a score, and each
   confirmation officers record becomes training data later.
 
 ---
@@ -412,12 +453,16 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
 | `briefing.py` | The officer briefing (5 lines) for a site or a campaign, built from the rule findings, the campaign and the ML second opinion. No AI service. |
 | `assistant.py` | "Ask Anaq": answers six set questions about a site from our rules, the ML model, campaigns and the database. |
 | `local_llm.py` | The local language model (Ollama, on this computer): free questions, the facts every model is given (`overview_facts`, `facts`), the shared rules (`SYSTEM`) and the prepared public answers (`saved_key`). |
-| `limits.py` | Daily limits on the public site (questions, each hunter, Maps scans), counted in a small file. |
+| `limits.py` | Limits on the public site (questions, each hunter, Maps scans, link checks, reports), counted in a small file. |
+| `checks.py` | What outside checks say about a site: confirmed scam (Google-listed, ✓ verified from a screenshot, or officer-approved), verified not a scam, or hiding from scanners. Used by the Dashboard and Anaq. |
+| `reports.py` | "Report a suspicious site": cleans the link, scores it, keeps it in the private review queue, applies the limits, and lets an officer approve or reject it on the laptop. |
+| `tools/verify_sites.py` | The safe site checker: DNS look-up, Cloudflare Radar screenshot, VirusTotal vendor count, then a person's label. Never opens a site; keys are never printed. |
+| `data/verified.json`, `data/verified/` | The site checks: each site's label, reason, vendor counts and screenshot (no API addresses or account details). |
 | `tools/make_public_snapshot.py` | Builds the public snapshot from hunter rows only: no typed links, no demo rows, no message text outside Maps, saved AI answers cleared. |
 | `tools/make_public_answers.py` | Has the local model prepare Anaq's starter answers and campaign briefings for the public snapshot. |
 | `i18n.py` | Every screen text in English and Arabic, plus Arabic versions of the scorer's reasons (for display only). |
 | `report.py` | Feature 4b. Builds the takedown report, offered only for MEDIUM and HIGH sites: target, reasons, registration details, the registrar's abuse contact and where to send it (registrar, Google Safe Browsing, UAE eCrime). For sites on free hosting platforms (workers.dev, vercel.app ...) it says to report to the platform instead. |
-| `maps_scanner.py` | Feature 5 (stretch). Searches Google Maps for fake "customer service" listings and checks each listing's website and phone number. A listing that links an official site always scores 0; the phone only counts when the website is unofficial or missing. Each listing is its own row. Its takedown report asks Google to remove the listing. It only runs with a `GOOGLE_PLACES_KEY`, and each search is a paid request. |
+| `maps_scanner.py` | Feature 5 (stretch). Searches Google Maps for fake "customer service" listings and checks each listing's website and phone number. A listing that links an official site scores 0 (unless Google lists that site); the phone only counts when the website is unofficial or missing. Each listing is its own row. Its takedown report asks Google to remove the listing. It only runs with a `GOOGLE_PLACES_KEY`, and each search is a paid request. |
 | `app.py` | The Streamlit dashboard. It only draws screens and calls the modules above. Tabs: **Dashboard**, **Check a link**, **Hunt for scams**, **How it works**. |
 | `data/sample_urls.csv` | 12 real official URLs and 12 invented scam URLs (with SMS text). Used by the tests and the "Load demo data" button. |
 | `data/fixtures/` | Saved copies of real crt.sh and search responses, used automatically when the internet or a service is down. Refreshed on every successful run. |
@@ -427,7 +472,7 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
 | `requirements.txt` | The exact library versions this was tested with. |
 | `.env.example` | Template for the optional API keys. Copy it to `.env`. |
 | `pytest.ini`, `tests/__init__.py`, `tests/conftest.py` | Tell pytest where to find the code; `conftest.py` blanks the real API keys so tests never make paid calls. |
-| `.claude/launch.json` | Lets Claude Code start the dashboard for previews. Teammates can ignore it. |
+| `.claude/launch.json` | Local only, not in Git: lets Claude Code start the dashboard for previews. |
 | `.gitignore` | Keeps the virtual environment, database and keys out of Git. |
 
 ---
@@ -450,7 +495,8 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
 4. **Hunt: search scanner.** Run "Dubai Police fine payment online". Most results are
    official (score 0), but the unofficial `dubaipoliceefines.com` is flagged.
 5. **Dashboard.** Sort by score, filter by source, click a row, and download the
-   **takedown report**. It already contains the registrar's abuse e-mail, ready to send.
+   **takedown report**. It already contains the registrar's abuse e-mail, ready to send. Turn on
+   **Confirmed scams only (4)** to show the difference between confirmed scams and leads.
 6. **Close.** The core hunters and scorer need no paid service; Maps and the AI chat are optional, paid and capped. It never opens dangerous pages, and every score is explained, so
    an officer can trust it and act on it.
 

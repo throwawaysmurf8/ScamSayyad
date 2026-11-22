@@ -29,7 +29,7 @@ To re-check every saved MEDIUM/HIGH site with Google Safe Browsing (needs the ke
 
 **Always on (optional):** `start_hidden.vbs` starts the dashboard in the background with no window. A
 shortcut to it in the Windows Startup folder (`shell:startup`) starts it at every log-in, so
-http://localhost:8501 is always ready (the "ATHAR" desktop shortcut opens it). To stop it, end
+http://localhost:8501 is always ready (the Startup shortcut is named "ATHAR dashboard"). To stop it, end
 `pythonw.exe` in Task Manager, or delete the Startup shortcut.
 
 To run the automated tests:
@@ -257,7 +257,7 @@ it works pages and in every takedown report):
 
 | Feature | Status | Data source | Key needed? |
 |---|---|---|---|
-| 1. Scoring engine: brand look-alikes, cheap domain endings, short links, no HTTPS, scam words, urgent SMS wording | Working, 94 automated tests (whole project) | Built in | No |
+| 1. Scoring engine: brand look-alikes, cheap domain endings, short links, no HTTPS, scam words, urgent SMS wording | Working, 95 automated tests (whole project) | Built in | No |
 | 1b. Domain age, registrar, abuse e-mail | Working | RDAP (rdap.org); UAE WHOIS (whois.nic.ae) for .ae | No |
 | 1c. Google Safe Browsing | Working, tested live with a real key (`enrich.py --test-key`); skipped cleanly without a key | Google Safe Browsing v4 | Free key |
 | 2. New-domain watcher | Working | crt.sh certificate logs | No |

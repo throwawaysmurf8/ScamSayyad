@@ -1021,6 +1021,27 @@ def _empty_db(monkeypatch, tmp_path):
     return db
 
 
+def test_a_typed_link_is_never_given_to_the_assistant(monkeypatch, tmp_path):
+    """A link a visitor typed into "Check a link" opens in the Site file for that visitor, but the side-panel
+    assistant (which may use a cloud AI service) only ever talks about saved hunter results."""
+    from scorer import score_url
+    _empty_db(monkeypatch, tmp_path)
+    _fresh_limits(monkeypatch, tmp_path)
+    monkeypatch.setattr(config, "PUBLIC_MODE", True)
+    monkeypatch.setattr(config, "ANTHROPIC_API_KEY", "fake-key")
+    typed = score_url("http://my-own-typed-link.xyz/pay", "my private SMS text")
+    from streamlit.testing.v1 import AppTest
+    at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120)
+    at.session_state["lang_choice"] = "English"
+    at.session_state["page_en"] = "Site file"
+    at.session_state["checked_site"], at.session_state["site_url"] = typed, typed["url"]
+    at.run()
+    assert not at.exception, [e.value for e in at.exception]
+    assert any("my-own-typed-link.xyz" in m.value for m in [*at.markdown, *at.code])  # the visitor sees it
+    side = " ".join(c.value for c in at.sidebar.caption)
+    assert "Scope: all leads." in side and "my-own-typed-link" not in side  # the assistant does not
+
+
 def test_public_check_a_link_is_shown_but_never_saved(monkeypatch, tmp_path):
     """Public site: "Check a link" scores the link for that visitor only; the shared database is untouched."""
     import enrich

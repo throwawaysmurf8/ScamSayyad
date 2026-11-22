@@ -80,7 +80,8 @@ GLOBAL_CSS = """<style>
 .ath-rule { height: 0; border-top: 2px dotted var(--ath-green); opacity: .7; margin: 0 0 4px; }
 [data-baseweb="tag"] { background: #1C3350 !important; color: #E7ECF2 !important; }
 [data-testid="stMetricValue"], [data-testid="stDataFrame"] { font-variant-numeric: tabular-nums; }
-[data-testid="stVerticalBlockBorderWrapper"] { animation: ath-fade .24s ease-out both; }
+[data-testid="stLayoutWrapper"] > [data-testid="stVerticalBlock"], [data-testid="stMetric"], [data-testid="stTabPanel"] {
+  animation: ath-fade .24s ease-out both; }
 .ath-work { display: flex; flex-direction: column; gap: 8px; padding: 8px 0; color: var(--ath-muted); }
 .ath-work i { display: block; height: 2px; background: var(--ath-line); position: relative; overflow: hidden; }
 .ath-work i::after { content: ""; position: absolute; inset: 0; width: 30%; background: var(--ath-gold);
@@ -1158,7 +1159,10 @@ def side_assistant():
     if config.PUBLIC_MODE and not ai.chat_available():
         saved_answers()
         return
-    selected, selected_campaign = current_site(db.unique_sites())
+    saved = db.unique_sites()
+    selected, selected_campaign = current_site(saved)
+    if selected is not None and selected not in saved:  # a link a visitor typed: never sent to any AI service
+        selected = selected_campaign = None
     st.caption(T("side_about_site", site=hostname(selected["url"])) if selected else T("side_about_all"))
     # Claude (if its key is set) everywhere; Gemini only on the public site, which has no local model
     cloud = bool(config.ANTHROPIC_API_KEY) or (config.PUBLIC_MODE and ai.chat_available())

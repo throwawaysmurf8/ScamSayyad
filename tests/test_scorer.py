@@ -879,13 +879,23 @@ def test_link_checks_are_limited_per_minute(monkeypatch, tmp_path):
     assert limits.take_check(10)
 
 
+def _open_app(page=None, lang="English"):
+    """The app as a visitor sees it, on one page (pages are drawn only when open)."""
+    from streamlit.testing.v1 import AppTest
+    at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120)
+    at.session_state["lang_choice"] = lang
+    if page:
+        at.session_state["page_ar" if lang == "العربية" else "page_en"] = page
+    return at.run()
+
+
 def test_check_a_link_says_when_the_minute_limit_is_reached(monkeypatch, tmp_path):
     from streamlit.testing.v1 import AppTest
     limits, clock = _fresh_limits(monkeypatch, tmp_path)
     monkeypatch.setattr(config, "PUBLIC_MODE", True)
     for _ in range(10):
         limits.take_check(10)
-    at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120).run()
+    at = _open_app("Site file")
     at.text_input[0].input("http://adpol1ce-fines.xyz/pay").run()
     next(b for b in at.button if b.label == "Check link").click().run()
     assert any("The link-check limit has been reached" in i.value for i in at.info)
@@ -1019,7 +1029,7 @@ def test_public_check_a_link_is_shown_but_never_saved(monkeypatch, tmp_path):
     _fresh_limits(monkeypatch, tmp_path)
     monkeypatch.setattr(config, "PUBLIC_MODE", True)
     monkeypatch.setattr(enrich, "check", lambda url, text="", **kw: (score_url(url, text), {}))  # no network
-    at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120).run()
+    at = _open_app("Site file")
     at.text_input[0].input("http://adpol1ce-fines.xyz/pay").run()
     next(b for b in at.button if b.label == "Check link").click().run()
     assert not at.exception, [e.value for e in at.exception]
@@ -1107,7 +1117,7 @@ def test_dashboard_shows_the_needs_review_label(monkeypatch, tmp_path):
         db.save({"url": url, "domain": url.split("/")[2], "score": score, "level": level,
                  "reasons": ["test"], "safe_browsing": "clean"}, "search")
     monkeypatch.setattr(ml_model, "score_hosts", lambda urls: [95 if "adpolice" in u else 100 for u in urls])
-    at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120).run()
+    at = _open_app("Leads")
     assert not at.exception, [e.value for e in at.exception]
     next(t for t in at.toggle if t.label == "Needs review only").set_value(True).run()
     table = at.dataframe[0].value
@@ -1258,7 +1268,7 @@ def test_only_person_verified_scams_get_the_badge_and_they_sort_first(monkeypatc
         "unlabelled.example": {**rec, "label": None, "reason": None},
         "hidden.example": {**rec, "label": None, "cloaked": True, "reason": "Not seen: a bot-check page"}}))
     monkeypatch.setattr(config, "VERIFIED_FILE", verified)
-    at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120).run()
+    at = _open_app("Leads")
     assert not at.exception, [e.value for e in at.exception]
     table = at.dataframe[0].value
     assert list(table.host)[:2] == ["salik-pay.example", "dubaipolice.example"]  # verified, then Google-listed
@@ -1267,6 +1277,8 @@ def test_only_person_verified_scams_get_the_badge_and_they_sort_first(monkeypatc
     assert proof["hidden.example"] == "Hides from scanners (bot check)"  # a note, never "verified", not moved up
     assert proof["parked-salik.example"] == proof["unlabelled.example"] == ""  # not confirmations
     assert list(table.host)[2] == "unlabelled.example"  # after verified and Google-listed: by score
+    at.session_state["page_en"] = "How it works"
+    at.run()
     about = " ".join(m.value for m in at.markdown)
     assert "`salik-pay.example` (live scam page): rules ✓ (70)" in about  # checked sites in "Why two opinions?"
     assert "parked-salik" not in about and "Neither method is reliable on its own" in about
@@ -1431,7 +1443,7 @@ def test_public_reports_keep_only_a_cleaned_link_and_stay_hidden_until_approved(
     assert saved["status"] == "pending" and db.all_sites() == []  # never in the sites database
 
     monkeypatch.setattr(config, "PUBLIC_MODE", True)
-    at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120).run()
+    at = _open_app("Report a site")
     assert not at.exception, [e.value for e in at.exception]
     shown = " ".join(str(e.value) for kind in ("markdown", "caption", "text", "warning", "info") for e in getattr(at, kind))
     assert "salik-pay.top" not in shown and "Reported by public" not in shown  # hidden on the public site
@@ -1441,7 +1453,7 @@ def test_public_reports_keep_only_a_cleaned_link_and_stay_hidden_until_approved(
         reports.decide("https://salik-pay.top/pay", approve=True)  # only the laptop can approve
 
     monkeypatch.setattr(config, "PUBLIC_MODE", False)
-    at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120).run()
+    at = _open_app("Report a site")
     assert not at.exception, [e.value for e in at.exception]
     assert any("salik-pay.top/pay" in t.value for t in at.text)  # the officer's review list, plain text
     next(b for b in at.button if b.label == "Approve").click().run()
@@ -1492,7 +1504,7 @@ def test_confirmed_scams_switch_and_verified_not_scams(monkeypatch, tmp_path):
         "salik.shop": {**rec, "label": "Normal website", "reason": "a gifting business named Salik"}}))
     monkeypatch.setattr(config, "VERIFIED_FILE", verified)
 
-    at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120).run()
+    at = _open_app("Leads")
     assert not at.exception, [e.value for e in at.exception]
     hosts = set(at.dataframe[0].value.host)
     assert "salik.shop" not in hosts and "lead-only.example" in hosts  # a verified normal website is not a lead
@@ -1504,6 +1516,7 @@ def test_confirmed_scams_switch_and_verified_not_scams(monkeypatch, tmp_path):
     table = at.dataframe[0].value
     assert set(table.host) == {"google-listed.example", "seen-scam.example", "reported.example"}  # any score
     assert set(table.proof) == {"Listed by Google", "✓ Verified scam", "Approved by an officer"}
+    assert set(table.status) == {"Confirmed"}  # the only label stronger than Suspected / Lead
     shown = next(m for m in at.metric if m.label == "Real sites shown")
     assert shown.value == "3"  # the cards follow the switch
 

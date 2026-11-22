@@ -30,9 +30,6 @@ S = {
                       "المواقع المدرجة هنا مؤشرات آلية، وليست عمليات احتيال مؤكَّدة، إلا ما وُسم بـ«مؤكَّد». لا تزرها. "
                       "للإبلاغ عن احتيال، تواصل مع خدمة أمان في شرطة أبوظبي: اتصل على 8002626، أو أرسل رسالة نصية إلى 2828، "
                       "أو استخدم تطبيق شرطة أبوظبي الذكي."),
-    "tab_dash": ("Dashboard", "لوحة المتابعة"),
-    "tab_check": ("Check a link", "فحص رابط"),
-    "tab_hunt": ("Hunt for scams", "البحث عن الاحتيال"),
     "tab_about": ("How it works", "كيف يعمل"),
 
     # --- Levels, table --------------------------------------------------------
@@ -40,19 +37,19 @@ S = {
     "risk_badge": ("{level} risk", "خطورة {level}"),
     "unknown": ("unknown", "غير معروف"),
     "not_checked": ("not checked", "لم يُفحص"),
-    "no_sites": ("No sites yet. Go to **Hunt for scams** to scan, or load the demo data there.",
-                 "لا توجد مواقع بعد. اذهب إلى **البحث عن الاحتيال** لبدء الفحص، أو حمّل البيانات التجريبية هناك."),
+    "no_sites": ("No sites recorded yet. Run an agent on the Overview page, or load the demo data there.",
+                 "لا توجد مواقع مسجّلة بعد. شغّل أحد الوكلاء في صفحة النظرة العامة، أو حمّل البيانات التجريبية هناك."),
     "min_score": ("Minimum score", "الحد الأدنى للنتيجة"),
     "min_score_help": ("Lower it to see weaker leads too.", "اخفضه لرؤية المؤشرات الأضعف أيضاً."),
     "source": ("Source", "المصدر"),
     "demo_data": ("Demo data", "بيانات تجريبية"),
     "demo_help": ("Adds the made-up practice rows (12 real official sites plus 12 invented scams from "
-                  "data/sample_urls.csv) to the table below. They are marked DEMO and never change the numbers "
-                  "above. Load or remove them on the Hunt for scams tab.",
-                  "يضيف صفوف التدريب المختلقة (12 موقعاً رسمياً حقيقياً و12 احتيالاً مختلقاً) إلى الجدول. "
-                  "تُعلَّم بكلمة DEMO ولا تغيّر الأرقام أعلاه. حمّلها أو احذفها من تبويب البحث عن الاحتيال."),
-    "demo_help_none": ("No demo data loaded. You can load it on the Hunt for scams tab.",
-                       "لا توجد بيانات تجريبية. يمكنك تحميلها من تبويب البحث عن الاحتيال."),
+                  "data/sample_urls.csv) to the table below. They are marked DEMO and never change the numbers above. "
+                  "Load or remove them on the Overview page.",
+                  "يضيف صفوف التدريب المختلقة (12 موقعاً رسمياً حقيقياً و12 احتيالاً مختلقاً) إلى الجدول. تُعلَّم بكلمة "
+                  "DEMO ولا تغيّر الأرقام أعلاه. حمّلها أو احذفها من صفحة النظرة العامة."),
+    "demo_help_none": ("No demo data loaded. It can be loaded on the Overview page.",
+                       "لا توجد بيانات تجريبية. يمكن تحميلها من صفحة النظرة العامة."),
     "card_high": ("High risk", "خطورة عالية"),
     "card_medium": ("Medium risk", "خطورة متوسطة"),
     "card_google": ("Listed by Google", "مدرجة لدى Google"),
@@ -68,8 +65,8 @@ S = {
                 "**البيانات التجريبية مفعّلة.** يتضمن الجدول {n} صفاً تدريبياً مختلقاً، معلَّماً بكلمة **DEMO** في "
                 "عمود *المصدر*. هذه ليست اكتشافات حقيقية."),
     "demo_made_up": ("DEMO (made up)", "DEMO (مختلق)"),
-    "n_match": ("**{n} sites** match · select a row for details and the takedown report",
-                "**{n} موقعاً** مطابقاً · اختر صفاً لرؤية التفاصيل وتقرير الإزالة"),
+    "n_match": ("**{n} sites** match · select a row to open its site file",
+                "**{n} موقعاً** مطابقاً · اختر صفاً لفتح ملف الموقع"),
     "col_score": ("Score", "النتيجة"), "col_risk": ("Risk", "الخطورة"), "col_site": ("Website", "الموقع"),
     "col_site_help": ("Full website name, including the brand the scammer used",
                       "الاسم الكامل للموقع، بما فيه العلامة التي استخدمها المحتال"),
@@ -120,9 +117,9 @@ S = {
     "supporting": ("**Supporting signs** · common on scam sites, but not proof on their own",
                    "**علامات داعمة** · شائعة في مواقع الاحتيال لكنها ليست دليلاً بمفردها"),
     "in_campaign": (":material/hub: **Part of a possible campaign:** {n} look-alike {brand} domains from the same "
-                    "registrar, registered {dates}. See *Possible campaigns* below.",
-                    ":material/hub: **جزء من حملة محتملة:** {n} نطاقات شبيهة بـ {brand} من نفس المسجِّل، سُجّلت "
-                    "{dates}. انظر *الحملات المحتملة* أدناه."),
+                    "registrar, registered {dates}. See the Campaigns page.",
+                    ":material/hub: **جزء من حملة محتملة:** {n} نطاقات شبيهة بـ {brand} من نفس المسجِّل، سُجّلت {dates}. "
+                    "انظر صفحة الحملات."),
     "not_known": ("Not known: {x}", "غير معروف: {x}"),
     "f_domain": ("Registered domain", "النطاق المسجَّل"), "f_age": ("Domain age", "عمر النطاق"),
     "f_registrar": ("Registrar", "المسجِّل"), "f_sb": ("Safe Browsing", "التصفح الآمن"),
@@ -234,17 +231,18 @@ S = {
     "check_input": ("Link or domain", "الرابط أو النطاق"),
     "check_msg": ("Message it came with (optional)", "الرسالة التي وصل معها (اختياري)"),
     "check_btn": ("Check link", "افحص الرابط"),
-    "checking": ("Checking domain age and reputation...", "جارٍ فحص عمر النطاق وسمعته..."),
+    "checking": ("Checking registration records and reputation…",
+                 "جارٍ فحص سجلات التسجيل والسمعة…"),
     "check_empty": ("The score, the reasons and the domain's registration details will appear here.",
                     "ستظهر هنا النتيجة والأسباب وبيانات تسجيل النطاق."),
 
     # --- Hunt ---------------------------------------------------------------------
-    "hunt_public": ("Limits on this public demo, shared by all visitors: {n} scans a day for the watcher and search "
-                    "together, {m} Google Maps scans a day, one scan at a time, and each button rests {c} minutes after "
-                    "a scan. New finds join the Dashboard for everyone.",
-                    "حدود هذه النسخة العامة، مشتركة بين جميع الزوار: {n} عملية بحث يومياً للمراقب والبحث معاً، و{m} فحصاً "
-                    "لخرائط Google يومياً، وعملية واحدة في كل مرة، ويتوقف كل زر {c} دقيقة بعد كل عملية. تظهر النتائج "
-                    "الجديدة في لوحة المتابعة للجميع."),
+    "hunt_public": ("Limits on this public demonstration, shared by all visitors: {n} scans a day for the watcher and the "
+                    "search scanner together, {m} Google Maps scans a day, one scan at a time, and each agent pauses {c} "
+                    "minutes after a scan. New results are added to Leads for all visitors.",
+                    "حدود هذا العرض العام، مشتركة بين جميع الزوار: {n} عملية فحص يومياً للمراقب وفاحص البحث معاً، و{m} "
+                    "فحصاً لخرائط Google يومياً، وعملية واحدة في كل مرة، ويتوقف كل وكيل {c} دقيقة بعد كل عملية. تُضاف "
+                    "النتائج الجديدة إلى المؤشرات لجميع الزوار."),
     "review_label": ("⚑ Needs review", "⚑ يحتاج مراجعة"),
     "verified_label": ("✓ Verified scam", "✓ احتيال مؤكَّد"),
     "report_title": ("Report a suspicious site", "أبلغ عن موقع مشبوه"),
@@ -354,8 +352,8 @@ S = {
     "prefixes": ("Brand prefixes", "بدايات أسماء العلامات"),
     "days_slider": ("Certificates issued in the last N days", "الشهادات الصادرة خلال آخر N يوماً"),
     "run_watcher": ("Run watcher", "تشغيل المراقب"),
-    "watcher_running": ("Searching certificate logs (about 30 s per prefix)...",
-                        "جارٍ البحث في سجلات الشهادات (نحو 30 ثانية لكل بداية)..."),
+    "watcher_running": ("Scanning certificate logs…",
+                        "جارٍ فحص سجلات الشهادات…"),
     "watcher_done": ("Watcher finished: {n} new hostnames", "انتهى المراقب: {n} اسم موقع جديد"),
     "search_title": (":material/travel_explore: Search-results scanner", ":material/travel_explore: فاحص نتائج البحث"),
     "search_note": ("Runs the searches a member of the public would run and scores every result.",
@@ -363,13 +361,15 @@ S = {
     "queries": ("Risky searches", "عمليات بحث خطرة"),
     "extra_query": ("Add your own search (optional)", "أضف بحثاً خاصاً بك (اختياري)"),
     "run_search": ("Run search scan", "تشغيل فحص البحث"),
-    "searching": ("Searching...", "جارٍ البحث..."),
+    "searching": ("Scanning search results…",
+                  "جارٍ فحص نتائج البحث…"),
     "search_done": ("Search scan finished: {n} results", "انتهى فحص البحث: {n} نتيجة"),
     "maps_title": (":material/map: Google Maps listings", ":material/map: إدراجات خرائط Google"),
     "maps_note": ("Looks for fake 'customer service' listings and checks their website and phone number.",
                   "يبحث عن إدراجات «خدمة عملاء» مزيفة ويفحص موقعها ورقم هاتفها."),
     "run_maps": ("Run Maps scan", "تشغيل فحص الخرائط"),
-    "maps_running": ("Searching Google Maps...", "جارٍ البحث في خرائط Google..."),
+    "maps_running": ("Checking map listings…",
+                     "جارٍ فحص إدراجات الخرائط…"),
     "maps_done": ("Maps scan finished: {n} listings", "انتهى فحص الخرائط: {n} إدراجاً"),
     "maps_off": ("Off: needs a Google Places API key (GOOGLE_PLACES_KEY in .env, billing account required).",
                  "متوقف: يحتاج مفتاح Google Places API ‏(GOOGLE_PLACES_KEY في ‎.env، مع حساب فوترة)."),
@@ -378,7 +378,8 @@ S = {
                   "12 موقعاً رسمياً حقيقياً و12 احتيالاً مختلقاً، معلَّمة بكلمة sample. مفيدة دون اتصال."),
     "demo_load": ("Load demo data", "تحميل البيانات التجريبية"),
     "demo_remove": ("Remove demo data", "حذف البيانات التجريبية"),
-    "demo_added": ("Added {n} demo rows. See the Dashboard tab.", "أُضيف {n} صفاً تجريبياً. انظر لوحة المتابعة."),
+    "demo_added": ("Added {n} demo rows. See the Leads page.",
+                   "أُضيف {n} صفاً تجريبياً. انظر صفحة المؤشرات."),
     "demo_removed": ("Demo data removed.", "حُذفت البيانات التجريبية."),
     "on": ("on", "مفعّل"), "off_short": ("off", "متوقف"),
     "proposed": ("Prototype proposed for Abu Dhabi Police",
@@ -387,6 +388,167 @@ S = {
                    "not an official Abu Dhabi Police or UAE government service.",
                    "نموذج أولي صُمّم لهاكاثون ScamShield AI (‏42 أبوظبي × شرطة أبوظبي). وهو ليس خدمة رسمية من شرطة "
                    "أبوظبي أو حكومة دولة الإمارات."),
+    "tab_overview": ("Overview",
+                     "نظرة عامة"),
+    "tab_leads": ("Leads",
+                  "المؤشرات"),
+    "tab_campaigns": ("Campaigns",
+                      "الحملات"),
+    "tab_file": ("Site file",
+                 "ملف الموقع"),
+    "tab_report": ("Report a site",
+                   "الإبلاغ عن موقع"),
+    "ov_flagged": ("Flagged",
+                   "مُعلَّمة"),
+    "ov_confirmed": ("Confirmed",
+                     "مؤكَّدة"),
+    "ov_review": ("Needs review",
+                  "تحتاج مراجعة"),
+    "ov_campaigns": ("Campaigns",
+                     "الحملات"),
+    "ov_note": ("Counts cover all {total:,} real sites recorded. Confirmed means listed by Google Safe Browsing, "
+                "verified from a safe screenshot, or approved by an officer. Every other site is a lead.",
+                "تشمل الأرقام جميع المواقع الحقيقية المسجّلة وعددها {total:,}. «مؤكَّد» يعني مدرجاً لدى Google Safe "
+                "Browsing، أو مؤكَّداً من لقطة شاشة آمنة، أو وافق عليه ضابط. كل موقع آخر مؤشر."),
+    "agents_title": ("AI agents at work",
+                     "وكلاء الذكاء الاصطناعي في العمل"),
+    "agents_note": ("Four automated agents collect and check leads, and two AI components support the officer. The "
+                    "scanners follow fixed rules; only the ML second opinion and the assistant use AI models, and neither "
+                    "changes a score.",
+                    "أربعة وكلاء آليين يجمعون المؤشرات ويفحصونها، ومكوّنان للذكاء الاصطناعي يساندان الضابط. تعمل أدوات "
+                    "الفحص وفق قواعد ثابتة؛ ولا يستخدم نماذج الذكاء الاصطناعي إلا الرأي الثاني (التعلّم الآلي) والمساعد، "
+                    "ولا يغيّر أيّ منهما أي نتيجة."),
+    "agent_rules": ("rule-based agent",
+                    "وكيل قائم على القواعد"),
+    "agent_ai": ("AI model",
+                 "نموذج ذكاء اصطناعي"),
+    "agent_watcher": ("Certificate-log watcher",
+                      "مراقب سجلات الشهادات"),
+    "agent_search": ("Search-results scanner",
+                     "فاحص نتائج البحث"),
+    "agent_maps": ("Maps listings checker",
+                   "فاحص إدراجات الخرائط"),
+    "agent_checker": ("Safe site checker",
+                      "فاحص المواقع الآمن"),
+    "agent_ml": ("ML second opinion",
+                 "الرأي الثاني (تعلّم آلي)"),
+    "st_watcher": ("Reads public certificate logs for new websites that use UAE brand names. {n:,} sites recorded, most "
+                   "recent {last}.",
+                   "يقرأ سجلات الشهادات العامة بحثاً عن مواقع جديدة تستخدم أسماء علامات إماراتية. {n:,} موقعاً مسجّلاً، "
+                   "آخرها {last}."),
+    "st_search": ("Runs the searches a member of the public would run and scores every result. {n:,} sites recorded, "
+                  "most recent {last}.",
+                  "يجري عمليات البحث التي قد يجريها أحد أفراد الجمهور ويقيّم كل نتيجة. {n:,} موقعاً مسجّلاً، آخرها "
+                  "{last}."),
+    "st_maps": ("Checks Google Maps listings that use a brand name with a foreign phone number. {n:,} listings "
+                "recorded, most recent {last}.",
+                "يفحص إدراجات خرائط Google التي تستخدم اسم علامة برقم هاتف أجنبي. {n:,} إدراجاً مسجّلاً، آخرها "
+                "{last}."),
+    "st_maps_off": ("Off: requires a Google Places key.",
+                    "متوقف: يتطلب مفتاح Google Places."),
+    "st_checker": ("Run by an officer on the laptop: Cloudflare Radar screenshots and VirusTotal vendor verdicts, "
+                   "without opening the site. {n} sites checked, most recent {last}.",
+                   "يشغّله ضابط على جهاز الحاسوب: لقطات شاشة من Cloudflare Radar وأحكام شركات الأمن من VirusTotal، دون "
+                   "فتح الموقع. {n} موقعاً مفحوصاً، آخرها {last}."),
+    "st_ml": ("Rates how scam-like each website name looks. Trained on {n:,} public examples; shown beside the "
+              "score, never added to it.",
+              "يقيّم مدى تشابه اسم كل موقع مع أسماء الاحتيال. مدرَّب على {n:,} مثالاً عاماً؛ يُعرض بجانب النتيجة "
+              "ولا يُضاف إليها."),
+    "st_ml_off": ("Off: the model file is not present.",
+                  "متوقف: ملف النموذج غير موجود."),
+    "st_assistant": ("Answers questions from recorded facts only. It does not open websites or change scores. Status: "
+                     "{state}.",
+                     "يجيب عن الأسئلة من الحقائق المسجّلة فقط. لا يفتح المواقع ولا يغيّر النتائج. الحالة: {state}."),
+    "st_saved": ("prepared answers only",
+                 "إجابات مُعدّة فقط"),
+    "st_none": ("no records yet",
+                "لا توجد سجلات بعد"),
+    "agents_run": ("Run an agent",
+                   "تشغيل وكيل"),
+    "col_status": ("Status",
+                   "الحالة"),
+    "col_status_help": ("Confirmed: listed by Google Safe Browsing, verified from a safe screenshot, or approved by an "
+                        "officer. Suspected: flagged by the rules (score {m}+), not confirmed. Lead: below {m}. None of these "
+                        "is a finding against any person.",
+                        "مؤكَّد: مدرج لدى Google Safe Browsing، أو مؤكَّد من لقطة شاشة آمنة، أو وافق عليه ضابط. مشتبه به: "
+                        "أشارت إليه القواعد (نتيجة {m} فأكثر) دون تأكيد. مؤشر: أقل من {m}. لا يُعدّ أيّ منها حكماً على أي "
+                        "شخص."),
+    "status_confirmed": ("Confirmed",
+                         "مؤكَّد"),
+    "status_suspected": ("Suspected",
+                         "مشتبه به"),
+    "status_lead": ("Lead",
+                    "مؤشر"),
+    "status_cleared": ("Not a scam",
+                       "ليس احتيالاً"),
+    "file_pick": ("Site",
+                  "الموقع"),
+    "file_pick_help": ("Any recorded site. Selecting a row in Leads opens it here.",
+                       "أي موقع مسجّل. اختيار صف في صفحة المؤشرات يفتحه هنا."),
+    "file_none": ("Select a site in Leads, choose one above, or check a new link.",
+                  "اختر موقعاً من صفحة المؤشرات، أو من القائمة أعلاه، أو افحص رابطاً جديداً."),
+    "file_status": ("Status: {s}",
+                    "الحالة: {s}"),
+    "file_confirmed_by": ("confirmed by {by}",
+                          "أكّده {by}"),
+    "file_assess": ("Assessment",
+                    "التقييم"),
+    "file_checks": ("Outside checks",
+                    "الفحوص الخارجية"),
+    "file_reg": ("Registration",
+                 "التسجيل"),
+    "file_context": ("Context",
+                     "السياق"),
+    "file_actions": ("Actions",
+                     "الإجراءات"),
+    "f_regdate": ("Registration date",
+                  "تاريخ التسجيل"),
+    "f_abuse": ("Abuse contact",
+                "جهة الإبلاغ عن الإساءة"),
+    "f_vt": ("VirusTotal",
+             "VirusTotal"),
+    "f_verify": ("Verification",
+                 "التحقق"),
+    "f_campaign": ("Campaign",
+                   "الحملة"),
+    "f_first": ("First seen",
+                "أول ظهور"),
+    "f_found": ("Found by",
+                "المصدر"),
+    "f_ml": ("ML second opinion",
+             "الرأي الثاني (تعلّم آلي)"),
+    "vt_line": ("{n} of {total} security vendors flag it ({date})",
+                "{n} من {total} من شركات الأمن تصنّفه خطراً ({date})"),
+    "verify_scam": ("Confirmed from a safe screenshot ({date})",
+                    "مؤكَّد من لقطة شاشة آمنة ({date})"),
+    "verify_clear": ("Not a scam: normal website ({date})",
+                     "ليس احتيالاً: موقع عادي ({date})"),
+    "verify_cloaked": ("Hides from scanners: bot check ({date})",
+                       "يختبئ من أدوات الفحص: فحص الروبوتات ({date})"),
+    "verify_other": ("{label} ({date})",
+                     "{label} ({date})"),
+    "verify_none": ("not checked",
+                    "لم يُفحص"),
+    "campaign_none": ("not part of a detected campaign",
+                      "ليس ضمن حملة مكتشفة"),
+    "campaign_line": ("{brand}: {n} domains, {registrar}, registered {dates}",
+                      "{brand}: {n} نطاقات، {registrar}، سُجّلت {dates}"),
+    "ml_none": ("not applicable",
+                "لا ينطبق"),
+    "ml_value": ("{p}% scam-like name ({verdict})",
+                 "{p}٪ تشابه مع أسماء الاحتيال ({verdict})"),
+    "channels_title": ("Official reporting channels",
+                       "قنوات الإبلاغ الرسمية"),
+    "channels_main": ("Main channel",
+                      "القناة الرئيسية"),
+    "channels_alt": ("Alternatives",
+                     "بدائل"),
+    "report_page_laptop": ("Links reported by the public on the public site wait here for an officer. Approve adds the link to "
+                           "Leads with source \"public report\"; Reject removes it from the queue.",
+                           "تنتظر هنا الروابط التي أبلغ عنها الجمهور في الموقع العام لمراجعة ضابط. «موافقة» تضيف الرابط إلى "
+                           "المؤشرات بمصدر «public report»، و«رفض» تحذفه من قائمة الانتظار."),
+    "ov_flagged_help": ("Real sites with a rule score of {m} or more.",
+                        "المواقع الحقيقية التي نتيجتها {m} فأكثر وفق القواعد."),
 }
 
 

@@ -78,8 +78,14 @@ GLOBAL_CSS = """<style>
                font-size: 1.6rem; color: var(--ath-gold); }
 .ath-proposed { font-size: .9rem; color: var(--ath-muted); }
 .ath-rule { height: 0; border-top: 2px dotted var(--ath-green); opacity: .7; margin: 0 0 4px; }
+[data-baseweb="tag"] { background: #1C3350 !important; color: #E7ECF2 !important; }
 [data-testid="stMetricValue"], [data-testid="stDataFrame"] { font-variant-numeric: tabular-nums; }
 [data-testid="stVerticalBlockBorderWrapper"] { animation: ath-fade .24s ease-out both; }
+.ath-work { display: flex; flex-direction: column; gap: 8px; padding: 8px 0; color: var(--ath-muted); }
+.ath-work i { display: block; height: 2px; background: var(--ath-line); position: relative; overflow: hidden; }
+.ath-work i::after { content: ""; position: absolute; inset: 0; width: 30%; background: var(--ath-gold);
+                     animation: ath-run 1.4s ease-in-out infinite; }
+@keyframes ath-run { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
 @keyframes ath-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 @media (max-width: 640px) { .ath-emblem { width: 40px; height: 40px; } .ath-name-en { font-size: 1.5rem; }
@@ -99,6 +105,11 @@ RTL_CSS = """<style>
 # --- Language -------------------------------------------------------------------------
 # The switch is drawn in the header (status column); its choice is read here first.
 LANG = "ar" if st.session_state.get("lang_choice") == "العربية" else "en"
+
+
+for _k in ("min_score", "sources", "show_samples", "review_only", "confirmed_only"):
+    if _k in st.session_state:
+        st.session_state[_k] = st.session_state[_k]
 
 
 def T(key, **values):
@@ -305,7 +316,8 @@ def show_why(res, campaign=None):
 
 
 def show_result(res, campaign=None):
-    """The verdict card: score and level on top, then why, then the registration facts."""
+    """The verdict card: score and level on top, then the name, why, and the ML second opinion. The registration
+    facts and outside checks follow in the site file."""
     color, _, icon = LEVELS[res["level"]]
     with st.container(border=True):
         top, badge = st.columns([3, 1], vertical_alignment="center")
@@ -353,17 +365,6 @@ def show_result(res, campaign=None):
             st.text(res["text"])
 
         show_why(res, campaign)
-
-        age = unknown_if_missing(res.get("age_days"))
-        created = unknown_if_missing(res.get("created"))
-        if age != T("unknown"):
-            age = (T("days_since", d=int(age), c=created) if created != T("unknown") else T("days", d=int(age)))
-        f1, f2, f3, f4 = st.columns(4)
-        f1.caption(T("f_domain")); f1.markdown(f"`{res['domain']}`")
-        f2.caption(T("f_age")); f2.markdown(escape_md(age))
-        f3.caption(T("f_registrar")); f3.text(unknown_if_missing(res.get("registrar")))  # plain text, never a link
-        sb = res.get("safe_browsing")
-        f4.caption(T("f_sb")); f4.markdown(escape_md(T("not_checked") if unknown_if_missing(sb) == T("unknown") else sb))
 
         ml = ml_for([res["url"]])[0]  # second opinion only: shown, never added to the score
         # Official sites need no second opinion; Maps listings have no website name for the ML to read.
@@ -421,11 +422,56 @@ st.caption(T("disclaimer") + " " + T("subtitle"))
 if config.PUBLIC_MODE:
     st.warning(T("public_banner"), icon=":material/info:")
 
-tab_dash, tab_check, tab_hunt, tab_about = st.tabs([T("tab_dash"), T("tab_check"), T("tab_hunt"), T("tab_about")])
 
 
-# ----------------------------------------------------------------------------- Dashboard
-def render_dashboard():
+# ----------------------------------------------------------------------------- Shared: status, current site
+def status_of(site):
+    """Confirmed (Google-listed, verified from a screenshot, or officer-approved), Not a scam (seen as a normal
+    website), Suspected (flagged by the rules) or Lead. Never "criminal": these are leads for officers."""
+    if checks.not_a_scam(site["url"]):
+        return "status_cleared"
+    if checks.confirmed_by(site):
+        return "status_confirmed"
+    return "status_suspected" if site["score"] >= config.MEDIUM_RISK else "status_lead"
+
+
+def open_site(url):
+    """Show this site on the Site file page (used by callbacks, before the page is drawn)."""
+    st.session_state["site_url"] = url
+    st.session_state["page_idx"] = PAGES.index("tab_file")
+    st.session_state[f"page_{LANG}"] = T("tab_file")
+
+
+def _open_selected():
+    rows = st.session_state["leads_table"].selection.rows
+    if rows:
+        open_site(st.session_state["leads_urls"][rows[0]])
+
+
+def current_site(sites):
+    """(site, campaign) for the site open in the Site file, or (None, None). A link a visitor checked on the
+    public site is never saved, so it is kept for this visit only."""
+    url = st.session_state.get("site_url")
+    if not url:
+        return None, None
+    key = db.site_key(url)
+    site = next((x for x in sites if x["url"] == url), None) or next(
+        (x for x in sites if db.site_key(x["url"]) == key), None)
+    checked = st.session_state.get("checked_site")
+    if site is None and checked and checked["url"] == url:
+        site = checked
+    if site is None:
+        return None, None
+    return site, next((c for c in campaigns.find(sites) if site.get("domain") in c["domains"]), None)
+
+
+def _keep(key, **default):
+    """Initial value for a widget whose value is kept across pages: only the first time it is drawn."""
+    return {} if key in st.session_state else default
+
+
+# ----------------------------------------------------------------------------- Leads
+def render_leads():
     sites = db.unique_sites()
     if not sites:
         st.info(T("no_sites"))
@@ -441,14 +487,19 @@ def render_dashboard():
     cards = st.container()  # filled in below, once we know the slider and source choices
 
     with st.container(border=True):
-        f1, f2, f3, f4, f5 = st.columns([2, 3, 1, 1, 1], vertical_alignment="bottom")
-        min_score = f1.slider(T("min_score"), 0, 100, config.DASHBOARD_MIN_SCORE, step=5, help=T("min_score_help"),
+        f1, f2 = st.columns([2, 3], vertical_alignment="bottom")
+        f3, f4, f5 = st.columns(3)
+        min_score = f1.slider(T("min_score"), 0, 100, step=5, help=T("min_score_help"), key="min_score",
                               disabled=st.session_state.get("review_only", False)  # these switches show every score
-                              or st.session_state.get("confirmed_only", False))
+                              or st.session_state.get("confirmed_only", False),
+                              **_keep("min_score", value=config.DASHBOARD_MIN_SCORE))
         sources = sorted(df.source[~is_demo].unique())
-        chosen = f2.multiselect(T("source"), sources, default=sources)
-        show_samples = f3.toggle(T("demo_data"), value=n_demo > 0, disabled=n_demo == 0,
-                                 help=T("demo_help") if n_demo else T("demo_help_none"))
+        if "sources" in st.session_state:  # a source can disappear (demo data removed)
+            st.session_state["sources"] = [x for x in st.session_state["sources"] if x in sources]
+        chosen = f2.multiselect(T("source"), sources, key="sources", **_keep("sources", default=sources))
+        show_samples = f3.toggle(T("demo_data"), disabled=n_demo == 0, key="show_samples",
+                                 help=T("demo_help") if n_demo else T("demo_help_none"),
+                                 **_keep("show_samples", value=n_demo > 0))
         review_only = f4.toggle(T("review_only"), disabled=not ml_model.available(), key="review_only",
                                 help=T("review_only_help", gap=config.REVIEW_GAP))
         n_confirmed = int(real.confirmed.notna().sum())
@@ -499,6 +550,7 @@ def render_dashboard():
     view = view.sort_values(["verified", "google", "score", "first_seen"],
                             ascending=[False, False, False, False]).reset_index(drop=True)
     table = view.assign(
+        status=[T(status_of(x)) for x in view.to_dict("records")],
         level=view.level.map(lambda lv: f"{LEVELS[lv][1]} {T(lv)}"),
         host=view.url.map(hostname_readable),
         source=view.source.replace("sample", T("demo_made_up")),
@@ -509,11 +561,12 @@ def render_dashboard():
         proof=[T("verified_label") if v else T("google_label") if g else
                T("officer_label") if by == "officer-approved report" else T("cloaked_label") if c else ""
                for v, g, c, by in zip(view.verified, view.google, view.cloaked, view.confirmed)],
-    )[["score", "level", "proof", "host", "brand", "why", "source", "age_days", "first_seen", "url", "ml", "review"]]
+    )[["status", "score", "level", "proof", "host", "brand", "why", "source", "age_days", "first_seen", "url", "ml",
+       "review"]]
     if not ml_model.available():
         table = table.drop(columns=["ml", "review"])  # no model file: no columns, everything else as normal
     else:
-        table = table[["score", "level", "proof", "ml", "review", "host", "brand", "why", "source", "age_days",
+        table = table[["status", "score", "level", "proof", "ml", "review", "host", "brand", "why", "source", "age_days",
                        "first_seen", "url"]]
 
     if ml_model.available():
@@ -521,9 +574,13 @@ def render_dashboard():
         agree = round(100 * sum(a == b for a, b in pairs) / len(pairs)) if pairs else 0
         st.caption(T("ml_table_note", n=ml_model.examples(), agree=agree))
     st.markdown(T("n_match", n=len(view)))
-    event = st.dataframe(
-        table, hide_index=True, width="stretch", height=420, on_select="rerun", selection_mode="single-row",
+    st.session_state["leads_urls"] = list(view.url)  # row number -> site, for the Site file
+    st.dataframe(
+        table, hide_index=True, width="stretch", height=480, on_select=_open_selected, selection_mode="single-row",
+        key="leads_table",
         column_config={
+            "status": st.column_config.TextColumn(T("col_status"), width="small",
+                                                  help=T("col_status_help", m=config.MEDIUM_RISK)),
             "score": st.column_config.ProgressColumn(T("col_score"), min_value=0, max_value=100, format="%d",
                                                      width="small"),
             "level": st.column_config.TextColumn(T("col_risk"), width="small"),
@@ -540,44 +597,6 @@ def render_dashboard():
             "review": st.column_config.TextColumn(T("col_review"), width="small",
                                                   help=T("review_only_help", gap=config.REVIEW_GAP)),
         })
-
-    if event.selection.rows:
-        site = view.iloc[event.selection.rows[0]].to_dict()
-        in_campaign = next((c for c in campaigns.find(sites) if site["domain"] in c["domains"]), None)
-        st.session_state["selected_site"], st.session_state["selected_campaign"] = site, in_campaign
-    else:
-        st.session_state.pop("selected_site", None)
-        st.session_state.pop("selected_campaign", None)
-    if event.selection.rows:
-        st.divider()
-        left, right = st.columns([3, 2])
-        with left:
-            if site["source"] == "sample":
-                st.warning(T("demo_row"), icon=":material/science:")
-            show_result(site, in_campaign)
-            found_by = T("demo_source") if site["source"] == "sample" else site["source"]
-            query = "" if site["source"] == "sample" or not site["query"] else " · " + code_span(site["query"])
-            st.caption(T("found_by_line", src=found_by, query=query, first=site["first_seen"]))
-        with right:
-            if report.is_reportable(site):
-                with st.container(border=True):
-                    st.markdown(f":material/assignment: **{T('briefing_title')}**")
-                    ai_briefing_block("site", key=f"ai_site_{site['url']}", site=site, campaign=in_campaign)
-            with st.container(border=True):
-                face, head = st.columns([1, 9], vertical_alignment="center")
-                face.image(ASSISTANT_AVATAR, width=34)
-                head.markdown(f"**{T('ask_title')}**")
-                ask_assistant(site, in_campaign, sites)
-            with st.container(border=True):
-                st.markdown(f"**{T('takedown_title')}**")
-                if report.is_reportable(site):
-                    st.caption(T("report_ready"))
-                    takedown_panel(site, key=site["url"])
-                else:
-                    st.caption(T("report_not_needed"))
-
-    st.divider()
-    show_campaigns(sites)
 
 
 # ----------------------------------------------------------------------------- Check a link
@@ -617,31 +636,24 @@ def report_review():
                 st.rerun()
 
 
-with tab_check:
-    form, result = st.columns([2, 3], gap="large")
-    with form:
-        st.subheader(T("check_title"))
+def check_link_panel(open_now):
+    """Check a new link. Public site: scored for this visitor only, never saved, and rate-limited."""
+    with st.expander(T("check_title"), icon=":material/search:", expanded=open_now):
         st.caption(T("check_note"))
         url = st.text_input(T("check_input"), placeholder="http://adpol1ce-fines.xyz/pay")
         msg = st.text_area(T("check_msg"), placeholder="Abu Dhabi Police: unpaid traffic fine. Pay within 24 hours...")
         go = st.button(T("check_btn"), type="primary", icon=":material/search:", disabled=not url.strip())
-    with result:
-        if go and config.PUBLIC_MODE and not limits.take_check(config.CHECKS_PER_MINUTE):
-            st.info(T("check_rate", n=config.CHECKS_PER_MINUTE), icon=":material/hourglass_empty:")
-        elif go:
-            with st.spinner(T("checking")):
-                if config.PUBLIC_MODE:  # public: scored for this visitor only, never saved to the shared data
-                    res = check(url.strip(), text=msg.strip())[0]
-                else:
-                    res = check_and_save(url.strip(), text=msg.strip(), source="manual")
-            show_result(res)
-            if report.is_reportable(res):
-                st.download_button(T("report_download"), report.build(res), icon=":material/download:",
-                                   file_name=f"takedown_{res['domain']}.md", mime="text/markdown")
-        else:
-            st.info(T("check_empty"), icon=":material/arrow_back:")
-    if config.PUBLIC_MODE:
-        report_box()
+    if go and config.PUBLIC_MODE and not limits.take_check(config.CHECKS_PER_MINUTE):
+        st.info(T("check_rate", n=config.CHECKS_PER_MINUTE), icon=":material/hourglass_empty:")
+    elif go:
+        with working(T("checking")):
+            if config.PUBLIC_MODE:  # public: scored for this visitor only, never saved to the shared data
+                res = check(url.strip(), text=msg.strip())[0]
+            else:
+                res = check_and_save(url.strip(), text=msg.strip(), source="manual")
+        st.session_state["checked_site"], st.session_state["site_url"] = res, res["url"]
+        st.rerun()  # redraw the Site file for this link
+
 
 # ----------------------------------------------------------------------------- Hunt
 # On the public demo every scan button shares server-side limits (limits.py): a daily cap per group, a
@@ -665,6 +677,21 @@ def _scan_wait(kind):
         st.caption(T("scan_busy"))
     elif s["cooldown"]:
         st.caption(T("scan_cooldown", t=f"{s['cooldown'] // 60}:{s['cooldown'] % 60:02d}"))
+
+
+class working:
+    """`with working("Scanning certificate logs…"):` shows the step name and a thin moving bar while the block
+    runs, then removes both. CSS only; still for anyone who asks for reduced motion."""
+
+    def __init__(self, label):
+        self.label = label
+
+    def __enter__(self):
+        self.slot = st.empty()
+        self.slot.html(f"<div class='ath-work'><span>{html.escape(self.label)}</span><i></i></div>")
+
+    def __exit__(self, *exc):
+        self.slot.empty()
 
 
 def scan_button(kind, label, ready=True):
@@ -705,7 +732,43 @@ def run_scan(kind, work):
     st.rerun()  # redraw at once, so every button shows the new cooldown and today's count
 
 
-with tab_hunt:
+def _last(sites, prefix):
+    """How many sites a source found, and when it last found one."""
+    mine = [x for x in sites if (x.get("source") or "").startswith(prefix)]
+    last = max((x.get("first_seen") or "" for x in mine), default="")[:10]
+    return len(mine), last or T("st_none")
+
+
+def agents_status(sites):
+    """'AI agents at work': one plain line per agent, saying what it does and its real state."""
+    import json
+    rows = []
+    n, last = _last(sites, "cert log")
+    rows.append((T("agent_watcher"), T("agent_rules"), T("st_watcher", n=n, last=last)))
+    n, last = _last(sites, "search")
+    rows.append((T("agent_search"), T("agent_rules"), T("st_search", n=n, last=last)))
+    n, last = _last(sites, "maps")
+    rows.append((T("agent_maps"), T("agent_rules"),
+                 T("st_maps", n=n, last=last) if config.PLACES_KEY else T("st_maps_off")))
+    done = json.loads(VERIFIED_FILE.read_text(encoding="utf-8")) if VERIFIED_FILE.exists() else {}
+    rows.append((T("agent_checker"), T("agent_rules"),
+                 T("st_checker", n=len(done), last=max((r.get("checked", "") for r in done.values()), default="")
+                   or T("st_none"))))
+    rows.append((T("agent_ml"), T("agent_ai"),
+                 T("st_ml", n=ml_model.examples()) if ml_model.available() else T("st_ml_off")))
+    chat_on = ai.chat_available() if config.PUBLIC_MODE else (bool(config.ANTHROPIC_API_KEY) or llm_ready())
+    state = T("on") if chat_on else (T("st_saved") if config.PUBLIC_MODE else T("off_short"))
+    rows.append((T("side_title"), T("agent_ai"), T("st_assistant", state=state)))
+    st.subheader(T("agents_title"))
+    st.caption(T("agents_note"))
+    with st.container(border=True):
+        for name, kind, line in rows:
+            st.markdown(f"**{name}** · {kind}  \n{line}")
+
+
+def render_agents(sites):
+    agents_status(sites)
+    st.subheader(T("agents_run"))
     if config.PUBLIC_MODE:  # shared limits; no free-text search, no demo-data buttons
         st.info(T("hunt_public", n=config.PUBLIC_SCANS_PER_DAY, m=config.PUBLIC_MAPS_PER_DAY,
                   c=config.SCAN_COOLDOWN_SECONDS // 60), icon=":material/hourglass_empty:")
@@ -716,7 +779,7 @@ with tab_hunt:
         days = st.slider(T("days_slider"), 1, 90, config.CT_RECENT_DAYS)
         if scan_button("watcher", T("run_watcher"), ready=bool(prefixes)):
             def watcher():
-                with st.status(T("watcher_running"), expanded=True) as s:
+                with working(T("watcher_running")), st.status(T("watcher_running"), expanded=True) as s:
                     res = ct_watcher.run(prefixes, days, log=st.write)
                     s.update(label=T("watcher_done", n=len(res)), state="complete")
                 st.session_state["scan_done"] = T("watcher_done", n=len(res))
@@ -729,7 +792,7 @@ with tab_hunt:
         extra = "" if config.PUBLIC_MODE else st.text_input(T("extra_query"), max_chars=100)
         if scan_button("search", T("run_search"), ready=bool(queries or extra.strip())):
             def search():
-                with st.status(T("searching"), expanded=True) as s:
+                with working(T("searching")), st.status(T("searching"), expanded=True) as s:
                     res = search_scanner.run(queries + ([extra.strip()] if extra.strip() else []), log=st.write)
                     s.update(label=T("search_done", n=len(res)), state="complete")
                 st.session_state["scan_done"] = T("search_done", n=len(res))
@@ -741,7 +804,7 @@ with tab_hunt:
             st.caption(T("maps_note"))
             if scan_button("maps", T("run_maps")):
                 def maps():
-                    with st.status(T("maps_running"), expanded=True) as s:
+                    with working(T("maps_running")), st.status(T("maps_running"), expanded=True) as s:
                         res = maps_scanner.run(log=st.write)
                         s.update(label=T("maps_done", n=len(res)), state="complete")
                     st.session_state["scan_done"] = T("maps_done", n=len(res))
@@ -920,19 +983,167 @@ def two_opinions_checked():
     return out + T("two_lesson")
 
 
-with tab_about:
+def channels_block():
+    """The official reporting channels (config.REPORT_CHANNELS), Abu Dhabi Police first."""
+    (main, main_ar, how, how_ar, _), *alts = config.REPORT_CHANNELS
+    ar = LANG == "ar"
+    lines = [f"**{T('channels_main')}:** {main_ar if ar else main}: {how_ar if ar else how}",
+             f"**{T('channels_alt')}:** " + "; ".join(f"[{n_ar if ar else n}]({url})" for n, n_ar, _, _, url in alts)]
+    st.markdown(f"**{T('channels_title')}**  \n" + "  \n".join(lines))
+
+
+def render_overview():
+    st.markdown(T("tagline"))
+    sites = db.unique_sites()
+    if not sites:
+        st.info(T("no_sites"))
+    real = [x for x in sites if x["source"] != "sample" and not checks.not_a_scam(x["url"])]
+    mls = ml_for([x["url"] for x in real])
+    review = sum(ml_model.needs_review(x["score"], None if is_official(x["reasons"]) or x["source"] == "maps" else m)
+                 for x, m in zip(real, mls))
+    c1, c2, c3, c4, c5 = st.columns(5)
+    c1.metric(T("ov_flagged"), sum(x["score"] >= config.MEDIUM_RISK for x in real), border=True,
+              help=T("ov_flagged_help", m=config.MEDIUM_RISK))
+    c2.metric(f":red[▲] {T('card_high')}", sum(x["level"] == "HIGH" for x in real), border=True)
+    c3.metric(T("ov_confirmed"), sum(checks.confirmed_by(x) is not None for x in real), border=True)
+    c4.metric(T("ov_review"), review, border=True)
+    c5.metric(T("ov_campaigns"), len(campaigns.find(sites)), border=True)
+    st.caption(T("ov_note", total=len(real)))
+    render_agents(sites)
+
+
+def render_campaigns():
+    show_campaigns(db.unique_sites())
+
+
+def _field(col, label, value, as_text=False):
+    col.caption(label)
+    (col.text if as_text else col.markdown)(value)  # outside text (registrar, e-mail): plain text, never a link
+
+
+def site_file(site, campaign, sites):
+    """Everything we know about one site, as a case file. Labels are Confirmed / Suspected / Lead only."""
+    status = status_of(site)
+    by = checks.confirmed_by(site)
+    head = T("file_status", s=T(status)) + (f" · {T('file_confirmed_by', by=by)}" if by else "")
+    st.markdown(f"**{head}**")
+    if site.get("source") == "sample":
+        st.warning(T("demo_row"), icon=":material/science:")
+    show_result(site, campaign)  # score, level, name, why, registration facts, ML
+
+    rec = checks.record(site["url"]) or {}
+    with st.container(border=True):
+        st.markdown(f"**{T('file_checks')}**")
+        a, b, c = st.columns(3)
+        sb = site.get("safe_browsing")
+        sb = T("not_checked") if unknown_if_missing(sb) == T("unknown") else sb
+        _field(a, T("f_sb"), escape_md(tr(sb.replace("SOCIAL_ENGINEERING", "phishing (social engineering)"))))
+        _field(b, T("f_vt"), T("vt_line", n=rec["vt_malicious"], total=rec["vt_total"], date=rec["checked"])
+               if rec.get("vt_seen") else T("verify_none"))
+        label = rec.get("label")
+        verify = (T("verify_scam", date=rec["checked"]) if label == "Live scam page" else
+                  T("verify_clear", date=rec["checked"]) if label == "Normal website" else
+                  T("verify_cloaked", date=rec["checked"]) if rec.get("cloaked") else
+                  T("verify_other", label=label, date=rec["checked"]) if label else T("verify_none"))
+        _field(c, T("f_verify"), verify)
+
+    with st.container(border=True):
+        st.markdown(f"**{T('file_reg')}**")
+        z, a, b, c, d = st.columns(5)
+        _field(z, T("f_domain"), code_span(site.get("domain") or hostname(site["url"])))
+        _field(a, T("f_registrar"), unknown_if_missing(site.get("registrar")), as_text=True)
+        _field(b, T("f_regdate"), unknown_if_missing(site.get("created")), as_text=True)
+        age = site.get("age_days")
+        _field(c, T("f_age"), T("unknown") if age is None or pd.isna(age) else T("days", d=int(age)), as_text=True)
+        _field(d, T("f_abuse"), unknown_if_missing(site.get("abuse_email")), as_text=True)
+
+    with st.container(border=True):
+        st.markdown(f"**{T('file_context')}**")
+        a, b, c = st.columns(3)
+        _field(a, T("f_campaign"), T("campaign_line", brand=campaign["brand"], n=len(campaign["domains"]),
+                                     registrar=campaign["registrar"], dates=dates_text(campaign))
+               if campaign else T("campaign_none"), as_text=True)
+        _field(b, T("f_first"), site.get("first_seen") or T("unknown"), as_text=True)
+        found = T("demo_source") if site.get("source") == "sample" else (site.get("source") or "manual")
+        _field(c, T("f_found"), found + (f" · {site['query']}" if site.get("query") and site.get("source") != "sample"
+                                         else ""), as_text=True)
+
+    left, right = st.columns([3, 2])
+    with left, st.container(border=True):
+        st.markdown(f"**{T('file_actions')}**")
+        if report.is_reportable(site):
+            st.caption(T("report_ready"))
+            takedown_panel(site, key=site["url"])
+        else:
+            st.caption(T("report_not_needed"))
+        channels_block()
+    with right:
+        if report.is_reportable(site) and site in sites:
+            with st.container(border=True):
+                st.markdown(f"**{T('briefing_title')}**")
+                ai_briefing_block("site", key=f"ai_site_{site['url']}", site=site, campaign=campaign)
+        with st.container(border=True):
+            st.markdown(f"**{T('ask_title')}**")
+            ask_assistant(site, campaign, sites)
+
+
+def render_site_file():
+    sites = db.unique_sites()
+    site, campaign = current_site(sites)
+    options = [x["url"] for x in sites]
+    if site and site["url"] not in options:
+        options.insert(0, site["url"])  # a link checked on the public site (not saved)
+    picked = st.selectbox(T("file_pick"), options, index=options.index(site["url"]) if site else None,
+                          format_func=hostname_readable, help=T("file_pick_help"), placeholder=T("file_none"),
+                          key=f"pick_{st.session_state.get('site_url')}")
+    if picked and (not site or picked != site["url"]):
+        st.session_state["site_url"] = picked
+        st.rerun()
+    check_link_panel(open_now=site is None)
+    if site:
+        site_file(site, campaign, sites)
+    else:
+        st.info(T("file_none"), icon=":material/folder_open:")
+
+
+def render_report_page():
+    if config.PUBLIC_MODE:
+        report_box()
+    else:
+        st.caption(T("report_page_laptop"))
+        report_review()
+    with st.container(border=True):
+        channels_block()
+
+
+def render_about():
     st.markdown(ABOUT[LANG].split("### Future plans")[0].split("### خطط مستقبلية")[0])
     st.markdown(two_opinions_checked())
     st.markdown(ml_plans() or ABOUT[LANG][ABOUT[LANG].find("###"):])
     st.markdown(f"Google Safe Browsing: **{T('on') if config.SAFE_BROWSING_KEY else T('off_short')}** · "
                 f"Google Maps: **{T('on') if config.PLACES_KEY else T('off_short')}** · "
                 f"AI: **{T('on') if ai.engine() else T('off_short')}**")
+    with st.container(border=True):
+        channels_block()
 
-# Drawn last so it already includes anything a hunt or check above just added.
-with tab_dash:
-    if not config.PUBLIC_MODE:
-        report_review()
-    render_dashboard()
+
+# ----------------------------------------------------------------------------- Pages
+# Tabs that draw only the open page (fast on phones). The open page is kept when the language changes.
+PAGES = ["tab_overview", "tab_leads", "tab_campaigns", "tab_file", "tab_report", "tab_about"]
+DRAW = [render_overview, render_leads, render_campaigns, render_site_file, render_report_page, render_about]
+
+
+def _page_changed():
+    st.session_state["page_idx"] = [T(k) for k in PAGES].index(st.session_state[f"page_{LANG}"])
+
+
+_labels = [T(k) for k in PAGES]
+_tabs = st.tabs(_labels, key=f"page_{LANG}", on_change=_page_changed,
+                **_keep(f"page_{LANG}", default=_labels[st.session_state.get("page_idx", 0)]))
+for _tab, _draw in zip(_tabs, DRAW):
+    if _tab.open:
+        with _tab:
+            _draw()
 
 
 # ----------------------------------------------------------------------------- The ATHAR Assistant (side panel)
@@ -947,7 +1158,7 @@ def side_assistant():
     if config.PUBLIC_MODE and not ai.chat_available():
         saved_answers()
         return
-    selected = st.session_state.get("selected_site")
+    selected, selected_campaign = current_site(db.unique_sites())
     st.caption(T("side_about_site", site=hostname(selected["url"])) if selected else T("side_about_all"))
     # Claude (if its key is set) everywhere; Gemini only on the public site, which has no local model
     cloud = bool(config.ANTHROPIC_API_KEY) or (config.PUBLIC_MODE and ai.chat_available())
@@ -973,8 +1184,7 @@ def side_assistant():
         try:
             with st.spinner(T("side_thinking_cloud") if cloud else T("ask_thinking")):
                 sites = db.unique_sites()
-                data = local_llm.overview_facts(sites, campaigns.find(sites), selected,
-                                                st.session_state.get("selected_campaign"))
+                data = local_llm.overview_facts(sites, campaigns.find(sites), selected, selected_campaign)
                 answer = (ai.chat if cloud else local_llm.chat)(question, history, data, LANG)
             history.append((question, answer))
             st.session_state["assistant_asked"] = st.session_state.get("assistant_asked", 0) + 1

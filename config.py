@@ -67,8 +67,8 @@ REVIEW_GAP = int(os.environ.get("REVIEW_GAP", "60"))
 # The ATHAR Assistant's side-panel chat with Claude Haiku (Anthropic API). Optional: with ANTHROPIC_API_KEY set, the chat
 # uses Claude on this computer and on the public demo; without it, the local model / Gemini as before.
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-CLAUDE_MODEL = os.environ.get("ANAQ_CLAUDE_MODEL", "claude-haiku-5-5")
-CLAUDE_EFFORT = os.environ.get("ANAQ_CLAUDE_EFFORT", "low")  # low = fast, short answers
+CLAUDE_MODEL = os.environ.get("ATHAR_CLAUDE_MODEL", "claude-haiku-5-5")
+CLAUDE_EFFORT = os.environ.get("ATHAR_CLAUDE_EFFORT", "low")  # low = fast, short answers
 
 # Free questions about one site: a language model running on this computer with Ollama (local_llm.py).
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434")

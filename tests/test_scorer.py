@@ -1,6 +1,7 @@
 import pytest
 """Automated checks for the scoring engine. Run with:  .venv\\Scripts\\python -m pytest -q"""
 import csv
+import re
 
 import config
 from scorer import score_url
@@ -1237,15 +1238,72 @@ def test_visitors_never_see_the_model_or_company_name(monkeypatch, tmp_path):
     _fresh_limits(monkeypatch, tmp_path)
     monkeypatch.setattr(config, "PUBLIC_MODE", True)
     monkeypatch.setattr(config, "ANTHROPIC_API_KEY", "fake-key")  # chat on, as on the live site
-    for lang in ("English", "العربية"):
-        at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120)
-        at.session_state["lang_choice"] = lang
-        at.run()
-        assert not at.exception, [e.value for e in at.exception]
-        shown = [e.value for kind in ("markdown", "caption", "info", "warning", "error", "title", "subheader")
-                 for e in getattr(at, kind)] + [b.label for b in at.button] + [t.label for t in at.tabs]
-        leaks = [s for s in shown if any(n in str(s).lower() for n in HIDDEN_NAMES)]
-        assert not leaks, (lang, leaks)
+    pages = {"English": ["Overview", "Leads", "Campaigns", "Site file", "Report a site", "How it works"],
+             "العربية": ["نظرة عامة", "المؤشرات", "الحملات", "ملف الموقع", "الإبلاغ عن موقع", "كيف يعمل"]}
+    for lang, names in pages.items():
+        for page in names:  # every page, both languages: no model names and no old product names
+            at = _open_app(page, lang)
+            assert not at.exception, [e.value for e in at.exception]
+            shown = [e.value for kind in ("markdown", "caption", "info", "warning", "error", "title", "subheader")
+                     for e in getattr(at, kind)] + [b.label for b in at.button] + [t.label for t in at.tabs]
+            leaks = [s for s in shown if any(n in str(s).lower() for n in HIDDEN_NAMES) or _old_name(str(s))]
+            assert not leaks, (lang, page, leaks)
+            header = " ".join(h.proto.body for h in at.get("html"))
+            assert ("Prototype proposed for Abu Dhabi Police" if lang == "English" else "نموذج أولي مقترح لشرطة أبوظبي") in header
+            assert "ScamShield AI" in " ".join(c.value for c in at.caption)  # the disclaimer, on every page
+
+
+# Old product names. The only exceptions: the event's real name ("ScamShield AI hackathon"), the public-mode
+# switch the live site's secrets still use (SCAMSHIELD_PUBLIC), and ecrime.ae in the official-domain
+# allowlist (config.py) and the ML evaluation data, where it is a domain, not a reporting channel.
+OLD_NAMES = re.compile(r"scamsayyad|sayyad|صيّاد|صياد|athar al anaq|أثر العناق|(?<![a-z])anaq(?![a-z])|عناق|scamshield|"
+                       r"caracal|mascot")
+
+
+def _old_name(text):
+    text = text.lower().replace("scamshield ai", "").replace("scamshield_public", "")  # the event; the secret
+    return OLD_NAMES.search(text)
+
+
+def test_no_old_names_anywhere_in_the_project():
+    import subprocess
+    files = subprocess.run(["git", "ls-files"], cwd=config.ROOT, capture_output=True, text=True).stdout.split()
+    hits = []
+    for name in files:
+        if name == "tests/test_scorer.py":
+            continue  # this file lists the old names to look for
+        text = (config.ROOT / name).read_bytes().decode("utf-8", errors="ignore")
+        if _old_name(text):
+            hits.append((name, _old_name(text).group(0)))
+        if "ecrime.ae" in text.replace("ecrimehub", "") and name not in ("config.py", "data/ml/metrics.json"):
+            hits.append((name, "ecrime.ae"))
+    assert not hits, hits
+    assert not [f for f in files if _old_name(f)]  # file names too
+
+
+def test_site_file_is_a_case_file_with_the_reporting_channels(monkeypatch, tmp_path):
+    from scorer import score_url
+    db = _empty_db(monkeypatch, tmp_path)
+    _fresh_limits(monkeypatch, tmp_path)
+    res = score_url("https://salik-pay-fines.top/pay")
+    res.update(registrar="Example Registrar", created="2026-11-01", age_days=21, abuse_email="abuse@example.net")
+    db.save(res, source="cert log", query="salik*")
+    at = _open_app("Leads")
+    assert list(at.dataframe[0].value.status) == ["Suspected"]  # never "criminal"; Confirmed needs proof
+    at.session_state["site_url"] = res["url"]
+    at.session_state["page_en"] = "Site file"
+    at.run()
+    assert not at.exception, [e.value for e in at.exception]
+    shown = " ".join(str(e.value) for kind in ("markdown", "caption", "text") for e in getattr(at, kind))
+    for fact in ("Status: Suspected", "Outside checks", "Example Registrar", "2026-11-01", "21 days",
+                 "abuse@example.net", "Abu Dhabi Police Aman Service", "8002626", "2828",
+                 "https://ecrimehub.gov.ae", "https://www.moi.gov.ae", "First seen", "cert log · salik*"):
+        assert fact in shown, fact
+    assert "criminal" not in shown.lower()
+    assert any(b.label == "Download takedown report" for b in at.get("download_button"))
+    import report
+    text = report.build(db.unique_sites()[0])
+    assert "Abu Dhabi Police Aman Service: call 8002626, SMS 2828" in text and "ecrime.ae" not in text.replace("ecrimehub", "")
 
 
 def test_only_person_verified_scams_get_the_badge_and_they_sort_first(monkeypatch, tmp_path):

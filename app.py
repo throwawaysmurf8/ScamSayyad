@@ -853,7 +853,7 @@ button adds a draft from the local AI model (or the cloud AI if it's off). No sc
 can add an Arabic version below the English one, built from templates.
 
 **ATHAR Assistant (AI):** questions about the current leads. The assistant answers from recorded facts only
-(never opens a site, never changes a score), tersely and cheaply; every answer is labelled an AI draft.
+(never opens a site, never changes a score) and briefly; every answer is labelled an AI draft.
 
 **Data sources:** RDAP + UAE WHOIS (domain age), crt.sh (certificate logs), Bing via `ddgs` (search),
 Google Safe Browsing, Google Places and a cloud AI service (optional keys).

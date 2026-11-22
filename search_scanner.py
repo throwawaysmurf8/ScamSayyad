@@ -14,7 +14,7 @@ import sys
 from ddgs import DDGS
 
 import config
-from enrich import check_and_save
+from enrich import check_and_save, official_check
 
 
 def _snapshot_path(query):
@@ -52,6 +52,7 @@ def run(queries=None, log=print):
             results.append(check_and_save(h["href"], source=source, query=q))
     flagged = [r for r in results if r["score"] >= config.MEDIUM_RISK]
     log(f"Done: {len(results)} results scored, {len(flagged)} flagged MEDIUM or HIGH")
+    official_check(log)  # safety net: no official or .gov.ae site may stay flagged
     return results
 
 

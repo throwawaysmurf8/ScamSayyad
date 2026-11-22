@@ -304,11 +304,14 @@ def show_result(res, campaign=None):
         f4.caption(T("f_sb")); f4.markdown(escape_md(T("not_checked") if unknown_if_missing(sb) == T("unknown") else sb))
 
         ml = ml_for([res["url"]])[0]  # second opinion only: shown, never added to the score
-        if ml is not None and not is_official(res["reasons"]):  # official sites need no second opinion
+        # Official sites need no second opinion; Maps listings have no website name for the ML to read.
+        if ml is not None and not is_official(res["reasons"]) and "#place=" not in res["url"]:
             rule_flag, ml_flag = res["score"] >= config.MEDIUM_RISK, ml >= 50
             verdict = T("ml_agrees") if rule_flag == ml_flag else (
                 T("ml_disagrees_more") if ml_flag else T("ml_disagrees_less"))
             st.markdown(T("ml_card", p=ml, verdict=verdict))
+            if ml_model.needs_review(res["score"], ml):
+                st.warning(T("review_card", score=res["score"], ml=ml, gap=config.REVIEW_GAP), icon=":material/flag:")
 
 
 def takedown_panel(site, key):
@@ -376,16 +379,28 @@ def render_dashboard():
     cards = st.container()  # filled in below, once we know the slider and source choices
 
     with st.container(border=True):
-        f1, f2, f3 = st.columns([2, 3, 1], vertical_alignment="bottom")
-        min_score = f1.slider(T("min_score"), 0, 100, config.DASHBOARD_MIN_SCORE, step=5, help=T("min_score_help"))
+        f1, f2, f3, f4 = st.columns([2, 3, 1, 1], vertical_alignment="bottom")
+        min_score = f1.slider(T("min_score"), 0, 100, config.DASHBOARD_MIN_SCORE, step=5, help=T("min_score_help"),
+                              disabled=st.session_state.get("review_only", False))  # that switch shows every score
         sources = sorted(df.source[~is_demo].unique())
         chosen = f2.multiselect(T("source"), sources, default=sources)
         show_samples = f3.toggle(T("demo_data"), value=n_demo > 0, disabled=n_demo == 0,
                                  help=T("demo_help") if n_demo else T("demo_help_none"))
+        review_only = f4.toggle(T("review_only"), disabled=not ml_model.available(), key="review_only",
+                                help=T("review_only_help", gap=config.REVIEW_GAP))
+
+    # "Needs review": rules and ML differ by REVIEW_GAP+ points. That switch shows only those, at any score.
+    total_real = len(real)
+    df_ml = [None if is_official(r) or src == "maps" else m  # Maps listings: the ML reads website names only
+             for r, src, m in zip(df.reasons, df.source, ml_for(list(df.url)))]
+    df = df.assign(ml=df_ml, review=[ml_model.needs_review(s, m) for s, m in zip(df.score, df_ml)])
+    if review_only:
+        df, min_score = df[df.review], 0
+    real = df[df.source != "sample"]
 
     # The cards count exactly the REAL sites the table shows (same slider and sources). Never demo rows.
     shown_real = real[(real.score >= min_score) & real.source.isin(chosen)]
-    shown_ml = [None if is_official(r) else m for r, m in zip(shown_real.reasons, ml_for(list(shown_real.url)))]
+    shown_ml = list(shown_real.ml)
     with cards:
         c1, c2, c3, c4, c5 = st.columns(5) if ml_model.available() else (*st.columns(4), None)
         c1.metric(f":red[▲] {T('card_high')}", int((shown_real.level == "HIGH").sum()), border=True)
@@ -396,8 +411,12 @@ def render_dashboard():
         if c5 is not None:
             c5.metric(f":material/model_training: {T('card_ml')}", sum(1 for m in shown_ml if m is not None and m >= 50),
                       border=True, help=T("card_ml_help"))
-        st.caption(T("cards_note", min_score=min_score, total=len(real)))
+        st.caption(T("cards_note", min_score=min_score, total=total_real))
+        n_review = int(shown_real.review.sum())
+        if n_review:
+            st.caption(T("review_count", n=n_review, gap=config.REVIEW_GAP))
 
+    is_demo = df.source == "sample"
     view = df[(df.score >= min_score) & (df.source.isin(chosen) | (is_demo & show_samples))]
     if show_samples and n_demo:
         st.warning(T("demo_on", n=int(view.source.eq("sample").sum())), icon=":material/science:")
@@ -410,12 +429,13 @@ def render_dashboard():
         brand=view.reasons.map(brand_used),
         why=view.reasons.map(lambda r: tr(r[0]) if r else ""),
         age_days=view.age_days.map(lambda a: T("unknown") if pd.isna(a) else str(int(a))),
-        ml=[None if is_official(r) else m for r, m in zip(view.reasons, ml_for(list(view.url)))],
-    )[["score", "level", "host", "brand", "why", "source", "age_days", "first_seen", "url", "ml"]]
+        review=view.review.map(lambda r: T("review_label") if r else ""),
+    )[["score", "level", "host", "brand", "why", "source", "age_days", "first_seen", "url", "ml", "review"]]
     if not ml_model.available():
-        table = table.drop(columns=["ml"])  # no model file: no column, everything else as normal
+        table = table.drop(columns=["ml", "review"])  # no model file: no columns, everything else as normal
     else:
-        table = table[["score", "level", "ml", "host", "brand", "why", "source", "age_days", "first_seen", "url"]]
+        table = table[["score", "level", "ml", "review", "host", "brand", "why", "source", "age_days", "first_seen",
+                       "url"]]
 
     if ml_model.available():
         pairs = [(s >= config.MEDIUM_RISK, m >= 50) for s, m in zip(shown_real.score, shown_ml) if m is not None]
@@ -437,6 +457,8 @@ def render_dashboard():
             "url": st.column_config.TextColumn(T("col_url"), width="medium"),
             "ml": st.column_config.ProgressColumn(T("col_ml"), min_value=0, max_value=100, format="%d%%",
                                                   width=140, help=T("col_ml_help")),
+            "review": st.column_config.TextColumn(T("col_review"), width="small",
+                                                  help=T("review_only_help", gap=config.REVIEW_GAP)),
         })
 
     if event.selection.rows:

@@ -231,6 +231,35 @@ def rescore_saved(sites, threats_by_url=None):
     return changed
 
 
+def is_official_site(site):
+    """True for an official website (allowlist or any .gov.ae), or a Maps listing that links one."""
+    _, _, registered, suffix, _ = parse(site["url"].split("#place=")[0])
+    return (registered in config.OFFICIAL_DOMAINS or suffix == "gov.ae"
+            or bool(site.get("reasons")) and site["reasons"][0].startswith("Official domain"))
+
+
+def official_check(log=print):
+    """Safety net, run after every hunt: no official or .gov.ae site may stay flagged. Any that scores above 0
+    is re-scored with the current rules, which put official sites at 0. The one exception is a site
+    Google itself lists as dangerous (an official site that was hacked): it is kept and reported, for an
+    officer to look at. Returns (put_back, kept) as lists of URLs."""
+    import db
+
+    wrong = [s for s in db.all_sites() if s["score"] > 0 and is_official_site(s)]
+    rescore_saved(wrong)
+    now = {s["url"]: s["score"] for s in db.all_sites()}
+    put_back = [s["url"] for s in wrong if now.get(s["url"], 0) == 0]
+    kept = [s["url"] for s in wrong if now.get(s["url"], 0) > 0]
+    if put_back:
+        log(f"Official-site check: put {len(put_back)} official site(s) back to 0: {', '.join(put_back)}")
+    if kept:
+        log(f"Official-site check: {len(kept)} official site(s) still flagged because Google lists them "
+            f"as dangerous; an officer should look: {', '.join(kept)}")
+    if not wrong:
+        log("Official-site check: no official or .gov.ae site is flagged.")
+    return put_back, kept
+
+
 def recheck_safe_browsing(min_score=config.MEDIUM_RISK, log=print):
     """Ask Safe Browsing about every saved MEDIUM/HIGH site (demo rows excluded), in batches."""
     import db

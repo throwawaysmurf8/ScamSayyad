@@ -239,6 +239,13 @@ false-alarm patterns, and these rules were added (`scorer.score_url`, step 7, an
 Result: 66 HIGH, 140 MEDIUM, 1,619 LOW of 1,825 unique sites; no site in a known false-positive
 pattern is flagged; 198 of 265 likely scams are flagged (the rest score just under 40).
 
+**Official-site check after every hunt.** A full scan of both databases found no official or `.gov.ae`
+site flagged, no Maps listing above 0, and no `.ae`, `.abudhabi`, `.dubai` or government-looking site
+among the 206 flagged. To keep it that way, every hunter (watcher, search, Maps) ends with a safety net
+(`enrich.official_check`): any allowlisted or `.gov.ae` site scoring above 0 is re-scored back to 0 and
+the hunt log says so. The one exception is a site Google lists as dangerous (an official site that was
+hacked): it stays flagged and the log asks an officer to look.
+
 ### Honest limitations
 
 - **crt.sh is slow and sometimes down.** Each brand search takes about 30 seconds and can
@@ -355,6 +362,11 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
   each site's card. It is logistic regression (scikit-learn) on 3–5-letter chunks of the name plus simple
   counts (length, dots, hyphens, digits). It never opens a website and **never changes the rule-based
   score**. It is hidden for official, allowlisted sites, and disappears if `data/ml/model.npz` is missing.
+  - **"Needs review" label:** when the rule score and the ML score differ by 60 points or more
+    (`REVIEW_GAP`), the site gets "⚑ Needs review" in the table and on its card, and the "Needs review
+    only" switch lists them at any score. Today that is 846 sites, all the same way round: the ML thinks
+    the name looks scam-like but the rules cleared it (mostly the `.ph` bulk batch, personal pages on
+    free platforms and people named Salik). None is on the default 60+ view.
   - **Training data (lists only; no site in them is opened):** the PhiUSIIL Phishing URL dataset
     (UCI ML Repository, CC BY 4.0; Prasad & Chandra 2024, https://doi.org/10.1016/j.cose.2023.103545)
     and the Tranco top 100,000 sites plus all 718 UAE (.ae) sites in its top million, so it learns what

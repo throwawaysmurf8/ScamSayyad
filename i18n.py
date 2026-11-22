@@ -233,6 +233,19 @@ S = {
                     "حدود هذه النسخة العامة، مشتركة بين جميع الزوار: {n} عملية بحث يومياً للمراقب والبحث معاً، و{m} فحصاً "
                     "لخرائط Google يومياً، وعملية واحدة في كل مرة، ويتوقف كل زر {c} دقيقة بعد كل عملية. تظهر النتائج "
                     "الجديدة في لوحة المتابعة للجميع."),
+    "review_label": ("⚑ Needs review", "⚑ يحتاج مراجعة"),
+    "col_review": ("Review", "مراجعة"),
+    "review_only": ("Needs review only", "ما يحتاج مراجعة فقط"),
+    "review_only_help": ("Sites where the rule score and the ML second opinion differ by {gap} points or more. "
+                         "Shown at any score when this is on.",
+                         "المواقع التي يختلف فيها تقييم القواعد عن الرأي الثاني للتعلم الآلي بـ {gap} نقطة أو أكثر. "
+                         "تظهر بأي تقييم عند تفعيل هذا الخيار."),
+    "review_count": ("⚑ {n} of these need review: the rules and the ML differ by {gap}+ points.",
+                     "⚑ {n} منها تحتاج مراجعة: القواعد والتعلم الآلي يختلفان بـ {gap} نقطة أو أكثر."),
+    "review_card": ("**Needs review:** the rules give {score}/100 but the ML second opinion says {ml}%, "
+                    "a gap of {gap}+ points. An officer should look at this one.",
+                    "**يحتاج مراجعة:** تقييم القواعد {score}/100 بينما يقول الرأي الثاني للتعلم الآلي {ml}%، "
+                    "بفارق {gap} نقطة أو أكثر. ينبغي أن يطّلع عليه ضابط."),
     "scans_left_other": ("{n} of {cap} scans left today (watcher and search together)",
                          "متبقٍّ اليوم {n} من {cap} (المراقب والبحث معاً)"),
     "scans_left_maps": ("{n} of {cap} Maps scans left today", "متبقٍّ اليوم {n} من {cap} من فحوص الخرائط"),

@@ -171,3 +171,9 @@ def similar(url_or_host, candidates, k=5):
     sims = (v.transform(["^" + h + "$" for h in hosts]) @ v.transform(["^" + host + "$"]).T).toarray()[:, 0]
     order = [i for i in sims.argsort()[::-1] if hosts[i] != host]
     return [(candidates[i], int(round(100 * sims[i]))) for i in order[:k]]
+
+
+def needs_review(rule_score, ml_score):
+    """True when the rules and the ML second opinion disagree by REVIEW_GAP points or more (an officer should
+    look). Official sites and sites without an ML score (Maps listings) never need review."""
+    return ml_score is not None and abs(rule_score - ml_score) >= config.REVIEW_GAP

@@ -20,7 +20,7 @@ import requests
 
 import config
 import db
-from enrich import check
+from enrich import check, official_check
 from scorer import parse, score_listing
 
 URL = "https://places.googleapis.com/v1/places:searchText"
@@ -77,6 +77,7 @@ def run(queries=None, log=print):
         results += [check_listing(p, q) for p in places]
     flagged = [r for r in results if r["score"] >= config.MEDIUM_RISK]
     log(f"Done: {len(results)} listings scored, {len(flagged)} flagged MEDIUM or HIGH")
+    official_check(log)  # safety net: no official or .gov.ae site may stay flagged
     return results
 
 

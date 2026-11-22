@@ -1046,3 +1046,68 @@ def test_public_site_never_saves_visitor_input(monkeypatch, tmp_path):
     ct_watcher.run(["salik", "notabrand"], days=7, log=lambda *_: None)
     assert watched == ["salik"]
     assert db.all_sites() == []
+
+
+def test_official_check_puts_flagged_official_sites_back_to_zero(monkeypatch, tmp_path):
+    """Safety net after every hunt: an official or .gov.ae site that somehow scores above 0 is put back to 0,
+    except one Google lists as dangerous, which is kept and reported for an officer."""
+    import enrich
+    db = _empty_db(monkeypatch, tmp_path)
+    bad = {"domain": "", "score": 60, "level": "MEDIUM", "reasons": ["+35 old rule"], "safe_browsing": "clean"}
+    db.save(dict(bad, url="https://www.adpolice.gov.ae/en/fines", domain="adpolice.gov.ae"), "search")
+    db.save(dict(bad, url="https://some-office.gov.ae/pay", domain="some-office.gov.ae"), "search")
+    db.save(dict(bad, url="https://rta.ae/fines", domain="rta.ae", safe_browsing="SOCIAL_ENGINEERING"), "search")
+    db.save(dict(bad, url="https://salik-pay.top/", domain="salik-pay.top"), "search")  # not official: untouched
+    logs = []
+    put_back, kept = enrich.official_check(log=logs.append)
+    assert set(put_back) == {"https://www.adpolice.gov.ae/en/fines", "https://some-office.gov.ae/pay"}
+    assert kept == ["https://rta.ae/fines"]
+    scores = {s["url"]: s["score"] for s in db.all_sites()}
+    assert scores["https://www.adpolice.gov.ae/en/fines"] == 0 and scores["https://some-office.gov.ae/pay"] == 0
+    assert scores["https://salik-pay.top/"] == 60
+    assert any("put 2 official site(s) back to 0" in line for line in logs)
+    assert enrich.official_check(log=logs.append) == ([], ["https://rta.ae/fines"])
+
+
+def test_every_hunter_runs_the_official_check(monkeypatch, tmp_path):
+    import ct_watcher
+    import maps_scanner
+    import search_scanner
+    calls = []
+    for mod in (ct_watcher, search_scanner, maps_scanner):
+        monkeypatch.setattr(mod, "official_check", lambda log=print, m=mod.__name__: calls.append(m))
+    monkeypatch.setattr(config, "FIXTURES", tmp_path)
+    monkeypatch.setattr(ct_watcher, "fetch", lambda p: [])
+    monkeypatch.setattr(search_scanner, "search", lambda q: ([], "search"))
+    monkeypatch.setattr(config, "PLACES_KEY", "test-key")
+    monkeypatch.setattr(maps_scanner, "search", lambda q: [])
+    quiet = lambda *_: None  # noqa: E731
+    ct_watcher.run(["salik"], days=7, log=quiet)
+    search_scanner.run([config.SEARCH_QUERIES[0]], log=quiet)
+    maps_scanner.run([config.MAPS_QUERIES[0]], log=quiet)
+    assert calls == ["ct_watcher", "search_scanner", "maps_scanner"]
+
+
+def test_needs_review_when_rules_and_ml_differ_by_60_points():
+    import ml_model
+    assert ml_model.needs_review(0, 60) and ml_model.needs_review(90, 30) and ml_model.needs_review(0, 100)
+    assert not ml_model.needs_review(0, 59) and not ml_model.needs_review(70, 20)
+    assert not ml_model.needs_review(100, None)  # no ML score (Maps listing or official site): never
+
+
+def test_dashboard_shows_the_needs_review_label(monkeypatch, tmp_path):
+    import ml_model
+    from streamlit.testing.v1 import AppTest
+    if not ml_model.available():
+        pytest.skip("no ML model file")
+    db = _empty_db(monkeypatch, tmp_path)
+    for url, score in (("https://salikdev.example/", 0), ("https://adpolice-fines-pay.top/", 90)):
+        db.save({"url": url, "domain": url.split("/")[2], "score": score, "level": "HIGH" if score >= 70 else "LOW",
+                 "reasons": ["test"], "safe_browsing": "clean"}, "search")
+    monkeypatch.setattr(ml_model, "score_hosts", lambda urls: [100 if "salikdev" in u else 95 for u in urls])
+    at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120).run()
+    assert not at.exception, [e.value for e in at.exception]
+    next(t for t in at.toggle if t.label == "Needs review only").set_value(True).run()
+    table = at.dataframe[0].value
+    assert list(table.host) == ["salikdev.example"]          # shown at any score; the agreeing site is not
+    assert table.review.iloc[0] == "⚑ Needs review"

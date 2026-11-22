@@ -56,6 +56,8 @@ PUBLIC_SCANS_PER_DAY = int(os.environ.get("PUBLIC_SCANS_PER_DAY", "30"))  # watc
 PUBLIC_MAPS_PER_DAY = int(os.environ.get("PUBLIC_MAPS_PER_DAY", "20"))  # Maps scans per day (4 Google requests each)
 SCAN_COOLDOWN_SECONDS = int(os.environ.get("SCAN_COOLDOWN_SECONDS", "120"))  # a scan button rests this long after a scan
 CHECKS_PER_MINUTE = int(os.environ.get("CHECKS_PER_MINUTE", "10"))  # "Check a link", everyone together
+# "Needs review": the rule score and the ML second opinion (0-100%) differ by at least this many points.
+REVIEW_GAP = int(os.environ.get("REVIEW_GAP", "60"))
 
 # Anaq's side-panel chat with Claude Haiku (Anthropic API). Optional: with ANTHROPIC_API_KEY set, the chat
 # uses Claude on this computer and on the public demo; without it, the local model / Gemini as before.

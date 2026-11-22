@@ -19,7 +19,7 @@ import requests
 
 import config
 import db
-from enrich import check_and_save
+from enrich import check_and_save, official_check
 from scorer import parse, score_url
 
 TIMEOUT = 45
@@ -84,6 +84,7 @@ def run(prefixes=None, days=config.CT_RECENT_DAYS, log=print):
             results.append(res)
     flagged = [r for r in results if r["score"] >= config.MEDIUM_RISK]
     log(f"Done: {len(results)} hostnames scored, {len(flagged)} flagged MEDIUM or HIGH")
+    official_check(log)  # safety net: no official or .gov.ae site may stay flagged
     return results
 
 

@@ -1041,6 +1041,7 @@ def test_public_site_never_saves_visitor_input(monkeypatch, tmp_path):
     monkeypatch.setattr(search_scanner, "search", lambda q: (searched.append(q), ([], "search"))[1])
     search_scanner.run([config.SEARCH_QUERIES[0], "my own words"], log=lambda *_: None)
     assert searched == [config.SEARCH_QUERIES[0]]
+    monkeypatch.setattr(config, "FIXTURES", tmp_path)  # keep the saved crt.sh snapshots untouched
     monkeypatch.setattr(ct_watcher, "fetch", lambda p: (watched.append(p), [])[1])
     ct_watcher.run(["salik", "notabrand"], days=7, log=lambda *_: None)
     assert watched == ["salik"]

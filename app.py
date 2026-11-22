@@ -107,18 +107,26 @@ VERIFIED_FILE = config.VERIFIED_FILE
 def _verified(path, mtime):
     import json
     path = Path(path)
-    data = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
-    return {h: r for h, r in data.items() if r.get("label") == "Live scam page"}
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
 
 
-def verified_scams():
-    """Sites a person classified as a live scam page from an outside scanner's screenshot (tools/verify_sites.py).
-    Only these are shown as verified; every other site stays an unverified lead."""
-    return _verified(str(VERIFIED_FILE), VERIFIED_FILE.stat().st_mtime if VERIFIED_FILE.exists() else 0)
+def _checked(url):
+    """This site's outside-scanner record (tools/verify_sites.py), if any."""
+    data = _verified(str(VERIFIED_FILE), VERIFIED_FILE.stat().st_mtime if VERIFIED_FILE.exists() else 0)
+    return data.get(hostname(url).removeprefix("www."))
 
 
 def verified_record(url):
-    return verified_scams().get(hostname(url).removeprefix("www."))
+    """Only sites a person classified as a live scam page from a scanner's screenshot count as verified;
+    every other site stays an unverified lead."""
+    rec = _checked(url)
+    return rec if rec and rec.get("label") == "Live scam page" else None
+
+
+def cloaked_record(url):
+    """A site that showed scanners only a bot-check page: a hiding trick, noted but never called verified."""
+    rec = _checked(url)
+    return rec if rec and rec.get("cloaked") and rec.get("label") != "Live scam page" else None
 
 
 def hostname_readable(url):
@@ -290,7 +298,12 @@ def show_result(res, campaign=None):
         top.markdown(f"## :{color}[{res['score']}]<span style='font-size:1rem;opacity:.7'> / 100</span>",
                      unsafe_allow_html=True)
         badge.badge(T("risk_badge", level=T(res["level"])), icon=icon, color=color)
-        proof = verified_record(res["url"])
+        proof, hidden = verified_record(res["url"]), cloaked_record(res["url"])
+        if hidden:
+            st.info(T("cloaked_card", date=hidden["checked"], by=hidden.get("shot_by") or "Cloudflare Radar"),
+                    icon=":material/visibility_off:")
+            if hidden.get("vt_seen"):
+                st.caption(T("verified_vt", n=hidden["vt_malicious"], total=hidden["vt_total"]))
         if proof:
             by = proof.get("shot_by") or "Cloudflare Radar"
             st.success(T("verified_card", date=proof["checked"], reason=escape_md(proof["reason"]), by=by),
@@ -454,6 +467,7 @@ def render_dashboard():
     # Verified scams first, then Google-listed sites, then highest risk; newest first among equal scores.
     view = view.assign(
         verified=view.url.map(lambda u: verified_record(u) is not None),
+        cloaked=view.url.map(lambda u: cloaked_record(u) is not None),
         google=view.safe_browsing.fillna("").str.contains("_"))
     view = view.sort_values(["verified", "google", "score", "first_seen"],
                             ascending=[False, False, False, False]).reset_index(drop=True)
@@ -465,7 +479,8 @@ def render_dashboard():
         why=view.reasons.map(lambda r: tr(r[0]) if r else ""),
         age_days=view.age_days.map(lambda a: T("unknown") if pd.isna(a) else str(int(a))),
         review=view.review.map(lambda r: T("review_label") if r else ""),
-        proof=[T("verified_label") if v else T("google_label") if g else "" for v, g in zip(view.verified, view.google)],
+        proof=[T("verified_label") if v else T("google_label") if g else T("cloaked_label") if c else ""
+               for v, g, c in zip(view.verified, view.google, view.cloaked)],
     )[["score", "level", "proof", "host", "brand", "why", "source", "age_days", "first_seen", "url", "ml", "review"]]
     if not ml_model.available():
         table = table.drop(columns=["ml", "review"])  # no model file: no columns, everything else as normal

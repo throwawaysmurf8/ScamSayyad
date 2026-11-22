@@ -49,7 +49,8 @@ VIRUSTOTAL = "https://www.virustotal.com/api/v3"
 CF_GAP, VT_GAP = 10, 16  # seconds between calls: Cloudflare free plan 1 scan / 10 s; VirusTotal free 4 / minute
 PHONE = ("Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) "
          "Version/18.5 Mobile/15E148 Safari/604.1")
-BOT_CHECK = ("just a moment", "attention required", "security verification", "verify you are human")
+BOT_CHECK = ("just a moment", "one moment, please", "attention required", "security verification",
+             "verify you are human")
 _last = {}  # service -> time of its last call, for pacing
 
 
@@ -166,8 +167,8 @@ def cloudflare(url, host):
     shot = _request("GET", f"{base}/screenshots/{uuid}.png", headers, params={"resolution": "mobile"})
     if shot.status_code == 200 and shot.content:
         out["screenshot"] = _keep_screenshot(shot.content, host)
-    if any(w in (out["title"] or "").lower() for w in BOT_CHECK):
-        out["reason"] = "Not seen: a bot-check page hid the site from the scanner"
+    if any(w in (out["title"] or "").lower() for w in BOT_CHECK) or str(out["status"]) == "400":
+        out.update(cloaked=True, reason="Not seen: a bot-check page hid the site from the scanner")
     return out
 
 

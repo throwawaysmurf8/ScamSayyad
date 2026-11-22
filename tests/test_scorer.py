@@ -1246,7 +1246,7 @@ def test_only_person_verified_scams_get_the_badge_and_they_sort_first(monkeypatc
     db = _empty_db(monkeypatch, tmp_path)
     rows = [("https://salik-pay.example/", 70, "HIGH", "clean"), ("https://parked-salik.example/", 95, "HIGH", "clean"),
             ("https://dubaipolice.example/", 80, "HIGH", "SOCIAL_ENGINEERING"),
-            ("https://unlabelled.example/", 100, "HIGH", "clean")]
+            ("https://unlabelled.example/", 100, "HIGH", "clean"), ("https://hidden.example/", 99, "HIGH", "clean")]
     for url, score, level, sb in rows:
         db.save({"url": url, "domain": url.split("/")[2], "score": score, "level": level,
                  "reasons": ["test"], "safe_browsing": sb}, "cert log")
@@ -1255,14 +1255,18 @@ def test_only_person_verified_scams_get_the_badge_and_they_sort_first(monkeypatc
     verified.write_text(json.dumps({
         "salik-pay.example": {**rec, "label": "Live scam page", "reason": "fake Salik toll payment form"},
         "parked-salik.example": {**rec, "label": "Parked / for sale", "reason": "domain for sale page"},
-        "unlabelled.example": {**rec, "label": None, "reason": None}}))
+        "unlabelled.example": {**rec, "label": None, "reason": None},
+        "hidden.example": {**rec, "label": None, "cloaked": True, "reason": "Not seen: a bot-check page"}}))
     monkeypatch.setattr(config, "VERIFIED_FILE", verified)
     at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120).run()
     assert not at.exception, [e.value for e in at.exception]
     table = at.dataframe[0].value
     assert list(table.host)[:2] == ["salik-pay.example", "dubaipolice.example"]  # verified, then Google-listed
     assert list(table.proof)[:2] == ["✓ Verified scam", "Listed by Google"]
-    assert set(table.proof[2:]) == {""}  # parked and unlabelled scans are not confirmations
+    proof = dict(zip(table.host, table.proof))
+    assert proof["hidden.example"] == "Hides from scanners (bot check)"  # a note, never "verified", not moved up
+    assert proof["parked-salik.example"] == proof["unlabelled.example"] == ""  # not confirmations
+    assert list(table.host)[2] == "unlabelled.example"  # after verified and Google-listed: by score
     about = " ".join(m.value for m in at.markdown)
     assert "`salik-pay.example` (live scam page): rules ✓ (70)" in about  # checked sites in "Why two opinions?"
     assert "parked-salik" not in about and "Neither method is perfect alone" in about

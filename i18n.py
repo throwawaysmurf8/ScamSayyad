@@ -268,14 +268,22 @@ S = {
                    "review label).",
                    "لا توجد طريقة مثالية وحدها، لذلك عندما يختلفان، يطلب أثر العناق رأي إنسان (علامة «يحتاج مراجعة»)."),
     "google_label": ("Listed by Google", "مدرج لدى Google"),
-    "col_proof": ("Confirmed", "تأكيد"),
+    "col_proof": ("Outside checks", "فحوص خارجية"),
+    "cloaked_label": ("Hides from scanners (bot check)", "يختبئ من أدوات الفحص (فحص الروبوتات)"),
+    "cloaked_card": ("**Hides from scanners (bot check):** when {by} visited on {date}, this site showed only a "
+                     "bot-check page, a trick scam sites use to hide from security scanners. This is not a verified "
+                     "scam: nobody has seen the page behind it.",
+                     "**يختبئ من أدوات الفحص (فحص الروبوتات):** عندما زاره {by} في {date}، لم يُظهر هذا الموقع سوى صفحة "
+                     "فحص روبوتات، وهي حيلة تستخدمها مواقع الاحتيال للاختباء من أدوات الفحص الأمني. هذا ليس احتيالاً "
+                     "مؤكَّداً: لم يرَ أحد الصفحة التي خلفها."),
     "col_proof_help": ("✓ Verified scam: a person saw a live scam page in a safe screenshot taken by an outside "
                        "scanner (Cloudflare Radar). "
-                       "Listed by Google: Google Safe Browsing lists it as dangerous. Every other site is an "
-                       "unverified lead.",
+                       "Listed by Google: Google Safe Browsing lists it as dangerous. Hides from scanners: it showed "
+                       "the scanner only a bot-check page (not a verification). Every other site is an unverified lead.",
                        "✓ احتيال مؤكَّد: شاهد شخص صفحة احتيال تعمل في لقطة شاشة آمنة التقطها ماسح خارجي "
                        "(Cloudflare Radar). "
-                       "مدرج لدى Google: تدرجه Google Safe Browsing كموقع خطر. كل موقع آخر مؤشر غير مؤكد."),
+                       "مدرج لدى Google: تدرجه Google Safe Browsing كموقع خطر. يختبئ من أدوات الفحص: لم يُظهر للماسح سوى صفحة "
+                       "فحص روبوتات (وهذا ليس تأكيداً). كل موقع آخر مؤشر غير مؤكد."),
     "verified_card": ("**✓ Verified scam** (checked {date}): {reason}. A person saw this in a screenshot taken safely "
                       "by {by}; we never opened the site.",
                       "**✓ احتيال مؤكَّد** (فُحص في {date}): {reason}. شاهد شخص ذلك في لقطة شاشة التقطها {by} "

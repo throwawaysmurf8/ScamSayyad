@@ -16,6 +16,7 @@ import ai
 import assistant
 import briefing
 import campaigns
+import checks
 import config
 import ct_watcher
 import db
@@ -103,30 +104,15 @@ def hostname(url):
 VERIFIED_FILE = config.VERIFIED_FILE
 
 
-@st.cache_data
-def _verified(path, mtime):
-    import json
-    path = Path(path)
-    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
-
-
-def _checked(url):
-    """This site's outside-scanner record (tools/verify_sites.py), if any."""
-    data = _verified(str(VERIFIED_FILE), VERIFIED_FILE.stat().st_mtime if VERIFIED_FILE.exists() else 0)
-    return data.get(hostname(url).removeprefix("www."))
-
-
 def verified_record(url):
     """Only sites a person classified as a live scam page from a scanner's screenshot count as verified;
-    every other site stays an unverified lead."""
-    rec = _checked(url)
-    return rec if rec and rec.get("label") == "Live scam page" else None
+    every other site stays an unverified lead (checks.py)."""
+    return checks.verified_scam(url)
 
 
 def cloaked_record(url):
     """A site that showed scanners only a bot-check page: a hiding trick, noted but never called verified."""
-    rec = _checked(url)
-    return rec if rec and rec.get("cloaked") and rec.get("label") != "Live scam page" else None
+    return checks.cloaked(url)
 
 
 def hostname_readable(url):
@@ -299,6 +285,10 @@ def show_result(res, campaign=None):
                      unsafe_allow_html=True)
         badge.badge(T("risk_badge", level=T(res["level"])), icon=icon, color=color)
         proof, hidden = verified_record(res["url"]), cloaked_record(res["url"])
+        cleared_rec = checks.not_a_scam(res["url"])
+        if cleared_rec:
+            st.success(T("not_scam_card", date=cleared_rec["checked"], reason=escape_md(cleared_rec["reason"]),
+                         by=cleared_rec.get("shot_by") or "Cloudflare Radar"), icon=":material/check_circle:")
         if hidden:
             st.info(T("cloaked_card", date=hidden["checked"], by=hidden.get("shot_by") or "Cloudflare Radar"),
                     icon=":material/visibility_off:")
@@ -417,21 +407,29 @@ def render_dashboard():
         st.info(T("no_sites"))
         return
     df = pd.DataFrame(sites)
+    # Sites a person saw as a normal website in a safe screenshot are not leads: left out, and named below.
+    cleared = df.url.map(lambda u: checks.not_a_scam(u) is not None)
+    cleared_hosts, df = sorted(df[cleared].url.map(hostname)), df[~cleared]
+    df = df.assign(confirmed=[checks.confirmed_by(s) for s in df.to_dict("records")])
     is_demo = df.source == "sample"
     real, n_demo = df[~is_demo], int(is_demo.sum())
 
     cards = st.container()  # filled in below, once we know the slider and source choices
 
     with st.container(border=True):
-        f1, f2, f3, f4 = st.columns([2, 3, 1, 1], vertical_alignment="bottom")
+        f1, f2, f3, f4, f5 = st.columns([2, 3, 1, 1, 1], vertical_alignment="bottom")
         min_score = f1.slider(T("min_score"), 0, 100, config.DASHBOARD_MIN_SCORE, step=5, help=T("min_score_help"),
-                              disabled=st.session_state.get("review_only", False))  # that switch shows every score
+                              disabled=st.session_state.get("review_only", False)  # these switches show every score
+                              or st.session_state.get("confirmed_only", False))
         sources = sorted(df.source[~is_demo].unique())
         chosen = f2.multiselect(T("source"), sources, default=sources)
         show_samples = f3.toggle(T("demo_data"), value=n_demo > 0, disabled=n_demo == 0,
                                  help=T("demo_help") if n_demo else T("demo_help_none"))
         review_only = f4.toggle(T("review_only"), disabled=not ml_model.available(), key="review_only",
                                 help=T("review_only_help", gap=config.REVIEW_GAP))
+        n_confirmed = int(real.confirmed.notna().sum())
+        confirmed_only = f5.toggle(T("confirmed_only", n=n_confirmed), key="confirmed_only",
+                                   help=T("confirmed_only_help"))
 
     # "Needs review": rules and ML differ by REVIEW_GAP+ points. That switch shows only those, at any score.
     total_real = len(real)
@@ -440,6 +438,8 @@ def render_dashboard():
     df = df.assign(ml=df_ml, review=[ml_model.needs_review(s, m) for s, m in zip(df.score, df_ml)])
     if review_only:
         df, min_score = df[df.review], 0
+    if confirmed_only:  # Google-listed, ✓ verified from a screenshot, or approved by an officer: any score
+        df, min_score = df[df.confirmed.notna()], 0
     real = df[df.source != "sample"]
 
     # The cards count exactly the REAL sites the table shows (same slider and sources). Never demo rows.
@@ -459,6 +459,9 @@ def render_dashboard():
         n_review = int(shown_real.review.sum())
         if n_review:
             st.caption(T("review_count", n=n_review, gap=config.REVIEW_GAP))
+        st.caption(T("confirmed_count", n=n_confirmed))
+        if cleared_hosts:
+            st.caption(T("cleared_count", n=len(cleared_hosts), sites=", ".join(code_span(h) for h in cleared_hosts)))
 
     is_demo = df.source == "sample"
     view = df[(df.score >= min_score) & (df.source.isin(chosen) | (is_demo & show_samples))]
@@ -479,8 +482,9 @@ def render_dashboard():
         why=view.reasons.map(lambda r: tr(r[0]) if r else ""),
         age_days=view.age_days.map(lambda a: T("unknown") if pd.isna(a) else str(int(a))),
         review=view.review.map(lambda r: T("review_label") if r else ""),
-        proof=[T("verified_label") if v else T("google_label") if g else T("cloaked_label") if c else ""
-               for v, g, c in zip(view.verified, view.google, view.cloaked)],
+        proof=[T("verified_label") if v else T("google_label") if g else
+               T("officer_label") if by == "officer-approved report" else T("cloaked_label") if c else ""
+               for v, g, c, by in zip(view.verified, view.google, view.cloaked, view.confirmed)],
     )[["score", "level", "proof", "host", "brand", "why", "source", "age_days", "first_seen", "url", "ml", "review"]]
     if not ml_model.available():
         table = table.drop(columns=["ml", "review"])  # no model file: no columns, everything else as normal
@@ -754,7 +758,7 @@ ABOUT = {
 | No HTTPS, hyphen-heavy name | {W['no_https']} each |
 | Scam words in the address, urgent wording in the message | up to {W['url_keyword_max']} / {W['urgent_text_max']} |
 
-**HIGH** ≥ {config.HIGH_RISK} · **MEDIUM** ≥ {config.MEDIUM_RISK}. Official domains and all `.gov.ae` sites score 0.
+**HIGH** ≥ {config.HIGH_RISK} · **MEDIUM** ≥ {config.MEDIUM_RISK}. Official domains and all `.gov.ae` sites score 0, unless Google Safe Browsing lists them (e.g. a hacked page).
 
 **Officer briefings:** each flagged site and campaign gets a 5-line briefing (brand, domains, likely tactic,
 confidence, first action), built on this computer from the rule findings and the ML second opinion. An **AI briefing**
@@ -801,7 +805,7 @@ and gives a second opinion. On our own data, each has caught the other's mistake
 | بدون HTTPS، اسم كثير الشرطات | {W['no_https']} لكل منهما |
 | كلمات احتيال في العنوان، صياغة عاجلة في الرسالة | حتى {W['url_keyword_max']} / {W['urgent_text_max']} |
 
-**عالية** ≥ {config.HIGH_RISK} · **متوسطة** ≥ {config.MEDIUM_RISK}. النطاقات الرسمية وجميع مواقع `.gov.ae` نتيجتها 0.
+**عالية** ≥ {config.HIGH_RISK} · **متوسطة** ≥ {config.MEDIUM_RISK}. النطاقات الرسمية وجميع مواقع `.gov.ae` نتيجتها 0، إلا إذا أدرجتها Google Safe Browsing (مثلاً صفحة مخترقة).
 
 **ملخصات الضابط:** يحصل كل موقع مشبوه وكل حملة على ملخص من 5 أسطر (العلامة، النطاقات، الأسلوب المرجّح، درجة
 الثقة، الإجراء الأول)، يُبنى على هذا الجهاز من نتائج القواعد ورأي التعلّم الآلي. ويضيف زر «ملخص بالذكاء الاصطناعي» مسودة من

@@ -71,6 +71,8 @@ def facts(site, campaign=None, sites=None):
 def overview_facts(sites, campaign_list, selected=None, selected_campaign=None):
     """Facts about the WHOLE dashboard for the side-panel assistant (plus the selected site, if any)."""
     import collections
+
+    import checks
     import ml_model
     from campaigns import brand_of
     from scorer import parse
@@ -90,7 +92,11 @@ def overview_facts(sites, campaign_list, selected=None, selected_campaign=None):
             {"brand": c["brand"], "registrar": c["registrar"], "domains": len(c["domains"]), "from": c["first"],
              "to": c["last"], "endings": c["endings"], "highest_score": c["top_score"], "examples": c["websites"][:5]}
             for c in campaign_list],
-        "note": "Rule scores are the verdict; ML is a name-only second opinion; everything is an unconfirmed lead.",
+        "confirmed_scams": [{"website": parse(s["url"])[1], "confirmed_by": checks.confirmed_by(s)}
+                            for s in real if checks.confirmed_by(s)],
+        "verified_not_scams": [parse(s["url"])[1] for s in real if checks.not_a_scam(s["url"])],
+        "note": "Rule scores are the verdict; ML is a name-only second opinion. Only confirmed_scams are confirmed "
+                "(by Google Safe Browsing, a safe screenshot, or an officer); every other site is an unconfirmed lead.",
     }
     if selected:
         data["site_the_officer_has_selected"] = facts(selected, selected_campaign, sites)

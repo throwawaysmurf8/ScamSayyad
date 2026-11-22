@@ -256,10 +256,8 @@ S = {
     "review_empty": ("No reported links are waiting.", "لا توجد روابط مُبلَّغ عنها بانتظار المراجعة."),
     "review_approve": ("Approve", "موافقة"),
     "review_reject": ("Reject", "رفض"),
-    "two_checked": ("- **Checked by a person from safe screenshots** (Cloudflare Radar; rules flag at "
-                    "40+, the ML at 50%+):",
-                    "- **تحقّق منها شخص من لقطات شاشة آمنة** (Cloudflare Radar؛ القواعد تُنبّه من 40، "
-                    "والتعلّم الآلي من 50%):"),
+    "two_checked": ("- **Checked from safe screenshots (Cloudflare Radar)** (rules flag at 40+, the ML at 50%+):",
+                    "- **فُحصت من لقطات شاشة آمنة (Cloudflare Radar)** (القواعد تُنبّه من 40، والتعلّم الآلي من 50%):"),
     "two_row": ("{host} ({label}): rules {rules} ({score}), ML {ml} ({p}%)",
                 "{host} ({label}): القواعد {rules} ({score})، التعلّم الآلي {ml} ({p}%)"),
     "two_scam": ("live scam page", "صفحة احتيال تعمل"),
@@ -269,6 +267,22 @@ S = {
                    "لا توجد طريقة مثالية وحدها، لذلك عندما يختلفان، يطلب أثر العناق رأي إنسان (علامة «يحتاج مراجعة»)."),
     "google_label": ("Listed by Google", "مدرج لدى Google"),
     "col_proof": ("Outside checks", "فحوص خارجية"),
+    "officer_label": ("Approved by an officer", "وافق عليه ضابط"),
+    "confirmed_only": ("Confirmed scams only ({n})", "الاحتيال المؤكَّد فقط ({n})"),
+    "confirmed_only_help": ("Only sites that Google Safe Browsing lists, that are ✓ Verified scam from a safe "
+                            "screenshot, or that an officer approved. Shown at any score.",
+                            "فقط المواقع التي تدرجها Google Safe Browsing، أو عليها ✓ احتيال مؤكَّد من لقطة شاشة آمنة، "
+                            "أو وافق عليها ضابط. تُعرض بأي نتيجة."),
+    "confirmed_count": ("{n} confirmed scams: listed by Google, ✓ verified from a screenshot, or approved by an "
+                        "officer. Every other site is an unconfirmed lead.",
+                        "{n} عمليات احتيال مؤكَّدة: مدرجة لدى Google، أو ✓ مؤكَّدة من لقطة شاشة، أو وافق عليها ضابط. "
+                        "كل موقع آخر مؤشر غير مؤكد."),
+    "cleared_count": ("Verified: not a scam ({n}, left out of the leads): {sites}",
+                      "تم التحقق: ليس احتيالاً ({n}، مستبعدة من المؤشرات): {sites}"),
+    "not_scam_card": ("**Verified: not a scam** (checked {date}): {reason}. A person saw this in a screenshot taken "
+                      "safely by {by}, so it is left out of the leads.",
+                      "**تم التحقق: ليس احتيالاً** (فُحص في {date}): {reason}. شاهد شخص ذلك في لقطة شاشة التقطها {by} "
+                      "بأمان، لذلك استُبعد من المؤشرات."),
     "cloaked_label": ("Hides from scanners (bot check)", "يختبئ من أدوات الفحص (فحص الروبوتات)"),
     "cloaked_card": ("**Hides from scanners (bot check):** when {by} visited on {date}, this site showed only a "
                      "bot-check page, a trick scam sites use to hide from security scanners. This is not a verified "

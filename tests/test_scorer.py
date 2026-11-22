@@ -1466,3 +1466,49 @@ def test_public_reports_rate_limits_and_duplicates(monkeypatch, tmp_path):
     reports.decide("https://b0.top/", approve=False)  # rejected: ignored if reported again tomorrow
     clock[0] += 86_400
     assert reports.submit("https://b0.top/") == "ok" and reports.load()["https://b0.top/"]["status"] == "rejected"
+
+
+def test_confirmed_scams_switch_and_verified_not_scams(monkeypatch, tmp_path):
+    """"Confirmed scams only" keeps Google-listed, ✓ verified and officer-approved sites (any score), and the
+    cards follow it; sites verified as normal websites leave the leads; Anaq's facts list the confirmed ones."""
+    import json
+
+    import campaigns
+    import local_llm
+    from streamlit.testing.v1 import AppTest
+    db = _empty_db(monkeypatch, tmp_path)
+    rows = [("https://google-listed.example/", 30, "LOW", "SOCIAL_ENGINEERING", "cert log"),
+            ("https://seen-scam.example/", 70, "HIGH", "clean", "cert log"),
+            ("https://reported.example/", 45, "MEDIUM", "clean", "public report"),
+            ("https://lead-only.example/", 95, "HIGH", "clean", "cert log"),
+            ("https://salik.shop/", 60, "MEDIUM", "clean", "cert log")]
+    for url, score, level, sb, src in rows:
+        db.save({"url": url, "domain": url.split("/")[2], "score": score, "level": level,
+                 "reasons": ["test"], "safe_browsing": sb}, src)
+    verified = tmp_path / "verified.json"
+    rec = {"checked": "2026-11-22", "shot_by": "Cloudflare Radar"}
+    verified.write_text(json.dumps({
+        "seen-scam.example": {**rec, "label": "Live scam page", "reason": "fake Salik toll payment form"},
+        "salik.shop": {**rec, "label": "Normal website", "reason": "a gifting business named Salik"}}))
+    monkeypatch.setattr(config, "VERIFIED_FILE", verified)
+
+    at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120).run()
+    assert not at.exception, [e.value for e in at.exception]
+    hosts = set(at.dataframe[0].value.host)
+    assert "salik.shop" not in hosts and "lead-only.example" in hosts  # a verified normal website is not a lead
+    captions = " ".join(c.value for c in at.caption)
+    assert "Verified: not a scam (1, left out of the leads): `salik.shop`" in captions
+    assert "3 confirmed scams" in captions
+    switch = next(t for t in at.toggle if t.label == "Confirmed scams only (3)")
+    switch.set_value(True).run()
+    table = at.dataframe[0].value
+    assert set(table.host) == {"google-listed.example", "seen-scam.example", "reported.example"}  # any score
+    assert set(table.proof) == {"Listed by Google", "✓ Verified scam", "Approved by an officer"}
+    shown = next(m for m in at.metric if m.label == "Real sites shown")
+    assert shown.value == "3"  # the cards follow the switch
+
+    facts = local_llm.overview_facts(db.unique_sites(), campaigns.find(db.unique_sites()))
+    assert {c["website"]: c["confirmed_by"] for c in facts["confirmed_scams"]} == {
+        "google-listed.example": "Google Safe Browsing", "seen-scam.example": "screenshot (Cloudflare Radar)",
+        "reported.example": "officer-approved report"}
+    assert facts["verified_not_scams"] == ["salik.shop"] and "confirmed_scams" in facts["note"]

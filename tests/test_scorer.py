@@ -221,7 +221,7 @@ def test_maps_listings_are_saved_one_row_each(monkeypatch, tmp_path):
     import db
     import maps_scanner
     monkeypatch.setattr(config, "DB_PATH", tmp_path / "test.db")
-    monkeypatch.setattr(maps_scanner, "check", lambda url, text, cached_info=None: (
+    monkeypatch.setattr(maps_scanner, "check", lambda url, text, cached_info=None, saved_url=None: (
         {"safe_browsing": "clean"}, {"age_days": 3000, "registrar": "Official Registrar"}))
     places = [
         {"id": "p1", "displayName": {"text": "Bur Dubai Police Station"}, "internationalPhoneNumber": "+971 4 606 1600",
@@ -335,7 +335,7 @@ def test_ai_off_without_key_and_failures_are_plain_messages(monkeypatch, tmp_pat
     monkeypatch.setattr(ai, "_local_check", [-1e9, False])
     assert not ai.available()
     assert ai.site_briefing(_flagged_site(), generate=False) is None
-    with pytest.raises(ai.AIError, match="start the local model"):
+    with pytest.raises(ai.AIError, match="start the local AI model"):
         ai.site_briefing(_flagged_site(), generate=True)
 
     class Down:
@@ -564,7 +564,7 @@ def test_free_question_errors_are_plain_messages(monkeypatch, tmp_path):
     import local_llm
     monkeypatch.setattr(config, "DB_PATH", tmp_path / "test.db")
     monkeypatch.setattr(requests, "post", lambda *a, **k: (_ for _ in ()).throw(requests.ConnectionError()))
-    with pytest.raises(local_llm.LLMError, match="Is Ollama running"):
+    with pytest.raises(local_llm.LLMError, match="local AI model did not answer"):
         local_llm.ask("why?", _flagged_site())
     with pytest.raises(local_llm.LLMError):
         local_llm.ask("   ", _flagged_site())
@@ -1113,3 +1113,125 @@ def test_dashboard_shows_the_needs_review_label(monkeypatch, tmp_path):
     table = at.dataframe[0].value
     assert list(table.host) == ["uaepass-login.example"]  # flagged, 60 apart; not the agreeing or the cleared one
     assert table.review.iloc[0] == "⚑ Needs review"
+
+
+def _snapshot_problems(path):
+    """Rows the public snapshot must never hold: hand-typed or demo rows, or message text outside Maps."""
+    import sqlite3
+    con = sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)
+    try:
+        return con.execute("""SELECT url, source FROM sites WHERE source IN ('manual', 'sample')
+                              OR (source NOT LIKE 'maps%' AND TRIM(COALESCE(text, '')) != '')""").fetchall()
+    finally:
+        con.close()
+
+
+def test_committed_public_snapshot_has_no_visitor_rows_or_sms_text():
+    snap = config.ROOT / "data" / "public_snapshot.db"
+    assert snap.exists()
+    assert _snapshot_problems(snap) == []
+
+
+def test_snapshot_builder_keeps_only_hunter_rows(monkeypatch, tmp_path):
+    import sqlite3
+
+    import db
+    from tools.make_public_snapshot import build
+    monkeypatch.setattr(config, "DB_PATH", tmp_path / "work.db")
+    sms = "Dear customer your parcel is held pay 5 AED SECRET-SMS-1234"
+
+    def site(url, source, text=""):
+        return {"url": url, "domain": url.split("/")[2], "score": 50, "level": "MEDIUM", "reasons": [],
+                "text": text}
+
+    db.save(site("https://salik-pay.xyz/", "cert log", sms), "cert log", "salik* (cert issued 2026-11-01)")
+    db.save(site("https://rta-fine.top/", "search", sms), "search", "rta fine payment")
+    db.save(site("https://www.dubaipolice.gov.ae/#place=X", "maps", "Dubai Police | phone +971 4 699 9999"),
+            "maps", "Dubai Police customer service")
+    db.save(site("https://typed-by-hand.com/", "manual", sms), "manual")
+    db.save(site("https://demo.example/", "sample"), "sample", "demo data")
+    with db.connect() as con:
+        con.execute("INSERT INTO domain_cache VALUES ('typed-by-hand.com', '{}', 'x')")
+        con.execute("INSERT INTO domain_cache VALUES ('salik-pay.xyz', '{}', 'x')")
+        con.execute("INSERT INTO ai_cache VALUES ('k', 'side_answer', 'en', 'm', 'old answer', 'x')")
+
+    out = tmp_path / "public_snapshot.db"
+    out.write_bytes(b"old file with " + sms.encode())  # the old file is replaced, not edited
+    assert build(config.DB_PATH, out) == 3
+    assert _snapshot_problems(out) == []
+    assert b"SECRET-SMS" not in out.read_bytes() and b"typed-by-hand" not in out.read_bytes()
+    con = sqlite3.connect(out)
+    assert sorted(r[0] for r in con.execute("SELECT source FROM sites")) == ["cert log", "maps", "search"]
+    assert con.execute("SELECT text FROM sites WHERE source = 'maps'").fetchone()[0].startswith("Dubai Police")
+    assert [r[0] for r in con.execute("SELECT domain FROM domain_cache")] == ["salik-pay.xyz"]
+    assert con.execute("SELECT COUNT(*) FROM ai_cache").fetchone()[0] == 0
+    con.close()
+
+
+def test_failed_safe_browsing_call_is_not_not_configured_and_keeps_google_listing(monkeypatch, tmp_path):
+    import db
+    import enrich
+    monkeypatch.setattr(config, "DB_PATH", tmp_path / "sb.db")
+    monkeypatch.setattr(config, "SAFE_BROWSING_KEY", "")
+    assert enrich.check("https://salik-pay.xyz/", cached_info={})[0]["safe_browsing"] == "not configured"
+
+    monkeypatch.setattr(config, "SAFE_BROWSING_KEY", "fake-key")
+
+    def outage(body):
+        raise requests.ConnectionError("Google is down")
+    import requests
+    monkeypatch.setattr(enrich, "_safe_browsing_request", outage)
+    new = enrich.check("https://salik-pay.xyz/", cached_info={})[0]
+    assert new["safe_browsing"] == "check failed"  # a new site: a failed call, not "not configured", not clean
+    assert any("check failed" in u for u in __import__("scorer").explain_level(
+        new["score"], new["level"], new["reasons"], None, new["safe_browsing"])["unknown"])
+
+    # A hacked official site Google listed earlier keeps that status (and its score) through an outage.
+    hacked = "https://www.rta.ae/pay"
+    listed = enrich.score_url(hacked, safe_browsing_threats=["SOCIAL_ENGINEERING"])
+    listed.update(safe_browsing="SOCIAL_ENGINEERING", text="")
+    db.save(listed, "search", "rta fine payment")
+    assert listed["score"] > 0
+    again = enrich.check_and_save(hacked, source="search", query="rta fine payment", lookup=False)
+    assert again["safe_browsing"] == "SOCIAL_ENGINEERING" and again["score"] == listed["score"]
+    put_back, kept = enrich.official_check(log=lambda m: None)
+    assert kept == [hacked] and put_back == []
+    assert next(s for s in db.all_sites() if s["url"] == hacked)["safe_browsing"] == "SOCIAL_ENGINEERING"
+
+    # Re-scoring a site whose last call failed keeps "check failed"; a whole failed re-check changes nothing.
+    db.save(new, "cert log", "salik*")
+    enrich.rescore_saved([s for s in db.all_sites() if s["url"] == new["url"]])
+    assert next(s for s in db.all_sites() if s["url"] == new["url"])["safe_browsing"] == "check failed"
+    msgs = []
+    assert enrich.recheck_safe_browsing(min_score=0, log=msgs.append) == 0
+    assert "failed" in msgs[0] and "not configured" not in msgs[0]
+
+
+HIDDEN_NAMES = ("claude", "haiku", "5.5", "anthropic", "ollama", "qwen")
+
+
+def test_visitors_never_see_the_model_or_company_name(monkeypatch, tmp_path):
+    """The assistant is 'Anaq, the Athar Al Anaq assistant (AI)' everywhere on screen, in both languages;
+    the AI-draft labels stay, and the system prompt says who Anaq is without naming the model."""
+    import ai
+    import i18n
+    import local_llm
+    from streamlit.testing.v1 import AppTest
+    screen = [v for pair in i18n.S.values() for v in pair] + list(local_llm.LABEL.values()) + list(ai.LABEL.values())
+    assert not [s for s in screen if any(n in str(s).lower() for n in HIDDEN_NAMES)]
+    assert "Anaq, the Athar Al Anaq assistant (AI)" in i18n.S["side_title"][0]
+    assert all("officer review required" in t for t in (local_llm.LABEL["en"], ai.LABEL["en"], i18n.S["side_cloud_label"][0]))
+    assert "Do not name the" in local_llm.SYSTEM and "Never claim to be human" in local_llm.SYSTEM
+
+    _fresh_limits(monkeypatch, tmp_path)
+    monkeypatch.setattr(config, "PUBLIC_MODE", True)
+    monkeypatch.setattr(config, "ANTHROPIC_API_KEY", "fake-key")  # chat on, as on the live site
+    for lang in ("English", "العربية"):
+        at = AppTest.from_file(str(config.ROOT / "app.py"), default_timeout=120)
+        at.session_state["lang_choice"] = lang
+        at.run()
+        assert not at.exception, [e.value for e in at.exception]
+        shown = [e.value for kind in ("markdown", "caption", "info", "warning", "error", "title", "subheader")
+                 for e in getattr(at, kind)] + [b.label for b in at.button] + [t.label for t in at.tabs]
+        leaks = [s for s in shown if any(n in str(s).lower() for n in HIDDEN_NAMES)]
+        assert not leaks, (lang, leaks)

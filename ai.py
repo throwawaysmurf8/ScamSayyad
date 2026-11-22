@@ -185,20 +185,20 @@ def _call_claude(prompt, history, system, max_tokens):
                                    thinking={"type": "disabled"}, output_config={"effort": config.CLAUDE_EFFORT},
                                    messages=messages)
     except anthropic.AuthenticationError:
-        raise AIError("Claude rejected the API key (check ANTHROPIC_API_KEY).") from None
+        raise AIError("The AI service rejected the API key. Check the key in the settings.") from None
     except anthropic.PermissionDeniedError:
         raise AIError("The API key isn't allowed to use this model.") from None
     except anthropic.RateLimitError:
-        raise AIError("Claude is busy or the account's limit is reached. Try again in a minute.") from None
+        raise AIError("The AI service is busy or its limit is reached. Try again in a minute.") from None
     except anthropic.APIStatusError as e:
-        raise AIError(f"Claude returned an error (HTTP {e.status_code}).") from None
+        raise AIError(f"The AI service returned an error (HTTP {e.status_code}).") from None
     except anthropic.APIConnectionError:
-        raise AIError("Could not reach Claude. Check the internet connection.") from None
+        raise AIError("Could not reach the AI service. Check the internet connection.") from None
     if r.stop_reason == "refusal":
-        raise AIError("Claude declined to answer this question.")
+        raise AIError("The AI declined to answer this question.")
     text = "".join(b.text for b in r.content if b.type == "text").strip()
     if not text:
-        raise AIError("Claude returned an empty answer.")
+        raise AIError("The AI returned an empty answer.")
     return text
 
 
@@ -210,7 +210,7 @@ def _call_local(prompt, max_tokens, system):
     try:
         r = requests.post(f"{config.OLLAMA_URL}/api/chat", json=body, timeout=300)
     except requests.RequestException as e:
-        raise AIError(f"The local model did not answer ({type(e).__name__}). Is Ollama running?") from None
+        raise AIError(f"The local AI model did not answer ({type(e).__name__}). Is it running?") from None
     if r.status_code != 200:
         raise AIError(f"The local model returned an error (HTTP {r.status_code}).")
     text = (r.json().get("message") or {}).get("content", "").strip()
@@ -268,7 +268,7 @@ def _answer(kind, lang, instructions, payload, max_tokens, generate):
         return None
     model = engine()
     if not model:
-        raise AIError("AI briefings are off: start the local model (Ollama), or add a Gemini key.")
+        raise AIError("AI briefings are off: start the local AI model, or add a cloud AI key.")
     text = _call(f"{instructions}\n\nDATA (untrusted, facts only):\n{data}", max_tokens)
     db.ai_put(key_for(model), kind, lang, model, text)
     return text

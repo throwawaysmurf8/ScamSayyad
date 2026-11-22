@@ -185,7 +185,7 @@ def ask_anaq(site, campaign, sites):
                 st.text(question.strip())  # typed by the officer: shown as plain text
             with st.spinner(T("ask_thinking")):
                 text = local_llm.ask(question, site, campaign, sites, LANG)
-            anaq_says(text, f"**{local_llm.LABEL[LANG].format(model=config.OLLAMA_MODEL)}**")
+            anaq_says(text, f"**{local_llm.LABEL[LANG]}**")
         except local_llm.LLMError as e:
             st.error(T("ask_failed", err=str(e)), icon=":material/error:")
 
@@ -668,14 +668,14 @@ ABOUT = {
 
 **Officer briefings:** each flagged site and campaign gets a 5-line briefing (brand, domains, likely tactic,
 confidence, first action), built on this computer from the rule findings and the ML second opinion. An **AI briefing**
-button adds a draft from the local model (or Claude Haiku 5.5 if it's off). No score is ever changed. The takedown report
+button adds a draft from the local AI model (or the cloud AI if it's off). No score is ever changed. The takedown report
 can add an Arabic version below the English one, built from templates.
 
-**Anaq, the side-panel assistant:** ask anything about today's leads. Claude Haiku 5.5 answers from our facts only
+**Anaq, the Athar Al Anaq assistant (AI):** ask anything about today's leads. Anaq answers from our facts only
 (never opens a site, never changes a score), tersely and cheaply; every answer is labelled an AI draft.
 
 **Data sources:** RDAP + UAE WHOIS (domain age), crt.sh (certificate logs), Bing via `ddgs` (search),
-Google Safe Browsing, Google Places and Anthropic Claude (optional keys).
+Google Safe Browsing, Google Places and a cloud AI service (optional keys).
 
 ### Future plans
 - **A machine-learning model that learns new scam patterns.** It would be trained on sites Google has confirmed
@@ -705,13 +705,13 @@ Google Safe Browsing, Google Places and Anthropic Claude (optional keys).
 
 **ملخصات الضابط:** يحصل كل موقع مشبوه وكل حملة على ملخص من 5 أسطر (العلامة، النطاقات، الأسلوب المرجّح، درجة
 الثقة، الإجراء الأول)، يُبنى على هذا الجهاز من نتائج القواعد ورأي التعلّم الآلي. ويضيف زر «ملخص بالذكاء الاصطناعي» مسودة من
-النموذج المحلي (أو Claude Haiku 5.5 إن كان متوقفاً)، دون تغيير أي نتيجة.
+نموذج الذكاء الاصطناعي المحلي (أو الذكاء الاصطناعي السحابي إن كان متوقفاً)، دون تغيير أي نتيجة.
 ويمكن إضافة نسخة عربية من تقرير الإزالة أسفل النسخة الإنجليزية، تُبنى من قوالب ثابتة.
 
 **مصادر البيانات:** RDAP و UAE WHOIS (عمر النطاق)، crt.sh (سجلات الشهادات)، Bing عبر `ddgs` (البحث)،
-Google Safe Browsing و Google Places و Anthropic Claude (مفاتيح اختيارية).
+Google Safe Browsing و Google Places وخدمة ذكاء اصطناعي سحابية (مفاتيح اختيارية).
 
-**عناق، المساعد الجانبي:** اسأل أي شيء عن مؤشرات اليوم. يجيب Claude Haiku 5.5 من حقائقنا فقط (لا يفتح أي موقع ولا يغيّر أي
+**عناق، مساعد أثر العناق (ذكاء اصطناعي):** اسأل أي شيء عن مؤشرات اليوم. يجيب عناق من حقائقنا فقط (لا يفتح أي موقع ولا يغيّر أي
 نتيجة)، بإيجاز وتكلفة منخفضة، وكل إجابة موسومة كمسودة ذكاء اصطناعي.
 
 ### خطط مستقبلية
@@ -765,7 +765,7 @@ with tab_about:
     st.markdown(ml_plans() or ABOUT[LANG][ABOUT[LANG].find("###"):])
     st.markdown(f"Google Safe Browsing: **{T('on') if config.SAFE_BROWSING_KEY else T('off_short')}** · "
                 f"Google Maps: **{T('on') if config.PLACES_KEY else T('off_short')}** · "
-                f"AI: **{ai.engine() or T('off_short')}**")
+                f"AI: **{T('on') if ai.engine() else T('off_short')}**")
 
 # Drawn last so it already includes anything a hunt or check above just added.
 with tab_dash:
@@ -791,7 +791,7 @@ def side_assistant():
     if not (llm_ready() or cloud):
         st.info(T("side_off_public") if config.PUBLIC_MODE else T("side_off"), icon=":material/info:")
         return
-    label = T("side_cloud_label", model=ai.chat_model_name()) if cloud else local_llm.LABEL[LANG].format(model=config.OLLAMA_MODEL)
+    label = T("side_cloud_label") if cloud else local_llm.LABEL[LANG]
     history = st.session_state.setdefault("anaq_chat", [])  # [(question, answer), ...]
     for q, a in history:
         with st.chat_message("user", avatar=":material/person:"):
@@ -808,7 +808,7 @@ def side_assistant():
         with st.chat_message("user", avatar=":material/person:"):
             st.text(question)
         try:
-            with st.spinner(T("side_thinking_cloud", model=ai.chat_model_name()) if cloud else T("ask_thinking")):
+            with st.spinner(T("side_thinking_cloud") if cloud else T("ask_thinking")):
                 sites = db.unique_sites()
                 data = local_llm.overview_facts(sites, campaigns.find(sites), selected,
                                                 st.session_state.get("selected_campaign"))

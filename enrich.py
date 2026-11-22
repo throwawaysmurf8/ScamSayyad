@@ -94,8 +94,12 @@ def domain_info(domain):
         return {}
 
 
+SB_FAILED = "check failed"  # a key is set, but Google did not answer (outage, quota, network)
+
+
 def safe_browsing(url):
-    """Return a list of threat types, [] if clean, or None if no API key is configured."""
+    """Return a list of threat types, [] if clean, None if no API key is configured, or SB_FAILED
+    if the call failed. A failure is never treated as 'clean' or as 'not configured'."""
     if not config.SAFE_BROWSING_KEY:
         return None
     body = {
@@ -113,7 +117,28 @@ def safe_browsing(url):
         r.raise_for_status()
         return sorted({m["threatType"] for m in r.json().get("matches", [])})
     except Exception:
-        return None
+        return SB_FAILED
+
+
+def _saved_safe_browsing(url):
+    """The Safe Browsing answer already saved for this URL, if any."""
+    import db
+    with db.connect() as con:
+        row = con.execute("SELECT safe_browsing FROM sites WHERE url = ?", (url,)).fetchone()
+    return row[0] if row else None
+
+
+def sb_result(threats, saved=None):
+    """Turn a Safe Browsing answer into (threats to score with, status text to store).
+    When the call failed, the saved answer is kept, so a site Google listed never loses that
+    status during an outage. With nothing saved, the status says the check failed."""
+    if threats is None:
+        return None, "not configured"
+    if threats == SB_FAILED:
+        if saved and saved not in ("not configured", SB_FAILED):
+            return _stored_threats(saved), saved
+        return None, SB_FAILED
+    return threats, ", ".join(threats) or "clean"
 
 
 def fill_missing_registration(min_score=config.MEDIUM_RISK, delay=3.0, log=print):
@@ -198,7 +223,7 @@ def safe_browsing_many(urls):
 
 def _stored_threats(text):
     """Turn the saved 'safe_browsing' text back into what score_url expects."""
-    if not text or text == "not configured":
+    if not text or text in ("not configured", SB_FAILED):
         return None
     return [] if text == "clean" else text.split(", ")
 
@@ -225,7 +250,9 @@ def rescore_saved(sites, threats_by_url=None):
             res = score_url(s["url"], s["text"] or "", age_days=s["age_days"], safe_browsing_threats=threats,
                             same_name_endings=endings.get(name_stem(s["url"])[0], 0))
         res.update({k: s[k] for k in ("created", "age_days", "registrar", "abuse_email", "text")})
-        res["safe_browsing"] = "not configured" if threats is None else (", ".join(threats) or "clean")
+        # No fresh answer: keep what was saved (a Google listing, or "check failed").
+        res["safe_browsing"] = (s["safe_browsing"] or "not configured") if threats is None else (
+            ", ".join(threats) or "clean")
         changed += res["score"] != s["score"]
         db.save(res, s["source"], s["query"])
     return changed
@@ -270,7 +297,8 @@ def recheck_safe_browsing(min_score=config.MEDIUM_RISK, log=print):
         return 0
     threats = safe_browsing_many([s["url"] for s in sites])
     if threats is None:
-        log("Safe Browsing is not available (no key, or Google did not answer). Nothing was changed.")
+        log("Safe Browsing is not configured (no key). Nothing was changed." if not config.SAFE_BROWSING_KEY else
+            "Safe Browsing check failed (Google did not answer). Nothing was changed; saved results are kept.")
         return 0
     rescore_saved(sites, threats)
     hits = [u for u, t in threats.items() if t]
@@ -313,11 +341,13 @@ def test_safe_browsing_key():
     return "The key was accepted, but Google did not flag its test address. Try again later."
 
 
-def check(url, text="", cached_info=None, same_name_endings=0):
-    """Score a URL with online facts. Pass cached_info to skip a repeat domain look-up."""
+def check(url, text="", cached_info=None, same_name_endings=0, saved_url=None):
+    """Score a URL with online facts. Pass cached_info to skip a repeat domain look-up.
+    If the Safe Browsing call fails, the answer saved for `saved_url` (default: this URL) is used."""
     domain = parse(url)[2]
     info = cached_info if cached_info is not None else domain_info(domain)
     threats = safe_browsing(url)
+    threats, sb_status = sb_result(threats, _saved_safe_browsing(saved_url or url) if threats == SB_FAILED else None)
     result = score_url(url, text, age_days=info.get("age_days"), safe_browsing_threats=threats,
                        same_name_endings=same_name_endings)
     result.update({
@@ -325,7 +355,7 @@ def check(url, text="", cached_info=None, same_name_endings=0):
         "age_days": info.get("age_days"),
         "registrar": info.get("registrar"),
         "abuse_email": info.get("abuse_email"),
-        "safe_browsing": "not configured" if threats is None else (", ".join(threats) or "clean"),
+        "safe_browsing": sb_status,
         "text": text,
     })
     return result, info

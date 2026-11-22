@@ -156,7 +156,7 @@ official police service. The officer's laptop keeps every feature.
 To publish it:
 1. Put this folder on GitHub (Git ignores `.env`, the working database and local files).
 2. Go to https://share.streamlit.io, sign in with GitHub, and click **Create app**.
-3. Pick the repository, branch `main`, main file `app.py`. Under **App URL**, type `scamsayyad`
+3. Pick the repository, branch `main`, main file `app.py`. Under **App URL**, type `athar-al-anaq`
    (or another free name). Under **Advanced settings**, pick Python 3.12 or newer and paste into
    **Secrets**:
    ```
@@ -165,10 +165,13 @@ To publish it:
    ```
 4. Click **Deploy**.
 
-To refresh the public results later, copy `data/scamshield.db` over `data/public_snapshot.db`
-(removing demo rows), run `.venv/Scripts/python tools/make_public_answers.py` (with Ollama running) so
-the local model prepares Anaq's starter answers and campaign briefings for the public site, then push to
-GitHub; the site updates by itself. The public site never runs a model itself: it only shows these saved
+To refresh the public results later, run `.venv/Scripts/python tools/make_public_snapshot.py`. It
+builds `data/public_snapshot.db` from the hunter rows only (cert log, search, maps): links typed into
+"Check a link" and demo rows are left out, message text is blanked except on Maps listings, and the
+saved AI answers are cleared. Then run `.venv/Scripts/python tools/make_public_answers.py` (with Ollama
+running) so the local model prepares Anaq's starter answers and campaign briefings again, run the tests
+(one of them fails if the snapshot holds a typed link or message text), and push to GitHub; the site
+updates by itself. The public site never runs a model itself: it only shows these saved
 AI drafts, and with an `ANTHROPIC_API_KEY` secret, answers typed questions with Claude Haiku 5.5 (capped per day).
 
 ---
@@ -237,7 +240,8 @@ false-alarm patterns, and these rules were added (`scorer.score_url`, step 7, an
 - Parcel words (track, package, service, customs) are scam words.
 
 Result: 66 HIGH, 140 MEDIUM, 1,619 LOW of 1,825 unique sites; no site in a known false-positive
-pattern is flagged; 198 of 265 likely scams are flagged (the rest score just under 40).
+pattern is flagged; 198 of 265 likely scams are flagged (the rest score just under 40). The public copy
+has 1,821 sites (1,615 LOW): the 4 links typed into "Check a link" while testing are left out of it.
 
 **Official-site check after every hunt.** A full scan of both databases found no official or `.gov.ae`
 site flagged, no Maps listing above 0, and no `.ae`, `.abudhabi`, `.dubai` or government-looking site
@@ -326,7 +330,7 @@ hacked): it stays flagged and the log asks an officer to look.
 
 Points are added for each warning sign, and the total is capped at 100.
 **HIGH** is 70 or more and **MEDIUM** is 40 or more. Official domains, and any `.gov.ae`
-domain (only UAE government bodies can register those), always score 0.
+domain (only UAE government bodies can register those), always score 0, unless Google Safe Browsing lists it.
 
 | Signal | Points |
 |---|---|
@@ -409,6 +413,7 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
 | `assistant.py` | "Ask Anaq": answers six set questions about a site from our rules, the ML model, campaigns and the database. |
 | `local_llm.py` | The local language model (Ollama, on this computer): free questions, the facts every model is given (`overview_facts`, `facts`), the shared rules (`SYSTEM`) and the prepared public answers (`saved_key`). |
 | `limits.py` | Daily limits on the public site (questions, each hunter, Maps scans), counted in a small file. |
+| `tools/make_public_snapshot.py` | Builds the public snapshot from hunter rows only: no typed links, no demo rows, no message text outside Maps, saved AI answers cleared. |
 | `tools/make_public_answers.py` | Has the local model prepare Anaq's starter answers and campaign briefings for the public snapshot. |
 | `i18n.py` | Every screen text in English and Arabic, plus Arabic versions of the scorer's reasons (for display only). |
 | `report.py` | Feature 4b. Builds the takedown report, offered only for MEDIUM and HIGH sites: target, reasons, registration details, the registrar's abuse contact and where to send it (registrar, Google Safe Browsing, UAE eCrime). For sites on free hosting platforms (workers.dev, vercel.app ...) it says to report to the platform instead. |
@@ -446,7 +451,7 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
    official (score 0), but the unofficial `dubaipoliceefines.com` is flagged.
 5. **Dashboard.** Sort by score, filter by source, click a row, and download the
    **takedown report**. It already contains the registrar's abuse e-mail, ready to send.
-6. **Close.** No paid APIs, never opens dangerous pages, and every score is explained, so
+6. **Close.** The core hunters and scorer need no paid service; Maps and the AI chat are optional, paid and capped. It never opens dangerous pages, and every score is explained, so
    an officer can trust it and act on it.
 
 Tip: if the venue Wi-Fi is bad, click **Load demo data** first. The hunters fall back to

@@ -394,6 +394,8 @@ def explain_level(score, lvl, reasons, age_days=None, safe_browsing=None):
         unknown.append("Domain age: the registry gave no date, so no age points were added.")
     if not safe_browsing or safe_browsing == "not configured":
         unknown.append("Google Safe Browsing: not checked.")
+    elif safe_browsing == "check failed":
+        unknown.append("Google Safe Browsing: the check failed (Google did not answer), so no Google points were added.")
     return {"headline": headline, "strong": strong, "supporting": supporting,
             "next_level": next_level, "unknown": unknown}
 

@@ -71,7 +71,7 @@ OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b")
 
 # --- Public demo (Streamlit Community Cloud) ---------------------------------
 # Set SCAMSHIELD_PUBLIC = "1" in the cloud app's Secrets. On the public site:
-#   * it starts from a copy of real results (data/public_snapshot.db, refreshed by hand); "Check a link"
+#   * it starts from the hunters' results (data/public_snapshot.db, built by tools/make_public_snapshot.py); "Check a link"
 #     never saves, and only the capped hunters add finds (lost when the app restarts);
 #   * the hunters and the Google Maps scan run with shared daily caps, a cooldown and one scan at a time
 #     (PUBLIC_SCANS_PER_DAY, PUBLIC_MAPS_PER_DAY, SCAN_COOLDOWN_SECONDS); the free-text search box and demo-data buttons

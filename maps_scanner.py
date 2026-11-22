@@ -20,7 +20,7 @@ import requests
 
 import config
 import db
-from enrich import check, official_check
+from enrich import _stored_threats, check, official_check
 from scorer import parse, score_listing
 
 URL = "https://places.googleapis.com/v1/places:searchText"
@@ -40,18 +40,18 @@ def check_listing(place, query):
     name = place.get("displayName", {}).get("text", "")
     phone = place.get("internationalPhoneNumber") or place.get("nationalPhoneNumber") or ""
     website = place.get("websiteUri") or ""
+    # One row per listing: the place ID makes the key unique even when listings share a website.
+    url = (website or place.get("googleMapsUri") or "https://maps.google.com/") + "#place=" + place.get("id", "")
     info, sb = {}, None
     if website:
         domain = parse(website)[2]
         cached = db.cached_domain(domain)
-        web, info = check(website, name, cached_info=cached)
+        web, info = check(website, name, cached_info=cached, saved_url=url)  # a failed call keeps the saved answer
         if cached is None and info:
             db.cache_domain(domain, info)
         sb = web["safe_browsing"]
-    threats = None if sb in (None, "not configured") else ([] if sb == "clean" else sb.split(", "))
-    res = score_listing(name, phone, website, info.get("age_days"), threats)
-    # One row per listing: the place ID makes the key unique even when listings share a website.
-    res["url"] = (website or place.get("googleMapsUri") or "https://maps.google.com/") + "#place=" + place.get("id", "")
+    res = score_listing(name, phone, website, info.get("age_days"), _stored_threats(sb))
+    res["url"] = url
     res.update({
         "created": info.get("created"), "age_days": info.get("age_days"),
         "registrar": info.get("registrar"), "abuse_email": info.get("abuse_email"),

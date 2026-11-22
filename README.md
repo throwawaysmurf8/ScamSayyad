@@ -214,10 +214,10 @@ video or font file is used.
 
 | Page | What it shows |
 |---|---|
-| **Overview** | Flagged, high-risk, confirmed, needs-review and campaign counts, and **AI agents at work**: one status line per agent (what it does, how many sites it has recorded, when it last found one). The four scanners follow fixed rules; only the ML second opinion and the assistant use AI models. The scan buttons are here. |
+| **Overview** | Flagged, high-risk, confirmed, needs-review and campaign counts; the **case board** (the 6 newest high-risk leads and 3 newest campaigns as cases: New, Investigating, Reported, Taken down; officers change the status on the laptop, the public demo shows example statuses labelled demo); and **AI agents at work**: one status line per agent (what it does, how many sites it has recorded, when it last found one). The four scanners follow fixed rules; only the ML second opinion and the assistant use AI models. The scan buttons are here. |
 | **Leads** | The filterable table (minimum score, source, demo data, Needs review only, Confirmed scams only) with a **Status** column: Confirmed, Suspected (rule score 40+), Lead (below 40). Selecting a row opens its Site file. |
 | **Campaigns** | Possible campaigns: 3+ look-alike domains of one brand from the same registrar within 14 days. |
-| **Site file** | A case file for one site: status, score and reasons, ML second opinion, Google Safe Browsing, VirusTotal, verification, registrar, registration date and age, abuse contact, campaign, first seen, source, the takedown report download and the official reporting channels. "Check a link" is here too. |
+| **Site file** | A case file for one site: status and case status, a dated **timeline** (registered, certificate issued, first seen, Google listing, safe check, status change), score and reasons, ML second opinion, Google Safe Browsing, VirusTotal, verification, registrar, registration date and age, abuse contact, campaign, **related domains** (same campaign, then the most alike names), first seen, source, a **next-steps checklist** (Verify evidence → Contact registrar abuse team → Report via Aman → Notify Google Safe Browsing, with e-mail, call and Google buttons), **Download evidence pack**, the takedown report and the official reporting channels. "Check a link" is here too. |
 | **Report a site** | Public site: the report form (link only). Laptop: the review queue for officers. Both: the reporting channels. |
 | **How it works** | Scoring table, the two opinions, future plans, and the reporting channels. |
 
@@ -257,7 +257,7 @@ it works pages and in every takedown report):
 
 | Feature | Status | Data source | Key needed? |
 |---|---|---|---|
-| 1. Scoring engine: brand look-alikes, cheap domain endings, short links, no HTTPS, scam words, urgent SMS wording | Working, 95 automated tests (whole project) | Built in | No |
+| 1. Scoring engine: brand look-alikes, cheap domain endings, short links, no HTTPS, scam words, urgent SMS wording | Working, 99 automated tests (whole project) | Built in | No |
 | 1b. Domain age, registrar, abuse e-mail | Working | RDAP (rdap.org); UAE WHOIS (whois.nic.ae) for .ae | No |
 | 1c. Google Safe Browsing | Working, tested live with a real key (`enrich.py --test-key`); skipped cleanly without a key | Google Safe Browsing v4 | Free key |
 | 2. New-domain watcher | Working | crt.sh certificate logs | No |
@@ -276,6 +276,7 @@ it works pages and in every takedown report):
 | 15. "Report a site" with a private review queue | Working (tested live 22 Nov 2026) | `reports.py` | No |
 | 16. Six pages, case-file Site file, Confirmed / Suspected / Lead status, AI agents status lines | Working | Built in | No |
 | 17. Official reporting channels (Aman Service first) in the app and every takedown report | Working, checked on the web 22 Nov 2026 | `config.REPORT_CHANNELS` | No |
+| 18. Officer workflow: case board, case statuses, next-steps checklist, evidence pack | Working (statuses and checklist saved on the laptop only; public demo shows labelled examples) | `cases.py`, `report.evidence_pack` | No |
 
 ### Audit of every site (22 Nov 2026)
 
@@ -491,13 +492,15 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
 | `local_llm.py` | The local language model (Ollama, on this computer): free questions, the facts every model is given (`overview_facts`, `facts`), the shared rules (`SYSTEM`) and the prepared public answers (`saved_key`). |
 | `limits.py` | Limits on the public site (questions, each hunter, Maps scans, link checks, reports), counted in a small file. |
 | `checks.py` | What outside checks say about a site: confirmed scam (Google-listed, ✓ verified from a screenshot, or officer-approved), verified not a scam, or hiding from scanners. Used by the Leads page, the Site file and the assistant. |
+| `cases.py` | Case statuses (New, Investigating, Reported, Taken down) and the next-steps checklist, saved in `data/cases.json` on the laptop only (never committed). The public site cannot change them and shows `data/case_examples.json`, labelled demo. A case describes a website, never a person. |
+| `data/case_examples.json` | The example case statuses the public demo shows (labelled demo; not real case records). |
 | `reports.py` | "Report a site": cleans the link, scores it, keeps it in the private review queue, applies the limits, and lets an officer approve or reject it on the laptop. |
 | `tools/verify_sites.py` | The safe site checker: DNS look-up, Cloudflare Radar screenshot, VirusTotal vendor count, then a person's label. Never opens a site; keys are never printed. |
 | `data/verified.json`, `data/verified/` | The site checks: each site's label, reason, vendor counts and screenshot (no API addresses or account details). |
 | `tools/make_public_snapshot.py` | Builds the public snapshot from hunter rows only: no typed links, no demo rows, no message text outside Maps, saved AI answers cleared. |
 | `tools/make_public_answers.py` | Has the local model prepare the assistant's starter answers and campaign briefings for the public snapshot. |
 | `i18n.py` | Every screen text in English and Arabic, plus Arabic versions of the scorer's reasons (for display only). |
-| `report.py` | Feature 4b. Builds the takedown report, offered only for MEDIUM and HIGH sites: target, reasons, registration details, the registrar's abuse contact and where to send it (registrar, Google Safe Browsing, then the Abu Dhabi Police Aman Service, with Dubai Police eCrime and the MOI platform as alternatives). For sites on free hosting platforms (workers.dev, vercel.app ...) it says to report to the platform instead. |
+| `report.py` | Feature 4b. Builds the evidence pack (summary, timeline, assessment, outside checks, registration, campaign and related domains, next steps, then the takedown request) and the takedown report, offered only for MEDIUM and HIGH sites: target, reasons, registration details, the registrar's abuse contact and where to send it (registrar, Google Safe Browsing, then the Abu Dhabi Police Aman Service, with Dubai Police eCrime and the MOI platform as alternatives). For sites on free hosting platforms (workers.dev, vercel.app ...) it says to report to the platform instead. |
 | `maps_scanner.py` | Feature 5 (stretch). Searches Google Maps for fake "customer service" listings and checks each listing's website and phone number. A listing that links an official site scores 0 (unless Google lists that site); the phone only counts when the website is unofficial or missing. Each listing is its own row. Its takedown report asks Google to remove the listing. It only runs with a `GOOGLE_PLACES_KEY`, and each search is a paid request. |
 | `app.py` | The Streamlit dashboard. It only draws screens and calls the modules above. Pages: **Overview**, **Leads**, **Campaigns**, **Site file**, **Report a site**, **How it works** (only the open page is drawn). |
 | `assets/emblem.svg` | The ATHAR emblem (our own line drawing): header, browser-tab icon and assistant avatar. |
@@ -534,7 +537,8 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
    official (score 0), but the unofficial `dubaipoliceefines.com` is flagged.
 5. **Leads and Site file.** Sort by score, filter by source, and select a row: its **Site file** opens with
    every fact in one place. Download the **takedown report**; it already contains the registrar's abuse
-   e-mail and the official reporting channels. Turn on
+   e-mail and the official reporting channels. Show the **case board** on the Overview: move a case to
+   *Investigating*, tick **Verify evidence** in its next steps, and **Download evidence pack**. Turn on
    **Confirmed scams only (4)** to show the difference between confirmed scams and leads.
 6. **Close.** The core hunters and scorer need no paid service; Maps and the AI chat are optional, paid and capped. It never opens dangerous pages, and every score is explained, so
    an officer can trust it and act on it.

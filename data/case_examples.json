@@ -1,0 +1,7 @@
+{
+ "_note": "Example case statuses for the PUBLIC DEMO only, always shown labelled as demo. Not real case records. Officers set real statuses on the laptop (data/cases.json, never committed).",
+ "emiratesnbd.secure-frais.click": "Reported",
+ "emiratesnbd.com-verify-io.bond": "Investigating",
+ "xn--emiratesnbdubi-xib.com": "Taken down",
+ "campaign:salik:Web Commerce Communications Limited dba WebNic.cc:2025-10-03": "Investigating"
+}

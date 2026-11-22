@@ -1604,3 +1604,107 @@ def test_confirmed_scams_switch_and_verified_not_scams(monkeypatch, tmp_path):
         "google-listed.example": "Google Safe Browsing", "seen-scam.example": "screenshot (Cloudflare Radar)",
         "reported.example": "officer-approved report"}
     assert facts["verified_not_scams"] == ["salik.shop"] and "confirmed_scams" in facts["note"]
+
+
+# ---------------------------------------------------------------- officer workflow: cases, checklist, evidence pack
+def _case_sites(db):
+    from scorer import score_url
+    for url, created, sb in [("https://salik-pay-fines.top/pay", "2026-11-01", "clean"),
+                             ("https://emiratespost-parcel-fee.top/track", "2026-11-05", "SOCIAL_ENGINEERING")]:
+        res = score_url(url)
+        res.update(registrar="Example Registrar", created=created, age_days=20, abuse_email="abuse@example.net",
+                   safe_browsing=sb)
+        db.save(res, source="cert log", query=f"{url.split('//')[1][:5]}* (cert issued 2026-11-06)")
+    return db.unique_sites()
+
+
+def test_case_statuses_and_checklist_are_saved_on_the_laptop_only(monkeypatch, tmp_path):
+    import cases
+    monkeypatch.setattr(config, "CASES_FILE", tmp_path / "cases.json")
+    examples = tmp_path / "examples.json"
+    examples.write_text('{"salik-pay-fines.top": "Taken down", "other.top": "Criminal"}', encoding="utf-8")
+    monkeypatch.setattr(cases, "EXAMPLES_FILE", examples)
+    key = cases.site_key("https://www.salik-pay-fines.top/pay")
+    assert key == "salik-pay-fines.top" and cases.get(key)["status"] == "New"
+    cases.set_status(key, "Investigating")
+    cases.set_step(key, "aman", True)
+    cases.set_step(key, "verify", True)
+    case = cases.get(key)
+    assert (case["status"], case["steps"], case["demo"]) == ("Investigating", ["verify", "aman"], False)
+    with pytest.raises(ValueError):
+        cases.set_status(key, "Guilty")  # only the four statuses exist
+
+    monkeypatch.setattr(config, "PUBLIC_MODE", True)
+    assert cases.get(key) == {"status": "Taken down", "steps": [], "updated": None, "demo": True}  # example only
+    assert cases.get("other.top")["status"] == "New"  # anything else in the examples file is ignored
+    with pytest.raises(PermissionError):
+        cases.set_status(key, "Reported")
+
+
+def test_case_board_and_case_file_with_evidence_pack(monkeypatch, tmp_path):
+    import cases
+    db = _empty_db(monkeypatch, tmp_path)
+    _fresh_limits(monkeypatch, tmp_path)
+    monkeypatch.setattr(config, "CASES_FILE", tmp_path / "cases.json")
+    sites = _case_sites(db)
+    at = _open_app()
+    assert not at.exception, [e.value for e in at.exception]
+    assert len([b for b in at.button if b.label == "Open case"]) == 2  # both HIGH sites are cases
+    picker = next(s for s in at.selectbox if s.key == "case_emiratespost-parcel-fee.top")
+    picker.set_value("Reported").run()
+    assert cases.get("emiratespost-parcel-fee.top")["status"] == "Reported"  # saved at once
+
+    next(b for b in at.button if b.label == "Open case" and b.key == "open_emiratespost-parcel-fee.top").click().run()
+    assert at.session_state["site_url"] == next(s["url"] for s in sites if "emiratespost" in s["url"])
+    assert next(t for t in at.tabs if t.label == "Site file")  # the Site file page is open
+    shown = " ".join(str(e.value) for kind in ("markdown", "caption", "text") for e in getattr(at, kind))
+    for fact in ("Status: Confirmed", "does not identify the person", "Timeline", "2026-11-05   Domain registered",
+                 "2026-11-06   Certificate issued", "First seen by ATHAR", "Listed by Google Safe Browsing",
+                 "Related domains", "Next steps"):
+        assert fact in shown, fact
+    assert [c.label for c in at.checkbox] == ["1. Verify evidence", "2. Contact registrar abuse team",
+                                              "3. Report via Aman", "4. Notify Google Safe Browsing"]
+    assert "criminal" not in shown.lower()
+    links = {b.proto.label: b.proto.url for b in at.get("link_button")}
+    assert links["Call 8002626"] == "tel:8002626" and links["E-mail abuse team"].startswith("mailto:abuse@example.net")
+    assert "safebrowsing.google.com" in links["Google report form"]
+    next(c for c in at.checkbox if c.label == "1. Verify evidence").check().run()
+    assert cases.get("emiratespost-parcel-fee.top")["steps"] == ["verify"]
+
+    import report
+    site = next(s for s in db.unique_sites() if "emiratespost" in s["url"])
+    pack = report.evidence_pack(site, "Confirmed", cases.get("emiratespost-parcel-fee.top"),
+                                related=[("salik-pay-fines.top", "40% similar name")], ml=90)
+    for part in ("# Evidence pack", "**Status:** Confirmed", "**Case:** Reported", "does not identify",
+                 "## 2. Timeline", "Domain registered", "Case status set (`Reported`)", "- [x] Verify evidence",
+                 "- [ ] Report via Aman", "Abu Dhabi Police Aman Service: call 8002626", "# Takedown request",
+                 "`salik-pay-fines.top` (40% similar name)"):
+        assert part in pack, part
+    assert "criminal" not in pack.lower()
+
+
+def test_public_case_board_shows_examples_labelled_demo_and_changes_nothing(monkeypatch, tmp_path):
+    import cases
+    db = _empty_db(monkeypatch, tmp_path)
+    _fresh_limits(monkeypatch, tmp_path)
+    monkeypatch.setattr(config, "PUBLIC_MODE", True)
+    monkeypatch.setattr(config, "CASES_FILE", tmp_path / "cases.json")
+    examples = tmp_path / "examples.json"
+    examples.write_text('{"salik-pay-fines.top": "Investigating"}', encoding="utf-8")
+    monkeypatch.setattr(cases, "EXAMPLES_FILE", examples)
+    _case_sites(db)
+    at = _open_app()
+    assert not at.exception, [e.value for e in at.exception]
+    captions = " ".join(c.value for c in at.caption)
+    assert "Case status: **Investigating (example status, demo)**" in captions
+    assert "statuses are examples, labelled demo" in captions
+    assert not [s for s in at.selectbox if (s.key or "").startswith("case_")]  # no status changes in public
+    assert not (tmp_path / "cases.json").exists()
+
+
+def test_committed_case_examples_are_valid_and_labelled():
+    import json
+    import cases
+    data = json.loads(cases.EXAMPLES_FILE.read_text(encoding="utf-8"))
+    assert "PUBLIC DEMO" in data["_note"] and "Not real case records" in data["_note"]
+    assert {v for k, v in data.items() if k != "_note"} <= set(cases.STATUSES)

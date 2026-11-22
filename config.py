@@ -8,6 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).parent
 DB_PATH = ROOT / "data" / "athar.db"
 REPORTS_FILE = ROOT / "data" / "reports_queue.json"  # links visitors reported: private, never committed
+CASES_FILE = ROOT / "data" / "cases.json"  # case statuses and checklists officers set on the laptop: private, never committed
 VERIFIED_FILE = ROOT / "data" / "verified.json"  # sites a person confirmed from a urlscan.io screenshot (tools/verify_sites.py)
 FIXTURES = ROOT / "data" / "fixtures"
 

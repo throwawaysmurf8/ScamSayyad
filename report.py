@@ -236,3 +236,115 @@ if __name__ == "__main__":
     from enrich import check
     result, _ = check(sys.argv[1] if len(sys.argv) > 1 else "http://dubaipol1ce-fines.xyz/pay")
     print(build(result))
+
+
+# ----------------------------------------------------------------------------- Case file: timeline + evidence pack
+TIMELINE_EN = {"registered": "Domain registered", "cert": "Certificate issued (public certificate log)",
+               "first_seen": "First seen by ATHAR", "google": "Listed by Google Safe Browsing (as of this check)",
+               "checked": "Safe screenshot and VirusTotal check", "status": "Case status set"}
+STEPS_EN = {"verify": "Verify evidence", "registrar": "Contact registrar abuse team", "aman": "Report via Aman",
+            "google": "Notify Google Safe Browsing"}
+EMAIL = re.compile(r"^[\w.+-]+@[\w-]+(\.[\w-]+)+$")
+
+
+def timeline(site, record=None, case=None):
+    """The case's dated events, oldest first: [(YYYY-MM-DD, event key, detail)]. Only facts we hold."""
+    events = []
+    if _val(site, "created"):
+        events.append((str(site["created"])[:10], "registered", site.get("registrar") or ""))
+    cert = re.search(r"cert issued (\d{4}-\d{2}-\d{2})", site.get("query") or "")
+    if cert:
+        events.append((cert.group(1), "cert", ""))
+    if _val(site, "first_seen"):
+        events.append((str(site["first_seen"])[:10], "first_seen", site.get("source") or ""))
+    if "_" in (site.get("safe_browsing") or "") and _val(site, "last_checked"):
+        events.append((str(site["last_checked"])[:10], "google", site["safe_browsing"]))
+    if record and record.get("checked"):
+        events.append((record["checked"], "checked", record.get("label") or record.get("reason") or ""))
+    if case and not case.get("demo") and case.get("updated") and case.get("status") != "New":
+        events.append((case["updated"], "status", case["status"]))
+    return sorted(events, key=lambda e: e[0])
+
+
+def abuse_mailto(site):
+    """A mailto: link to the registrar's abuse team, only when the registry gave a real e-mail address."""
+    from urllib.parse import quote
+    address = (site.get("abuse_email") or "").strip()
+    if not EMAIL.match(address):
+        return None
+    return f"mailto:{address}?subject=" + quote(f"Takedown request: {parse(site['url'])[1]}")
+
+
+def evidence_pack(site, status, case, campaign=None, related=(), ml=None, record=None):
+    """One Markdown file with everything ATHAR holds on a case, then the takedown request.
+    `status` is the label (Confirmed / Suspected / Lead / Not a scam); it describes a website, never a person."""
+    host = parse(site["url"])[1]
+    record = record or {}
+    why = explain_level(site.get("score", 0), site.get("level", "LOW"), site.get("reasons", []),
+                        site.get("age_days"), site.get("safe_browsing"))["headline"]
+    case_line = f"{case['status']} (example status, public demo)" if case.get("demo") else (
+        case["status"] + (f" (updated {case['updated']})" if case.get("updated") else ""))
+    events = "\n".join(f"- {d}: {TIMELINE_EN[k]}" + (f" ({code_span(x)})" if x else "")
+                       for d, k, x in timeline(site, record, case)) or "- no dated events recorded"
+    vt = (f"{record['vt_malicious']} of {record['vt_total']} security vendors flag it ({record['checked']})"
+          if record.get("vt_seen") else "not checked")
+    shot = f"{escape_md(record['label'])} ({record['checked']})" if record.get("label") else "not checked"
+    ml_line = "not applicable" if ml is None else f"{ml}% scam-like name (a second opinion; never changes the score)"
+    camp = ("not part of a detected campaign" if not campaign else
+            f"{escape_md(campaign['brand'])}: {len(campaign['domains'])} domains, {code_span(campaign['registrar'])}, "
+            f"registered {campaign['first']} to {campaign['last']}")
+    rel = "\n".join(f"- {code_span(h)} ({note})" for h, note in related) or "- none found"
+    done = set(case.get("steps", []))
+    steps = "\n".join(f"- [{'x' if s in done else ' '}] {STEPS_EN[s]}" for s in STEPS_EN)
+    age = f"{int(site['age_days'])} days" if _val(site, "age_days") is not None else "unknown"
+    created = str(site.get("created") or "")[:10]
+    created = created if re.fullmatch(r"\d{4}-\d{2}-\d{2}", created) else "unknown"  # registry text: dates only
+    return f"""# Evidence pack - {code_span(host)}
+
+**Prepared:** {db.now()}  |  **Tool:** ATHAR prototype (automated lead - verify before acting)
+**Status:** {status}  |  **Case:** {case_line}
+
+> This pack describes a website. It does not identify, and makes no claim about, the person or group
+> operating it. Hackathon prototype, not an official Abu Dhabi Police service. Officer review required.
+
+## 1. Summary
+- **URL:** {code_span(site['url'])}
+- **Registered domain:** {code_span(site.get('domain', ''))}
+- **Risk score:** {site.get('score')}/100 ({site.get('level')})
+- **Found by:** {code_span((site.get('source') or 'manual') + (' - ' + site['query'] if site.get('query') else ''))}
+
+## 2. Timeline
+{events}
+
+## 3. Assessment
+{why}
+
+{chr(10).join(f"- {r}" for r in site.get("reasons", []))}
+
+- **ML second opinion:** {ml_line}
+
+## 4. Outside checks
+- **Google Safe Browsing:** {escape_md(_val(site, 'safe_browsing') or 'not checked')}
+- **VirusTotal:** {vt}
+- **Safe screenshot check:** {shot}
+
+## 5. Registration
+- **Registrar:** {code_span(site['registrar']) if _val(site, 'registrar') else 'unknown'}
+- **Registration date:** {created}
+- **Domain age:** {age}
+- **Registrar abuse contact:** {code_span(site['abuse_email']) if _val(site, 'abuse_email') else 'not published'}
+
+## 6. Campaign and related domains
+- **Campaign:** {camp}
+
+{rel}
+
+## 7. Next steps
+{steps}
+
+Official reporting channels:
+{channels_text()}
+
+---
+
+{build(site)}"""

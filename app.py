@@ -17,6 +17,7 @@ import ai
 import assistant
 import briefing
 import campaigns
+import cases
 import checks
 import config
 import ct_watcher
@@ -993,6 +994,99 @@ def channels_block():
     st.markdown(f"**{T('channels_title')}**  \n" + "  \n".join(lines))
 
 
+def case_label(case):
+    """'Investigating', or 'Investigating (example status, demo)' on the public site."""
+    label = T(f"case_{case['status']}")
+    return T("case_demo", s=label) if case["demo"] else label
+
+
+def _status_changed(key):
+    cases.set_status(key, st.session_state[f"case_{key}"])
+
+
+def case_status_control(key, case, compact=False):
+    """Laptop: a status picker (saved at once). Public site: the example status, labelled demo."""
+    if case["demo"]:
+        st.caption(f"{T('case_status')}: **{case_label(case)}**")
+        return
+    st.selectbox(T("case_status"), cases.STATUSES, index=cases.STATUSES.index(case["status"]),
+                 format_func=lambda x: T(f"case_{x}"), key=f"case_{key}", on_change=_status_changed, args=(key,),
+                 label_visibility="collapsed" if compact else "visible")
+
+
+def case_board(sites, real):
+    """The newest high-risk leads and the newest possible campaigns, each tracked as a case."""
+    st.subheader(T("board_title"))
+    st.caption(T("board_note") + (" " + T("board_note_public") if config.PUBLIC_MODE else ""))
+    newest = sorted([x for x in real if x["level"] == "HIGH" and x["source"] != "maps"],
+                    key=lambda x: (x.get("first_seen") or "", x.get("created") or "", x["score"]), reverse=True)[:6]
+    st.markdown(f"**{T('board_sites')}**")
+    cols = st.columns(3)
+    for i, x in enumerate(newest):
+        key = cases.site_key(x["url"])
+        with cols[i % 3], st.container(border=True):
+            st.markdown(code_span(hostname(x["url"])))
+            st.caption(T("case_site_detail", score=x["score"], level=T(x["level"]),
+                         first=(x.get("first_seen") or "")[:10]))
+            case_status_control(key, cases.get(key), compact=True)
+            st.button(T("case_open"), key=f"open_{key}", on_click=open_site, args=(x["url"],),
+                      icon=":material/folder_open:")
+    found = sorted(campaigns.find(sites), key=lambda c: (c["last"], c["top_score"]), reverse=True)[:3]
+    if found:
+        st.markdown(f"**{T('board_campaigns')}**")
+        cols = st.columns(3)
+        for col, c in zip(cols, found):
+            key = cases.campaign_key(c)
+            members = [x for x in real if x.get("domain") in c["domains"]]
+            with col, st.container(border=True):
+                st.markdown(f"**{escape_md(T('camp_case', brand=c['brand'], n=len(c['domains'])))}**")
+                st.caption(T("camp_case_detail", registrar=code_span(c["registrar"]), dates=escape_md(dates_text(c)),
+                             top=c["top_score"]))
+                case_status_control(key, cases.get(key), compact=True)
+                if members:  # opens the campaign's highest-scoring site, whose file shows the campaign
+                    top = max(members, key=lambda x: x["score"])
+                    st.button(T("case_open"), key=f"open_{key}", on_click=open_site, args=(top["url"],),
+                              icon=":material/folder_open:")
+
+
+def related_domains(site, campaign, sites):
+    """Other domains in the same campaign, then the saved sites whose names look most alike (ML):
+    [(host, None)] for the campaign, [(host, similarity %)] for look-alike names."""
+    host = ml_model.host_of(site["url"])
+    out = [(w, None) for w in (campaign or {}).get("websites", []) if w != host][:8]
+    if ml_model.available():
+        seen = {w for w, _ in out} | {host}
+        others = [x["url"] for x in sites if x.get("source") not in ("sample", "maps") and x["url"] != site["url"]]
+        out += [(ml_model.host_of(u), sim) for u, sim in ml_model.similar(site["url"], others, k=5)
+                if ml_model.host_of(u) not in seen]
+    return out
+
+
+def next_steps(site, key, case):
+    """Verify evidence -> registrar abuse team -> Aman -> Google Safe Browsing, with the matching buttons."""
+    st.markdown(f"**{T('file_steps')}**")
+    if case["demo"]:
+        st.caption(T("steps_public"))
+    mailto = report.abuse_mailto(site)
+    how = {"verify": T("step_verify_how"),
+           "registrar": T("step_registrar_how") if mailto else T("step_registrar_none"),
+           "aman": T("step_aman_how"), "google": T("step_google_how")}
+    links = {"registrar": (T("btn_email"), mailto), "aman": (T("btn_call"), "tel:8002626"),
+             "google": (T("btn_google"), report.SAFE_BROWSING_REPORT)}
+    for n, step in enumerate(cases.STEPS, 1):
+        left, right = st.columns([3, 1], vertical_alignment="center")
+        label = f"{n}. {T('step_' + step)}"
+        if case["demo"]:
+            left.markdown(f"**{label}**")
+        else:
+            left.checkbox(label, value=step in case["steps"], key=f"step_{key}_{step}",
+                          on_change=lambda s=step: cases.set_step(key, s, st.session_state[f"step_{key}_{s}"]))
+        left.caption(how[step])
+        text, url = links.get(step, (None, None))
+        if url:
+            right.link_button(text, url, width="stretch")
+
+
 def render_overview():
     st.markdown(T("tagline"))
     sites = db.unique_sites()
@@ -1010,6 +1104,7 @@ def render_overview():
     c4.metric(T("ov_review"), review, border=True)
     c5.metric(T("ov_campaigns"), len(campaigns.find(sites)), border=True)
     st.caption(T("ov_note", total=len(real)))
+    case_board(sites, real)
     render_agents(sites)
 
 
@@ -1027,12 +1122,24 @@ def site_file(site, campaign, sites):
     status = status_of(site)
     by = checks.confirmed_by(site)
     head = T("file_status", s=T(status)) + (f" · {T('file_confirmed_by', by=by)}" if by else "")
-    st.markdown(f"**{head}**")
+    key = cases.site_key(site["url"])
+    case = cases.get(key)
+    top, side = st.columns([3, 2], vertical_alignment="bottom")
+    top.markdown(f"**{head}**")
+    top.caption(T("identity_note"))
+    with side:
+        case_status_control(key, case)
     if site.get("source") == "sample":
         st.warning(T("demo_row"), icon=":material/science:")
-    show_result(site, campaign)  # score, level, name, why, registration facts, ML
+    show_result(site, campaign)  # score, level, name, why, ML
 
     rec = checks.record(site["url"]) or {}
+    with st.container(border=True):
+        st.markdown(f"**{T('file_timeline')}**")
+        events = report.timeline(site, rec, case)
+        readable = lambda x: tr(x.replace("SOCIAL_ENGINEERING", "phishing (social engineering)"))
+        st.text("\n".join(f"{d}   {T('tl_' + k)}" + (f" ({readable(x)})" if x else "") for d, k, x in events)
+                if events else T("tl_none"))  # registry and outside text: plain text, never links
     with st.container(border=True):
         st.markdown(f"**{T('file_checks')}**")
         a, b, c = st.columns(3)
@@ -1068,10 +1175,24 @@ def site_file(site, campaign, sites):
         found = T("demo_source") if site.get("source") == "sample" else (site.get("source") or "manual")
         _field(c, T("f_found"), found + (f" · {site['query']}" if site.get("query") and site.get("source") != "sample"
                                          else ""), as_text=True)
+        related = related_domains(site, campaign, sites)
+        st.caption(T("f_related"))
+        st.markdown(" · ".join(f"{code_span(h)} ({T('rel_campaign') if p is None else T('rel_similar', p=p)})"
+                               for h, p in related) if related else T("rel_none"))
+
+    with st.container(border=True):
+        next_steps(site, key, case)
 
     left, right = st.columns([3, 2])
     with left, st.container(border=True):
         st.markdown(f"**{T('file_actions')}**")
+        ml = None if is_official(site["reasons"]) or "#place=" in site["url"] else ml_for([site["url"]])[0]
+        pack = report.evidence_pack(site, i18n.t(status, "en"), case, campaign,  # the pack is in English
+                                    [(h, "same campaign" if p is None else f"{p}% similar name") for h, p in related],
+                                    ml, rec)
+        st.download_button(T("pack_download"), pack, file_name=f"evidence_{hostname(site['url'])}.md",
+                           mime="text/markdown", type="primary", icon=":material/folder_zip:", width="stretch",
+                           help=T("pack_help"), key=f"pack_{key}")
         if report.is_reportable(site):
             st.caption(T("report_ready"))
             takedown_panel(site, key=site["url"])

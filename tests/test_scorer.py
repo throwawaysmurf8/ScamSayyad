@@ -1708,3 +1708,41 @@ def test_committed_case_examples_are_valid_and_labelled():
     data = json.loads(cases.EXAMPLES_FILE.read_text(encoding="utf-8"))
     assert "PUBLIC DEMO" in data["_note"] and "Not real case records" in data["_note"]
     assert {v for k, v in data.items() if k != "_note"} <= set(cases.STATUSES)
+
+
+# ---------------------------------------------------------------- motion: plays once per visit, real progress
+def test_load_animations_play_once_per_visit_and_the_check_shows_real_steps(monkeypatch, tmp_path):
+    import enrich
+    from scorer import score_url
+    db = _empty_db(monkeypatch, tmp_path)
+    _fresh_limits(monkeypatch, tmp_path)
+    monkeypatch.setattr(config, "CASES_FILE", tmp_path / "cases.json")
+    _case_sites(db)
+    html_of = lambda at: " ".join(h.proto.body for h in at.get("html") if not h.proto.body.lstrip().startswith("<style>"))
+    at = _open_app()
+    assert not at.exception, [e.value for e in at.exception]
+    first = html_of(at)
+    assert "ath-count ath-in" in first and "--to:2" in first  # the counters count up the first time
+    assert "card_in_s0" in " ".join(c.proto.body for c in at.get("html"))  # the cards slide in, one after another
+    assert "ath-dot-status_confirmed" in first and "ath-dot-status_suspected" in first  # pulsing dot: confirmed only
+    at.run()  # any click redraws the page: nothing replays
+    again = html_of(at)
+    assert "ath-count ath-in" not in again and "card_in_" not in again and "--to:2" in again
+
+    def fake_check(url, text="", progress=None, **kw):  # the real steps, without the network
+        for stage, facts in [("registry", {}), ("registry_done", {"created": "2026-11-01", "registrar": None}),
+                             ("google", {}), ("google_done", {"status": "clean"}), ("score", {}),
+                             ("score_done", {"score": 75, "level": "HIGH", "n": 4})]:
+            progress(stage, **facts)
+        return score_url(url, text), {}
+    monkeypatch.setattr(config, "PUBLIC_MODE", True)
+    monkeypatch.setattr(enrich, "check", fake_check)
+    at = _open_app("Site file")
+    at.text_input[0].input("http://adpol1ce-fines.xyz/pay").run()
+    next(b for b in at.button if b.label == "Check link").click().run()
+    assert not at.exception, [e.value for e in at.exception]
+    log = html_of(at)
+    for line in ("Agent log · Complete", "Checking registration records", "Registration: 2026-11-01, registrar unknown",
+                 "Google Safe Browsing: clean", "Score 75/100 (High), 4 signs found", "ath-radar ath-stop"):
+        assert line in log, line
+    assert "ath-bar" in log and "ath-in" in log  # the score bar fills the first time this file opens

@@ -341,15 +341,23 @@ def test_safe_browsing_key():
     return "The key was accepted, but Google did not flag its test address. Try again later."
 
 
-def check(url, text="", cached_info=None, same_name_endings=0, saved_url=None):
+def check(url, text="", cached_info=None, same_name_endings=0, saved_url=None, progress=None):
     """Score a URL with online facts. Pass cached_info to skip a repeat domain look-up.
-    If the Safe Browsing call fails, the answer saved for `saved_url` (default: this URL) is used."""
+    If the Safe Browsing call fails, the answer saved for `saved_url` (default: this URL) is used.
+    progress(stage, **facts), if given, is told each step as it happens (for the app's agent log)."""
+    step = progress or (lambda stage, **facts: None)
     domain = parse(url)[2]
+    step("registry")
     info = cached_info if cached_info is not None else domain_info(domain)
+    step("registry_done", created=info.get("created"), registrar=info.get("registrar"))
+    step("google")
     threats = safe_browsing(url)
     threats, sb_status = sb_result(threats, _saved_safe_browsing(saved_url or url) if threats == SB_FAILED else None)
+    step("google_done", status=sb_status)
+    step("score")
     result = score_url(url, text, age_days=info.get("age_days"), safe_browsing_threats=threats,
                        same_name_endings=same_name_endings)
+    step("score_done", score=result["score"], level=result["level"], n=len(result["reasons"]))
     result.update({
         "created": info.get("created"),
         "age_days": info.get("age_days"),
@@ -361,7 +369,7 @@ def check(url, text="", cached_info=None, same_name_endings=0, saved_url=None):
     return result, info
 
 
-def check_and_save(url, text="", source="manual", query="", lookup=True):
+def check_and_save(url, text="", source="manual", query="", lookup=True, progress=None):
     """Check a URL (re-using cached domain facts) and store the result. Used by every hunter.
 
     lookup=False skips the slow registry call for domains we haven't cached yet.
@@ -377,7 +385,7 @@ def check_and_save(url, text="", source="manual", query="", lookup=True):
     cached = db.cached_domain(domain)
     endings = name_endings([u for u in db.known_urls() if "#place=" not in u] + [url]).get(name_stem(url)[0], 0)
     result, info = check(url, text, cached_info=cached if cached is not None else (None if lookup else {}),
-                         same_name_endings=endings)
+                         same_name_endings=endings, progress=progress)
     if cached is None and info:
         db.cache_domain(domain, info)
     db.save(result, source, query)

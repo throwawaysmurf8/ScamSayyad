@@ -55,11 +55,18 @@ HOST_HEADING_CSS = """<style>
 # The emblem (assets/emblem.svg, our own line drawing): a shield with a dotted trace ending at a point.
 # The header copy draws itself once when the page opens (its own CSS, still for "reduce motion"). It is an
 # <img> because st.html removes inline SVG. One colour (the theme's gold).
-_EMBLEM_ANIM = """<style>
-.s { stroke-dasharray: 100; animation: d 1.1s ease-out both; } .t { animation: f .5s ease-out .9s both; }
+_EMBLEM_ANIM = """<defs><clipPath id="c"><path d="M32 5 L53 12.5 V30 C53 43.5 44.5 53 32 59 C19.5 53 11 43.5 11 30 V12.5 Z"/>
+</clipPath><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D4B46A" stop-opacity="0"/>
+<stop offset=".5" stop-color="#D4B46A" stop-opacity=".55"/><stop offset="1" stop-color="#D4B46A" stop-opacity="0"/>
+</linearGradient></defs><style>
+.s { stroke-dasharray: 100; animation: d 2.2s cubic-bezier(.4,0,.2,1) both; }
+.t { animation: f .6s ease-out 1.9s both; }
+.scan { animation: sc 5s ease-in-out 2.6s infinite; transform: translateY(-14px); }
 @keyframes d { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
 @keyframes f { from { opacity: 0; } to { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .s, .t { animation: none; } }</style>"""
+@keyframes sc { 0% { transform: translateY(-14px); } 35%, 100% { transform: translateY(62px); } }
+@media (prefers-reduced-motion: reduce) { .s, .t, .scan { animation: none; } .scan { display: none; } }</style>
+<rect class="scan" x="0" y="0" width="64" height="12" fill="url(#g)" stroke="none" clip-path="url(#c)"/>"""
 EMBLEM_IMG = "<img class='ath-emblem' alt='' src='data:image/svg+xml;base64,{}'>".format(base64.b64encode(
     (config.ROOT / "assets" / "emblem.svg").read_text(encoding="utf-8")
     .replace("<path d=\"M32", _EMBLEM_ANIM + "<path class=\"s\" pathLength=\"100\" d=\"M32")
@@ -81,15 +88,55 @@ GLOBAL_CSS = """<style>
 .ath-rule { height: 0; border-top: 2px dotted var(--ath-green); opacity: .7; margin: 0 0 4px; }
 [data-baseweb="tag"] { background: #1C3350 !important; color: #E7ECF2 !important; }
 [data-testid="stMetricValue"], [data-testid="stDataFrame"] { font-variant-numeric: tabular-nums; }
-[data-testid="stLayoutWrapper"] > [data-testid="stVerticalBlock"], [data-testid="stMetric"], [data-testid="stTabPanel"] {
+[data-testid="stLayoutWrapper"] > [data-testid="stVerticalBlock"], [data-testid="stMetric"] {
   animation: ath-fade .24s ease-out both; }
-.ath-work { display: flex; flex-direction: column; gap: 8px; padding: 8px 0; color: var(--ath-muted); }
-.ath-work i { display: block; height: 2px; background: var(--ath-line); position: relative; overflow: hidden; }
-.ath-work i::after { content: ""; position: absolute; inset: 0; width: 30%; background: var(--ath-gold);
-                     animation: ath-run 1.4s ease-in-out infinite; }
-@keyframes ath-run { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+@property --n { syntax: "\\3C integer\\3E"; initial-value: 0; inherits: false; }  /* the integer type, in CSS escapes: st.html drops any style block with an angle bracket */
+.ath-stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin: 4px 0 8px; }
+@media (max-width: 1100px) { .ath-stats { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 560px) { .ath-stats { grid-template-columns: repeat(2, 1fr); } }
+.ath-stat { border: 1px solid var(--ath-line); border-radius: 6px; padding: 12px 16px; }
+.ath-stat b { display: block; font-weight: 400; font-size: .875rem; color: var(--ath-muted); }
+.ath-count { --n: var(--to); counter-reset: n var(--n); font-size: 2.25rem; font-weight: 500;
+             font-variant-numeric: tabular-nums; line-height: 1.3; }
+.ath-count::after { content: counter(n); }
+.ath-count.ath-in { animation: ath-count 1.8s cubic-bezier(.2,.7,.2,1) .3s both; }
+@keyframes ath-count { from { --n: 0; } to { --n: var(--to); } }
+.ath-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.ath-log { display: flex; gap: 16px; align-items: flex-start; padding: 12px 16px; border: 1px solid var(--ath-line);
+           border-radius: 6px; margin: 8px 0; }
+.ath-radar { width: 64px; height: 64px; flex: none; border-radius: 50%; position: relative; overflow: hidden;
+             border: 1px solid rgba(212,180,106,.5);
+             background: repeating-radial-gradient(circle, transparent 0 10px, rgba(212,180,106,.18) 10px 11px); }
+.ath-radar::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(212,180,106,.25); }
+.ath-radar::after { content: ""; position: absolute; inset: 0; border-radius: 50%;
+                    background: conic-gradient(from 0deg, rgba(212,180,106,.65), rgba(212,180,106,0) 28%, transparent);
+                    animation: ath-spin 1.8s linear infinite; }
+.ath-radar.ath-stop::after { animation: none; opacity: .25; }
+.ath-log-body { min-width: 0; flex: 1; }
+.ath-log-head { font-weight: 500; margin-bottom: 4px; }
+.ath-log-head span { color: var(--ath-muted); font-weight: 400; font-size: .875rem; margin-inline-start: 8px; }
+.ath-log ol { list-style: none; margin: 0; padding: 0; font-family: ui-monospace, monospace; font-size: .85rem;
+              color: var(--ath-muted); direction: ltr; text-align: start; }
+.ath-log li { padding: 2px 0; overflow-wrap: anywhere; }
+.ath-log li::before { content: "› "; color: var(--ath-gold); }
+.ath-log li.ath-new { animation: ath-line .45s ease-out both; color: #E7ECF2; }
+@keyframes ath-line { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+@keyframes ath-spin { to { transform: rotate(360deg); } }
+[data-testid="stLayoutWrapper"] > [class*="st-key-card_in_"] { animation: ath-slide .6s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes ath-slide { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+.ath-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-inline-end: 8px;
+           vertical-align: middle; background: #6B7E93; }
+.ath-dot-status_suspected { background: #F0883E; }
+.ath-dot-status_confirmed { background: #F07B72; animation: ath-pulse 2s ease-out infinite; }
+@keyframes ath-pulse { 0% { box-shadow: 0 0 0 0 rgba(240,123,114,.6); } 70%, 100% { box-shadow: 0 0 0 8px rgba(240,123,114,0); } }
+.ath-status { font-size: .875rem; color: var(--ath-muted); }
+.ath-bar { height: 6px; border-radius: 3px; background: var(--ath-line); overflow: hidden; margin: 4px 0 12px; }
+.ath-bar i { display: block; height: 100%; width: var(--w); border-radius: 3px; }
+.ath-bar i.ath-in { animation: ath-fill 1.4s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes ath-fill { from { width: 0; } to { width: var(--w); } }
 @keyframes ath-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; }
+  .ath-count { --n: var(--to) !important; } }
 @media (max-width: 640px) { .ath-emblem { width: 40px; height: 40px; } .ath-name-en { font-size: 1.5rem; }
                             .ath-name-ar { font-size: 1.3rem; } }
 </style>"""
@@ -112,6 +159,16 @@ LANG = "ar" if st.session_state.get("lang_choice") == "العربية" else "en"
 for _k in ("min_score", "sources", "show_samples", "review_only", "confirmed_only"):
     if _k in st.session_state:
         st.session_state[_k] = st.session_state[_k]
+
+
+def first_time(name):
+    """True the first time `name` is drawn in this visit. Streamlit redraws the page on every click, and
+    load animations should play once, not every time."""
+    seen = st.session_state.setdefault("_animated", set())
+    if name in seen:
+        return False
+    seen.add(name)
+    return True
 
 
 def T(key, **values):
@@ -326,6 +383,9 @@ def show_result(res, campaign=None):
         top.markdown(f"## :{color}[{res['score']}]<span style='font-size:1rem;opacity:.7'> / 100</span>",
                      unsafe_allow_html=True)
         badge.badge(T("risk_badge", level=T(res["level"])), icon=icon, color=color)
+        fill = " ath-in" if first_time(f"bars_{res['url']}") else ""
+        st.html(f"<div class='ath-bar'><i class='{fill.strip()}' style='--w:{res['score']}%;"
+                f"background:{ {'HIGH': '#F07B72', 'MEDIUM': '#F0883E', 'LOW': '#5BC48C'}[res['level']] }'></i></div>")
         proof, hidden = verified_record(res["url"]), cloaked_record(res["url"])
         cleared_rec = checks.not_a_scam(res["url"])
         if cleared_rec:
@@ -375,6 +435,7 @@ def show_result(res, campaign=None):
             verdict = T("ml_agrees") if rule_flag == ml_flag else (
                 T("ml_disagrees_more") if ml_flag else T("ml_disagrees_less"))
             st.markdown(T("ml_card", p=ml, verdict=verdict))
+            st.html(f"<div class='ath-bar'><i class='{fill.strip()}' style='--w:{ml}%;background:#D4B46A'></i></div>")
             if ml_model.needs_review(res["score"], ml):
                 st.warning(T("review_card", score=res["score"], ml=ml, gap=config.REVIEW_GAP), icon=":material/flag:")
 
@@ -648,12 +709,21 @@ def check_link_panel(open_now):
     if go and config.PUBLIC_MODE and not limits.take_check(config.CHECKS_PER_MINUTE):
         st.info(T("check_rate", n=config.CHECKS_PER_MINUTE), icon=":material/hourglass_empty:")
     elif go:
-        with working(T("checking")):
+        with agent_log(T("checking")) as log:
+            def progress(stage, **facts):
+                if stage == "registry_done":
+                    facts = {k: v or T("unknown") for k, v in facts.items()}
+                if stage == "google_done":
+                    facts["status"] = tr(facts["status"].replace("SOCIAL_ENGINEERING", "phishing (social engineering)"))
+                if stage == "score_done":
+                    facts["level"] = T(facts["level"])
+                log(T(f"prog_{stage}", **facts))
             if config.PUBLIC_MODE:  # public: scored for this visitor only, never saved to the shared data
-                res = check(url.strip(), text=msg.strip())[0]
+                res = check(url.strip(), text=msg.strip(), progress=progress)[0]
             else:
-                res = check_and_save(url.strip(), text=msg.strip(), source="manual")
+                res = check_and_save(url.strip(), text=msg.strip(), source="manual", progress=progress)
         st.session_state["checked_site"], st.session_state["site_url"] = res, res["url"]
+        st.session_state["check_log"] = (res["url"], log.lines)  # shown again with the result
         st.rerun()  # redraw the Site file for this link
 
 
@@ -681,19 +751,34 @@ def _scan_wait(kind):
         st.caption(T("scan_cooldown", t=f"{s['cooldown'] // 60}:{s['cooldown'] % 60:02d}"))
 
 
-class working:
-    """`with working("Scanning certificate logs…"):` shows the step name and a thin moving bar while the block
-    runs, then removes both. CSS only; still for anyone who asks for reduced motion."""
+class agent_log:
+    """`with agent_log("Scanning certificate logs…") as log: scanner.run(log=log)`: a radar sweep and the agent's
+    real progress lines, appearing one by one while the work runs. When it ends the sweep stops and the log
+    stays. CSS only; still for anyone who asks for reduced motion."""
 
-    def __init__(self, label):
-        self.label = label
+    def __init__(self, title):
+        self.title, self.lines, self.done = title, [], False
+
+    def __call__(self, line):
+        self.lines.append(str(line))
+        self._draw()
+
+    def _draw(self):
+        state = T("log_done") if self.done else T("log_running")
+        items = "".join(f"<li{' class=ath-new' if k == len(self.lines) - 1 and not self.done else ''}>"
+                        f"{html.escape(line)}</li>" for k, line in enumerate(self.lines))
+        self.slot.html(f"<div class='ath-log'><div class='ath-radar{' ath-stop' if self.done else ''}'></div>"
+                       f"<div class='ath-log-body'><div class='ath-log-head'>{html.escape(self.title)}"
+                       f"<span>{T('agent_log')} · {state}</span></div><ol>{items}</ol></div></div>")
 
     def __enter__(self):
         self.slot = st.empty()
-        self.slot.html(f"<div class='ath-work'><span>{html.escape(self.label)}</span><i></i></div>")
+        self._draw()
+        return self
 
     def __exit__(self, *exc):
-        self.slot.empty()
+        self.done = True
+        self._draw()
 
 
 def scan_button(kind, label, ready=True):
@@ -781,9 +866,9 @@ def render_agents(sites):
         days = st.slider(T("days_slider"), 1, 90, config.CT_RECENT_DAYS)
         if scan_button("watcher", T("run_watcher"), ready=bool(prefixes)):
             def watcher():
-                with working(T("watcher_running")), st.status(T("watcher_running"), expanded=True) as s:
-                    res = ct_watcher.run(prefixes, days, log=st.write)
-                    s.update(label=T("watcher_done", n=len(res)), state="complete")
+                with agent_log(T("watcher_running")) as log:
+                    res = ct_watcher.run(prefixes, days, log=log)
+                    log(T("watcher_done", n=len(res)))
                 st.session_state["scan_done"] = T("watcher_done", n=len(res))
             run_scan("watcher", watcher)
 
@@ -794,9 +879,9 @@ def render_agents(sites):
         extra = "" if config.PUBLIC_MODE else st.text_input(T("extra_query"), max_chars=100)
         if scan_button("search", T("run_search"), ready=bool(queries or extra.strip())):
             def search():
-                with working(T("searching")), st.status(T("searching"), expanded=True) as s:
-                    res = search_scanner.run(queries + ([extra.strip()] if extra.strip() else []), log=st.write)
-                    s.update(label=T("search_done", n=len(res)), state="complete")
+                with agent_log(T("searching")) as log:
+                    res = search_scanner.run(queries + ([extra.strip()] if extra.strip() else []), log=log)
+                    log(T("search_done", n=len(res)))
                 st.session_state["scan_done"] = T("search_done", n=len(res))
             run_scan("search", search)
 
@@ -806,9 +891,9 @@ def render_agents(sites):
             st.caption(T("maps_note"))
             if scan_button("maps", T("run_maps")):
                 def maps():
-                    with working(T("maps_running")), st.status(T("maps_running"), expanded=True) as s:
-                        res = maps_scanner.run(log=st.write)
-                        s.update(label=T("maps_done", n=len(res)), state="complete")
+                    with agent_log(T("maps_running")) as log:
+                        res = maps_scanner.run(log=log)
+                        log(T("maps_done", n=len(res)))
                     st.session_state["scan_done"] = T("maps_done", n=len(res))
                 run_scan("maps", maps)
         else:
@@ -1020,11 +1105,18 @@ def case_board(sites, real):
     st.caption(T("board_note") + (" " + T("board_note_public") if config.PUBLIC_MODE else ""))
     newest = sorted([x for x in real if x["level"] == "HIGH" and x["source"] != "maps"],
                     key=lambda x: (x.get("first_seen") or "", x.get("created") or "", x["score"]), reverse=True)[:6]
+    slide = first_time("case_board")
+    if slide:  # each card a little after the one before
+        keys = [f"s{i}" for i in range(6)] + [f"c{i}" for i in range(3)]
+        st.html("<style>" + "".join(f"[data-testid=stLayoutWrapper] > .st-key-card_in_{k} {{ animation-delay: {n * 110}ms; }}"
+                                    for n, k in enumerate(keys)) + "</style>")
     st.markdown(f"**{T('board_sites')}**")
     cols = st.columns(3)
     for i, x in enumerate(newest):
         key = cases.site_key(x["url"])
-        with cols[i % 3], st.container(border=True):
+        with cols[i % 3], st.container(border=True, key=f"card_{'in_' if slide else ''}s{i}"):
+            status = status_of(x)
+            st.html(f"<div class='ath-status'><span class='ath-dot ath-dot-{status}'></span>{html.escape(T(status))}</div>")
             st.markdown(code_span(hostname(x["url"])))
             st.caption(T("case_site_detail", score=x["score"], level=T(x["level"]),
                          first=(x.get("first_seen") or "")[:10]))
@@ -1035,10 +1127,10 @@ def case_board(sites, real):
     if found:
         st.markdown(f"**{T('board_campaigns')}**")
         cols = st.columns(3)
-        for col, c in zip(cols, found):
+        for i, (col, c) in enumerate(zip(cols, found)):
             key = cases.campaign_key(c)
             members = [x for x in real if x.get("domain") in c["domains"]]
-            with col, st.container(border=True):
+            with col, st.container(border=True, key=f"card_{'in_' if slide else ''}c{i}"):
                 st.markdown(f"**{escape_md(T('camp_case', brand=c['brand'], n=len(c['domains'])))}**")
                 st.caption(T("camp_case_detail", registrar=code_span(c["registrar"]), dates=escape_md(dates_text(c)),
                              top=c["top_score"]))
@@ -1096,13 +1188,14 @@ def render_overview():
     mls = ml_for([x["url"] for x in real])
     review = sum(ml_model.needs_review(x["score"], None if is_official(x["reasons"]) or x["source"] == "maps" else m)
                  for x, m in zip(real, mls))
-    c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric(T("ov_flagged"), sum(x["score"] >= config.MEDIUM_RISK for x in real), border=True,
-              help=T("ov_flagged_help", m=config.MEDIUM_RISK))
-    c2.metric(f":red[▲] {T('card_high')}", sum(x["level"] == "HIGH" for x in real), border=True)
-    c3.metric(T("ov_confirmed"), sum(checks.confirmed_by(x) is not None for x in real), border=True)
-    c4.metric(T("ov_review"), review, border=True)
-    c5.metric(T("ov_campaigns"), len(campaigns.find(sites)), border=True)
+    stats = [(T("ov_sites"), len(real)), ("▲ " + T("card_high"), sum(x["level"] == "HIGH" for x in real)),
+             ("◆ " + T("card_medium"), sum(x["level"] == "MEDIUM" for x in real)),
+             (T("ov_confirmed"), sum(checks.confirmed_by(x) is not None for x in real)), (T("ov_review"), review),
+             (T("ov_campaigns"), len(campaigns.find(sites)))]
+    anim = " ath-in" if first_time("counters") else ""  # count up from 0 once per visit
+    st.html("<div class='ath-stats'>" + "".join(
+        f"<div class='ath-stat'><b>{html.escape(label)}</b><span class='ath-count{anim}' style='--to:{n}' "
+        f"aria-hidden='true'></span><span class='ath-sr'>{n:,}</span></div>" for label, n in stats) + "</div>")
     st.caption(T("ov_note", total=len(real)))
     case_board(sites, real)
     render_agents(sites)
@@ -1222,6 +1315,11 @@ def render_site_file():
         st.session_state["site_url"] = picked
         st.rerun()
     check_link_panel(open_now=site is None)
+    done = st.session_state.get("check_log")
+    if site and done and done[0] == site["url"]:  # the steps of the check that produced this file
+        finished = agent_log(T("checking"))
+        finished.lines, finished.done, finished.slot = done[1], True, st
+        finished._draw()
     if site:
         site_file(site, campaign, sites)
     else:

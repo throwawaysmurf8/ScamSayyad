@@ -205,9 +205,19 @@ video or font file is used.
 - **Type:** IBM Plex Sans Arabic for everything (designed for Arabic and Latin together) and Noto Kufi
   Arabic for the Arabic wordmark, both free Google Fonts. Without internet the system font is used.
 - **Wording:** formal and concise, like a government report: no emoji, jokes or exclamation marks.
-- **Motion (CSS only, no video):** the emblem draws itself once, cards fade in, and a thin bar moves under
-  the step name while an agent works ("Scanning certificate logs…", "Checking registration records and
-  reputation…"). All motion stops for anyone whose device asks to reduce motion.
+- **Motion (CSS only, no video, no scripts):**
+  - the emblem draws itself in when the page opens, then a gentle scan line passes across the shield every
+    5 seconds;
+  - the Overview numbers (sites checked, high and medium risk, confirmed, needs review, campaigns) count up
+    from 0;
+  - while a hunt or link check runs, a radar sweep turns beside an **agent log** whose real progress lines
+    appear one by one ("[salik] 214 certificates, 37 new hostnames…", "Checking registration records…",
+    "Score 75/100 (High), 4 signs found"); the finished log stays with the result;
+  - case cards slide in one after another, and confirmed cases have a softly pulsing status dot;
+  - the score and ML bars fill when a case file opens.
+
+  Load animations play **once per visit** (and once per case), not on every click, because Streamlit redraws
+  the page often. All motion stops for anyone whose device asks to reduce motion; the numbers then show at once.
 - **Arabic:** the whole layout mirrors right to left; website names, links and numbers stay left to right.
 
 ## Pages
@@ -257,7 +267,7 @@ it works pages and in every takedown report):
 
 | Feature | Status | Data source | Key needed? |
 |---|---|---|---|
-| 1. Scoring engine: brand look-alikes, cheap domain endings, short links, no HTTPS, scam words, urgent SMS wording | Working, 99 automated tests (whole project) | Built in | No |
+| 1. Scoring engine: brand look-alikes, cheap domain endings, short links, no HTTPS, scam words, urgent SMS wording | Working, 100 automated tests (whole project) | Built in | No |
 | 1b. Domain age, registrar, abuse e-mail | Working | RDAP (rdap.org); UAE WHOIS (whois.nic.ae) for .ae | No |
 | 1c. Google Safe Browsing | Working, tested live with a real key (`enrich.py --test-key`); skipped cleanly without a key | Google Safe Browsing v4 | Free key |
 | 2. New-domain watcher | Working | crt.sh certificate logs | No |

@@ -30,7 +30,7 @@ from enrich import check, check_and_save
 from report import code_span, escape_md
 from scorer import decode_punycode, explain_level, parse, score_url
 
-st.set_page_config(page_title="Athar Al Anaq · أثر العناق", page_icon=str(Path(__file__).parent / "assets" / "caracal.svg"), layout="wide",
+st.set_page_config(page_title="Athar Al Anaq · أثر العناق", page_icon=str(Path(__file__).parent / "assets" / "anaq_icon.png"), layout="wide",
                    initial_sidebar_state="expanded")
 
 # Each risk level gets a color AND a shape, so it never relies on color alone.
@@ -152,7 +152,7 @@ def show_local_briefing(text):
             f"solid #B07A4A;padding:.4rem .8rem'>{html.escape(text)}</div>")
 
 
-ANAQ_AVATAR = str(config.ROOT / "assets" / "caracal_avatar.svg")  # the AI assistant's face
+ANAQ_AVATAR = str(config.ROOT / "assets" / "anaq_avatar.webp")  # the AI assistant's face
 
 
 def anaq_says(text, label):
@@ -349,9 +349,9 @@ if LANG == "ar":
     st.html(RTL_CSS)
 with head:
     mascot, title = st.columns([2, 5], vertical_alignment="center")
-    # Our mascot Anaq, the Arabian caracal, standing and looking at us (our own drawing, assets/caracal.svg). Shown once:
+    # Our mascot Anaq, the Arabian caracal, standing and looking at us (assets/anaq.webp). Shown once:
     # the brand defers to the content.
-    mascot.image(str(config.ROOT / "assets" / "caracal.svg"), width=120)
+    mascot.image(str(config.ROOT / "assets" / "anaq.webp"), width=150)
     title.html(f"{BRAND_CSS}<div class='ss-brand'><span class='ss-name'>Athar Al Anaq</span>"
                f"<span class='ss-name-ar'>أثر العناق</span></div>")
     title.markdown(T("tagline"))

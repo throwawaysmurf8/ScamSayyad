@@ -159,12 +159,13 @@ AI drafts, and with an `ANTHROPIC_API_KEY` secret, answers typed questions with 
 
 ## Design
 
-- **Mascot:** Anaq (عناق الأرض), the Arabian caracal, the desert's sharp-eared hunter. Our own vector
-  drawing (`assets/caracal.svg`, made by `tools/make_caracal.py`). It appears once, small, in the header
-  and as the browser-tab icon, so the brand never crowds the results.
-- **Colour:** teal is the only action colour; red, orange and green mean risk levels only; the caracal's
-  tawny gold stays in the artwork. Warm sand and desert-night surfaces. Every text colour passes WCAG AA
-  (14:1 or better for body text, 5.7:1 or better for teal).
+- **Mascot:** Anaq (عناق الأرض), the Arabian caracal, the desert's sharp-eared hunter, standing and
+  turning to look at us. A realistic AI-generated illustration made for this project (Z Image, background
+  removed), in `assets/anaq.webp`; the chat avatar (`assets/anaq_avatar.webp`) and tab icon are its head.
+  It appears once in the header, so the brand never crowds the results.
+- **Colour:** desert colours. Date-palm brown (day) / dune gold (night) is the only action colour; red,
+  orange and green mean risk levels only. Pale sand and desert-night surfaces. Every text colour passes
+  WCAG AA (12.8:1 or better for body text, 5.4:1 or better for the action colour).
 - **Type:** Readex Pro for the wordmark and headings and IBM Plex Sans Arabic for body text. Both are
   designed for Arabic and Latin together, so both languages look like one product. Without internet the
   system font is used.

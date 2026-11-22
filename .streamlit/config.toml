@@ -14,33 +14,36 @@ gatherUsageStats = false
 # internet with no login.
 toolbarMode = "minimal"
 
-# Look and feel (Athar Al Anaq): desert colours. Follows the computer's light/dark setting.
-# - Light = sand by day, dark = the desert at night. Plain colours only, no pictures.
-# - Date-palm brown (light) / dune gold (dark) is the ONLY action colour; red / orange / green are kept
-#   for risk levels only, so a colour never means two things.
-# - Readex Pro (headings) and IBM Plex Sans Arabic (body) are designed for Arabic AND Latin, so English
-#   and Arabic look like one product. If the fonts can't load (offline), the system font is used.
-# - Every text colour passes WCAG AA: light 12.8-14.8:1, dark 13.7-15.1:1; action colour 5.4-9.7:1.
+# Look and feel (ATHAR): one dark theme, a formal government-report style. Our own design.
+# - Deep navy surfaces, hairline borders, generous spacing. Gold is the ONLY action colour (buttons, links,
+#   the selected tab); the brand green appears only in the emblem's rule. Red / orange / green are kept for
+#   risk levels, each paired with a shape (▲ ◆ ●), so a colour never means two things.
+# - IBM Plex Sans Arabic is designed for Arabic AND Latin, so both languages read as one product; the Arabic
+#   wordmark uses Noto Kufi Arabic (loaded in app.py). Free Google Fonts, no font files in the repo. If the
+#   fonts can't load (offline), the system font is used.
+# - Contrast on the navy background: text 14.6:1, gold 8.6:1, risk red 6.4:1, orange 7.3:1, green 8.1:1.
 [theme]
-baseRadius = "0.75rem"
-buttonRadius = "0.6rem"
-font = "'IBM Plex Sans Arabic':https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"
-headingFont = "'Readex Pro':https://fonts.googleapis.com/css2?family=Readex+Pro:wght@500;600;700&display=swap"
-codeFont = "monospace"   # domains and URLs show in monospace, like evidence labels
+base = "dark"
+primaryColor = "#D4B46A" # gold
+backgroundColor = "#0D1B2A" # deep navy
+secondaryBackgroundColor = "#132538"
+textColor = "#E7ECF2"
+borderColor = "#24384F"
+dataframeBorderColor = "#24384F"
+dataframeHeaderBackgroundColor = "#132538"
+linkColor = "#D4B46A"
+linkUnderline = false
+redColor = "#F07B72"
+orangeColor = "#F0883E"
+greenColor = "#5BC48C"
+yellowColor = "#D4B46A"
+codeBackgroundColor = "#132538"
+codeTextColor = "#E7ECF2"
+baseRadius = "0.375rem"
+buttonRadius = "0.375rem"
+font = "'IBM Plex Sans Arabic':https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap"
+headingFont = "'IBM Plex Sans Arabic', sans-serif"
+headingFontWeights = [600, 600, 600, 500, 500, 500]
+codeFont = "monospace" # domains and URLs show in monospace, like evidence labels
 showWidgetBorder = true
-
-[theme.light]
-primaryColor = "#8A4B1F"             # date-palm brown: 6.2:1 on sand, 5.4:1 on dune
-backgroundColor = "#FAF5EC"          # pale sand
-secondaryBackgroundColor = "#F0E4CF" # dune
-textColor = "#2B1F14"                # dark earth: 14.8:1
-borderColor = "#DCCBAE"
-dataframeHeaderBackgroundColor = "#F0E4CF"
-
-[theme.dark]
-primaryColor = "#E2B574"             # dune gold: 9.7:1 on the night background
-backgroundColor = "#18130F"          # desert night
-secondaryBackgroundColor = "#241C15"
-textColor = "#F1E7D6"                # moonlit sand: 15.1:1
-borderColor = "#3C3026"
-dataframeHeaderBackgroundColor = "#241C15"
+showSidebarBorder = true

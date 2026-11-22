@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="#D4B46A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+  <!-- ATHAR emblem (our own line drawing): a shield with a dotted trace that ends at a point. One colour. -->
+  <path d="M32 5 L53 12.5 V30 C53 43.5 44.5 53 32 59 C19.5 53 11 43.5 11 30 V12.5 Z"/>
+  <path d="M21 46 C27 41 36 41 34 33 C32.5 27 35 22 39.5 21" stroke-dasharray="0 6.2"/>
+  <circle cx="41" cy="20.5" r="3.2"/>
+</svg>

@@ -5,6 +5,7 @@ Start it with run.bat, or:  .venv\\Scripts\\python -m streamlit run app.py --ser
 This file only draws the screens; all the real work happens in the other modules.
 Screen text lives in i18n.py (English + Arabic). AI answers come from ai.py and local_llm.py (local model, or Claude Haiku 5.5 with a key).
 """
+import base64
 import csv
 from pathlib import Path
 import html
@@ -32,8 +33,8 @@ from enrich import check, check_and_save
 from report import code_span, escape_md
 from scorer import decode_punycode, explain_level, parse, score_url
 
-st.set_page_config(page_title="ATHAR · أثر", page_icon=str(Path(__file__).parent / "assets" / "caracal.svg"), layout="wide",
-                   initial_sidebar_state="expanded")
+st.set_page_config(page_title="ATHAR · أثر", page_icon=str(Path(__file__).parent / "assets" / "emblem.svg"), layout="wide",
+                   initial_sidebar_state="auto")  # auto: the side panel starts closed on phones
 
 # Each risk level gets a color AND a shape, so it never relies on color alone.
 # The color names are Streamlit's theme colors, which adapt to light and dark mode.
@@ -44,18 +45,45 @@ LEVELS = {
 }
 
 # Colors for the brand highlight in the website-name heading (same meaning as the risk badge).
-# One color per level that reads on BOTH the light and the dark theme (at least 3.9:1 on each).
+# The theme's risk colours (.streamlit/config.toml), each at least 6:1 on the navy background.
 HOST_HEADING_CSS = """<style>
 .ss-host { font-size: 1.35rem; font-weight: 600; margin: .25rem 0 .5rem; word-break: break-all; direction: ltr; }
-.ss-HIGH { color: #E53935; } .ss-MEDIUM { color: #B05F00; } .ss-LOW { color: #2E8B3E; }
+.ss-HIGH { color: #F07B72; } .ss-MEDIUM { color: #F0883E; } .ss-LOW { color: #5BC48C; }
 </style>"""
 
-# Wordmark: the brand's one custom moment (Readex Pro is designed for Arabic and Latin together).
-BRAND_CSS = """<style>
-.ss-brand { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .9rem; margin-top: .2rem; }
-.ss-name { font-family: 'Readex Pro', sans-serif; font-weight: 700; font-size: 2.35rem; letter-spacing: -0.02em;
-           line-height: 1.1; }
-.ss-name-ar { font-family: 'Readex Pro', sans-serif; font-weight: 600; font-size: 1.6rem; opacity: .72; }
+# The emblem (assets/emblem.svg, our own line drawing): a shield with a dotted trace ending at a point.
+# The header copy draws itself once when the page opens (its own CSS, still for "reduce motion"). It is an
+# <img> because st.html removes inline SVG. One colour (the theme's gold).
+_EMBLEM_ANIM = """<style>
+.s { stroke-dasharray: 100; animation: d 1.1s ease-out both; } .t { animation: f .5s ease-out .9s both; }
+@keyframes d { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+@keyframes f { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .s, .t { animation: none; } }</style>"""
+EMBLEM_IMG = "<img class='ath-emblem' alt='' src='data:image/svg+xml;base64,{}'>".format(base64.b64encode(
+    (config.ROOT / "assets" / "emblem.svg").read_text(encoding="utf-8")
+    .replace("<path d=\"M32", _EMBLEM_ANIM + "<path class=\"s\" pathLength=\"100\" d=\"M32")
+    .replace("<path d=\"M21", "<path class=\"t\" d=\"M21").replace("<circle", "<circle class=\"t\"").encode()).decode())
+
+# Page-wide style: spacing on a 4px scale, hairline rules, tabular figures, and CSS-only motion that is
+# switched off for anyone who asks their device to reduce motion. No images, no scripts.
+GLOBAL_CSS = """<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@500;600&display=swap');
+:root { --ath-gold: #D4B46A; --ath-green: #3FA37A; --ath-muted: #9FB0C3; --ath-line: #24384F; }
+.ath-head { display: flex; align-items: center; gap: 16px; padding: 4px 0 12px; }
+.ath-emblem { width: 52px; height: 52px; flex: none; }
+.ath-words { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ath-name { display: flex; align-items: baseline; gap: 12px; line-height: 1.1; }
+.ath-name-en { font-weight: 600; font-size: 1.9rem; letter-spacing: .08em; }
+.ath-name-ar { font-family: 'Noto Kufi Arabic', 'IBM Plex Sans Arabic', sans-serif; font-weight: 600;
+               font-size: 1.6rem; color: var(--ath-gold); }
+.ath-proposed { font-size: .9rem; color: var(--ath-muted); }
+.ath-rule { height: 0; border-top: 2px dotted var(--ath-green); opacity: .7; margin: 0 0 4px; }
+[data-testid="stMetricValue"], [data-testid="stDataFrame"] { font-variant-numeric: tabular-nums; }
+[data-testid="stVerticalBlockBorderWrapper"] { animation: ath-fade .24s ease-out both; }
+@keyframes ath-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+@media (max-width: 640px) { .ath-emblem { width: 40px; height: 40px; } .ath-name-en { font-size: 1.5rem; }
+                            .ath-name-ar { font-size: 1.3rem; } }
 </style>"""
 
 # Arabic reads right to left. Domain names, URLs and code stay left to right.
@@ -157,7 +185,7 @@ def show_ai_text(text):
     rtl = any("؀" <= ch <= "ۿ" for ch in text)
     st.caption(f":material/smart_toy: **{ai.LABEL['ar' if rtl else 'en']}**")
     st.html(f"<div dir='{'rtl' if rtl else 'ltr'}' style='white-space:pre-wrap;border-inline-start:3px solid "
-            f"#B07A4A;padding:.4rem .8rem;margin-bottom:.3rem'>{html.escape(text)}</div>")
+            f"#D4B46A;padding:8px 12px;margin-bottom:4px'>{html.escape(text)}</div>")
     st.caption(T("ai_note"))
 
 
@@ -165,14 +193,14 @@ def show_local_briefing(text):
     """A briefing built on this computer from rules + ML: plain text, labelled, never rendered as links."""
     st.caption(f":material/model_training: **{briefing.LABEL[LANG]}**")
     st.html(f"<div dir='{'rtl' if LANG == 'ar' else 'ltr'}' style='white-space:pre-wrap;border-inline-start:3px "
-            f"solid #B07A4A;padding:.4rem .8rem'>{html.escape(text)}</div>")
+            f"solid #D4B46A;padding:8px 12px'>{html.escape(text)}</div>")
 
 
-ASSISTANT_AVATAR = str(config.ROOT / "assets" / "caracal_avatar.svg")  # the AI assistant's face
+ASSISTANT_AVATAR = str(config.ROOT / "assets" / "emblem.svg")  # the assistant is shown with the emblem
 
 
 def assistant_says(text, label):
-    """One answer from the assistant, as a chat bubble with the caracal's face. Plain text, never links."""
+    """One answer from the assistant, as a chat bubble with the emblem. Plain text, never links."""
     with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
         st.caption(label)
         text = text.replace("**", "")  # the model sometimes adds Markdown bold; we show plain text
@@ -364,35 +392,31 @@ def takedown_panel(site, key):
             st.markdown(arabic)
 
 
-def _source_badge(name, on):
-    return f":green-badge[:material/check: {name}]" if on else f":gray-badge[:material/remove: {name}: {T('off_no_key')}]"
+def _source_line():
+    """Plain status of each data source (no coloured badges)."""
+    parts = [(T("src_ct"), True), (T("src_search"), True), (T("src_sb"), config.SAFE_BROWSING_KEY),
+             (T("src_maps"), config.PLACES_KEY), (T("src_ml"), ml_model.available())]
+    if not config.PUBLIC_MODE:
+        parts.append((T("src_ai"), ai.available()))
+    line = " · ".join(f"{name}: {T('on') if on else T('off_short')}" for name, on in parts)
+    return (T("public_badge") + " · " if config.PUBLIC_MODE else "") + line
 
 
 # ----------------------------------------------------------------------------- Header
+st.html(GLOBAL_CSS)
 head, status = st.columns([3, 2], vertical_alignment="center")
 with status:
     st.segmented_control("Language / اللغة", ["English", "العربية"], default="English", key="lang_choice",
                          label_visibility="collapsed")
-    badges = [_source_badge(T("src_ct"), True), _source_badge(T("src_search"), True),
-              _source_badge(T("src_sb"), config.SAFE_BROWSING_KEY),
-              _source_badge(T("src_maps"), config.PLACES_KEY),
-              _source_badge(T("src_ml"), ml_model.available())]
-    if config.PUBLIC_MODE:
-        badges.insert(0, f":gray-badge[:material/public: {T('public_badge')}]")
-    else:
-        badges.append(_source_badge(T("src_ai"), ai.available()))
-    st.markdown(" ".join(badges))
+    st.caption(_source_line())
 if LANG == "ar":
     st.html(RTL_CSS)
 with head:
-    mascot, title = st.columns([1, 7], vertical_alignment="center")
-    # Our mascot Anaq, the Arabian caracal (our own drawing, assets/caracal.svg). Shown once, small:
-    # the brand defers to the content.
-    mascot.image(str(config.ROOT / "assets" / "caracal.svg"), width=78)
-    title.html(f"{BRAND_CSS}<div class='ss-brand'><span class='ss-name'>ATHAR</span>"
-               f"<span class='ss-name-ar'>أثر</span></div>")
-    title.markdown(T("tagline"))
-st.caption(T("subtitle"))
+    st.html(f"<div class='ath-head'>{EMBLEM_IMG}<div class='ath-words'><div class='ath-name'>"
+            f"<span class='ath-name-en'>ATHAR</span><span class='ath-name-ar'>أثر</span></div>"
+            f"<div class='ath-proposed'>{html.escape(T('proposed'))}</div></div></div>")
+st.html("<div class='ath-rule'></div>")
+st.caption(T("disclaimer") + " " + T("subtitle"))
 
 if config.PUBLIC_MODE:
     st.warning(T("public_banner"), icon=":material/info:")

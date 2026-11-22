@@ -937,8 +937,14 @@ def test_salik_as_a_first_name_is_not_a_brand_hit():
     assert score_url("salikahmed.com")["score"] == 0
     assert score_url("salik-pay.top")["level"] in ("MEDIUM", "HIGH")    # scam word: still flagged
     assert score_url("mysalik-toll.xyz")["level"] in ("MEDIUM", "HIGH")
-    young = score_url("salikdev.live", age_days=5)                       # another warning sign: counts again
+    young = score_url("salikdev.live", age_days=5)                       # very new domain: counts again
     assert any("'salik'" in r and r.startswith("+") for r in young["reasons"])
+    # The four found by the audit, with their real ages: a few months old is normal for a person's site.
+    for site, age in (("salikdev.live", 150), ("salikleo.online", 85), ("salikama.click", 139), ("salikuo.xyz", 79)):
+        assert score_url(site, age_days=age)["level"] == "LOW", site
+    # Not glued to a short word, so age still counts: these stay for an officer to look at.
+    assert score_url("salik-pass.top", age_days=120)["level"] == "MEDIUM"
+    assert score_url("salik.shop", age_days=120, same_name_endings=3)["level"] == "MEDIUM"
 
 
 def test_salik_emirate_counts_as_a_scam_word():

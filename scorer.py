@@ -306,7 +306,11 @@ def score_url(url, text="", age_days=None, safe_browsing_threats=None, same_name
             return next((w for w in words if (w in rest_of_name.split() if len(w) <= 3 else w in rest_of_name)), None)
 
         scam_word = has_word(config.URL_KEYWORDS) or has_word(config.NAME_BRANDS.get(brand, ()))
-        others = [r for r in reasons[1:] if "domain ending" not in r]
+        # The brand glued straight onto a short word (salikdev, salikleo, salikama) reads like a person's handle;
+        # for those a "young" domain (under 180 days) is normal and is not a second warning sign. A very new
+        # domain (under 30 days) still is.
+        glued = re.fullmatch(re.escape(brand) + r"[a-z]{2,6}", name) is not None
+        others = [r for r in reasons[1:] if "domain ending" not in r and not (glued and "Domain is young" in r)]
         platform = next((p for p in config.SHARED_HOSTS if host == p or host.endswith("." + p)), None)
         why = None
         if any(re.search(p, name) for p in config.NAME_PATTERNS) and not scam_word:

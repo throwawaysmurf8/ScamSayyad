@@ -233,8 +233,8 @@ false-alarm patterns, and these rules were added (`scorer.score_url`, step 7, an
   +20, strong) and the same name registered on 3+ endings (+20, not for a bare brand name).
 - Parcel words (track, package, service, customs) are scam words.
 
-Result: 66 HIGH, 144 MEDIUM, 1,615 LOW of 1,825 unique sites; no site in a known false-positive
-pattern is flagged; 202 of 269 likely scams are flagged (the rest score just under 40).
+Result: 66 HIGH, 140 MEDIUM, 1,619 LOW of 1,825 unique sites; no site in a known false-positive
+pattern is flagged; 198 of 265 likely scams are flagged (the rest score just under 40).
 
 ### Honest limitations
 

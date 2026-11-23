@@ -2,6 +2,7 @@
 [server]
 headless = true          # skip Streamlit's first-run e-mail prompt (run.bat opens the browser itself)
 port = 8501
+enableStaticServing = true  # serves static/ (the page background videos) at app/static/
 # Security: run.bat starts the dashboard with --server.address localhost, so on your computer
 # only you can open it (anyone on the same Wi-Fi could otherwise use it with no login). It is set
 # there, not here, because Streamlit Cloud reads this file too and must serve the public demo.

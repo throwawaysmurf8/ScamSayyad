@@ -193,8 +193,16 @@ AI drafts, and with an `ANTHROPIC_API_KEY` secret, answers typed questions with 
 
 ## Design
 
-Our own design, in the formal style of UAE government digital services; no official logo, emblem, image,
-video or font file is used.
+Our own design, in the formal style of UAE government digital services. No official logo, emblem, police or
+government footage, or font file is used; the background videos are free stock clips with no people's faces
+(see **Video credits** below).
+
+- **Background videos:** a full-width hero video on the Overview (the Abu Dhabi skyline at sunset) and a
+  full-screen background on every other page (Leads: a digital waveform; Campaigns: desert dunes at sunset;
+  Site file: a server rack; Report a site: a highway at night from above; How it works: a digital network).
+  They autoplay muted and loop, with no sound or controls, under a dark navy overlay so text stays
+  readable; on Leads and the Site file the video is also blurred, and cards and tables sit on dark panels.
+  Anyone whose device asks to reduce motion sees a still image from the same clip instead.
 
 - **Emblem:** a shield outline with a dotted trace that ends at a point (`assets/emblem.svg`, our own line
   drawing, one colour). It is the header mark, the browser-tab icon and the assistant's avatar. In the
@@ -205,19 +213,22 @@ video or font file is used.
 - **Type:** IBM Plex Sans Arabic for everything (designed for Arabic and Latin together) and Noto Kufi
   Arabic for the Arabic wordmark, both free Google Fonts. Without internet the system font is used.
 - **Wording:** formal and concise, like a government report: no emoji, jokes or exclamation marks.
-- **Motion (CSS only, no video, no scripts):**
+- **Motion (CSS only, no scripts):**
   - the emblem draws itself in when the page opens, then a gentle scan line passes across the shield every
     5 seconds;
-  - the Overview numbers (sites checked, high and medium risk, confirmed, needs review, campaigns) count up
-    from 0;
+  - the Overview numbers count up from 0 inside the hero video;
+  - page changes: the open page's content rises and fades in;
+  - case cards, the agents' status lines and the campaign list slide in one after another; the Leads table
+    rises in as a whole (it is drawn on a canvas, so single rows cannot be animated);
+  - hover: buttons lift with a gold edge, case cards and number tiles lift, panels and rows highlight;
   - while a hunt or link check runs, a radar sweep turns beside an **agent log** whose real progress lines
-    appear one by one ("[salik] 214 certificates, 37 new hostnames…", "Checking registration records…",
-    "Score 75/100 (High), 4 signs found"); the finished log stays with the result;
-  - case cards slide in one after another, and confirmed cases have a softly pulsing status dot;
-  - the score and ML bars fill when a case file opens.
+    appear one by one; the finished log stays with the result;
+  - confirmed cases have a softly pulsing status dot; score and ML bars fill when a case file opens;
+  - the side panel has a slowly drifting glow and particle field.
 
   Load animations play **once per visit** (and once per case), not on every click, because Streamlit redraws
-  the page often. All motion stops for anyone whose device asks to reduce motion; the numbers then show at once.
+  the page often. Anyone whose device asks to reduce motion gets no motion at all: still images instead of
+  videos, and the numbers shown at once.
 - **Arabic:** the whole layout mirrors right to left; website names, links and numbers stay left to right.
 
 ## Pages
@@ -267,7 +278,7 @@ it works pages and in every takedown report):
 
 | Feature | Status | Data source | Key needed? |
 |---|---|---|---|
-| 1. Scoring engine: brand look-alikes, cheap domain endings, short links, no HTTPS, scam words, urgent SMS wording | Working, 100 automated tests (whole project) | Built in | No |
+| 1. Scoring engine: brand look-alikes, cheap domain endings, short links, no HTTPS, scam words, urgent SMS wording | Working, 102 automated tests (whole project) | Built in | No |
 | 1b. Domain age, registrar, abuse e-mail | Working | RDAP (rdap.org); UAE WHOIS (whois.nic.ae) for .ae | No |
 | 1c. Google Safe Browsing | Working, tested live with a real key (`enrich.py --test-key`); skipped cleanly without a key | Google Safe Browsing v4 | Free key |
 | 2. New-domain watcher | Working | crt.sh certificate logs | No |
@@ -514,6 +525,7 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
 | `maps_scanner.py` | Feature 5 (stretch). Searches Google Maps for fake "customer service" listings and checks each listing's website and phone number. A listing that links an official site scores 0 (unless Google lists that site); the phone only counts when the website is unofficial or missing. Each listing is its own row. Its takedown report asks Google to remove the listing. It only runs with a `GOOGLE_PLACES_KEY`, and each search is a paid request. |
 | `app.py` | The Streamlit dashboard. It only draws screens and calls the modules above. Pages: **Overview**, **Leads**, **Campaigns**, **Site file**, **Report a site**, **How it works** (only the open page is drawn). |
 | `assets/emblem.svg` | The ATHAR emblem (our own line drawing): header, browser-tab icon and assistant avatar. |
+| `static/video/` | The six background videos and their still images (free Pexels clips, credited below), served by Streamlit's static file serving (`enableStaticServing` in `.streamlit/config.toml`). |
 | `data/sample_urls.csv` | 12 real official URLs and 12 invented scam URLs (with SMS text). Used by the tests and the "Load demo data" button. |
 | `data/fixtures/` | Saved copies of real crt.sh and search responses, used automatically when the internet or a service is down. Refreshed on every successful run. |
 | `tests/test_scorer.py` | Automated checks: official sites score 0, every sample scam scores MEDIUM or higher, short brand names like "rta" don't match inside "portal", and so on. |
@@ -526,6 +538,23 @@ verdict opens every takedown report (`explain_level()` in `scorer.py`).
 | `.gitignore` | Keeps the virtual environment, database and keys out of Git. |
 
 ---
+
+## Video credits
+
+All six clips are free stock video from Pexels under the **Pexels License** (https://www.pexels.com/license/):
+free to use and modify, no attribution required (credited here anyway). No clip shows official police or
+government footage or logos, or anyone's face. Each was downloaded on 23 Nov 2026 in the size listed.
+
+| Page | Clip | By | File (size) |
+|---|---|---|---|
+| Overview (hero) | [Skyscrapers Against Vibrant Sunset in Abu Dhabi](https://www.pexels.com/video/skyscrapers-against-vibrant-sunset-in-abu-dhabi-41090953/) | Muhammad Sajjad Ahmad | `overview.mp4`, 1280×720 (2.6 MB) |
+| Leads | [Dynamic Digital Waveform in Futuristic Setting](https://www.pexels.com/video/dynamic-digital-waveform-in-futuristic-setting-34189433/) | Nicola Narracci | `leads.mp4`, 960×540 (3.6 MB) |
+| Campaigns | [Sand Dune Sunset Colors](https://www.pexels.com/video/sand-dune-sunset-colors-26346980/) | Lukas Rodriguez | `campaigns.mp4`, 960×540 (1.9 MB) |
+| Site file | [Close Up of a CPU](https://www.pexels.com/video/close-up-of-a-cpu-7140928/) (a server rack) | MrColo | `file.mp4`, 960×540 (2.1 MB) |
+| Report a site | [Drone Footage of a Highway and a Roundabout](https://www.pexels.com/video/drone-footage-of-a-highway-and-a-roundabout-9369897/) (night) | Altaf Shah | `report.mp4`, 960×540 (5.6 MB) |
+| How it works | [Digital Calculation In Geometrical Symmetry](https://www.pexels.com/video/digital-calculation-in-geometrical-symmetry-3141210/) | Pressmaster | `about.mp4`, 960×540 (3.6 MB) |
+
+Each still image (`static/video/*.jpg`) is the clip's own Pexels preview frame.
 
 ## 3-minute demo script for the judges
 

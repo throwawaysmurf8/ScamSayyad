@@ -6,6 +6,7 @@ This file only draws the screens; all the real work happens in the other modules
 Screen text lives in i18n.py (English + Arabic). AI answers come from ai.py and local_llm.py (local model, or Claude Haiku 5.5 with a key).
 """
 import base64
+import importlib
 import csv
 from pathlib import Path
 import html
@@ -33,6 +34,10 @@ import search_scanner
 from enrich import check, check_and_save
 from report import code_span, escape_md
 from scorer import decode_punycode, explain_level, parse, score_url
+
+# Streamlit Cloud can keep an old copy of the screen text in memory after an update (the new page then asks
+# for text that the old copy doesn't have). The text module is small, so it is simply re-read on every run.
+importlib.reload(i18n)
 
 st.set_page_config(page_title="ATHAR · أثر", page_icon=str(Path(__file__).parent / "assets" / "emblem.svg"), layout="wide",
                    initial_sidebar_state="auto")  # auto: the side panel starts closed on phones
@@ -90,6 +95,61 @@ GLOBAL_CSS = """<style>
 [data-testid="stMetricValue"], [data-testid="stDataFrame"] { font-variant-numeric: tabular-nums; }
 [data-testid="stLayoutWrapper"] > [data-testid="stVerticalBlock"], [data-testid="stMetric"] {
   animation: ath-fade .24s ease-out both; }
+html, body { background: #0D1B2A; }
+[data-testid="stApp"], [data-testid="stAppViewContainer"], [data-testid="stMain"], [data-testid="stHeader"],
+[data-testid="stBottomBlockContainer"] { background: transparent !important; }
+[data-testid="stMain"] { position: relative; z-index: 1; }
+[data-testid="stElementContainer"]:has(.ath-bg) { position: absolute; }  /* takes no space */
+.ath-bg { position: fixed; inset: 0; z-index: -1; pointer-events: none; background-size: cover;
+          background-position: center; }
+.ath-bg video, .ath-hero video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ath-bg video { filter: saturate(.75); }
+.ath-bg::after { content: ""; position: absolute; inset: 0;
+                 background: linear-gradient(180deg, rgba(13,27,42,.66) 0%, rgba(13,27,42,.82) 45%, rgba(13,27,42,.92) 100%); }
+.ath-bg.ath-dense video { filter: blur(6px) saturate(.6); transform: scale(1.04); }
+.ath-bg.ath-dense::after { background: rgba(13,27,42,.86); }
+.ath-hero { position: relative; overflow: hidden; border-radius: 8px; border: 1px solid var(--ath-line);
+            min-height: 360px; display: flex; align-items: flex-end; background-size: cover; background-position: center;
+            margin: 4px 0 16px; }
+.ath-hero::after { content: ""; position: absolute; inset: 0;
+                   background: linear-gradient(180deg, rgba(13,27,42,.35) 0%, rgba(13,27,42,.78) 55%, rgba(13,27,42,.96) 100%); }
+.ath-hero-in { position: relative; z-index: 1; padding: 32px 32px 24px; width: 100%; }
+.ath-hero-kicker { color: var(--ath-gold); font-size: .875rem; letter-spacing: .04em; margin-bottom: 8px; }
+.ath-hero-title { font-size: 2rem; font-weight: 600; line-height: 1.2; max-width: 760px; margin-bottom: 8px; }
+.ath-hero p { color: #C9D3DE; max-width: 760px; margin: 0 0 20px; }
+.ath-hero .ath-stat { background: rgba(13,27,42,.6); backdrop-filter: blur(6px); }
+[data-testid="stLayoutWrapper"] > [data-testid="stVerticalBlock"][class*="st-key-"],
+[data-testid="stExpander"], [data-testid="stForm"] { background: rgba(13,27,42,.82); backdrop-filter: blur(8px); }
+@media (max-width: 640px) { .ath-hero { min-height: 300px; } .ath-hero-in { padding: 20px 16px 16px; }
+                            .ath-hero-title { font-size: 1.5rem; } }
+@media (prefers-reduced-motion: reduce) { .ath-bg video, .ath-hero video { display: none; } }
+.stButton button, .stDownloadButton button, .stLinkButton a, .stFormSubmitButton button {
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background-color .18s ease; }
+.stButton button:hover, .stDownloadButton button:hover, .stLinkButton a:hover, .stFormSubmitButton button:hover {
+  transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.35); border-color: #D4B46A !important; }
+[data-testid="stLayoutWrapper"] > [data-testid="stVerticalBlock"], .ath-stat, [data-testid="stExpander"] details {
+  transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease; }
+[data-testid="stLayoutWrapper"] > [data-testid="stVerticalBlock"]:hover, [data-testid="stExpander"] details:hover {
+  border-color: rgba(212,180,106,.55) !important; }
+[class*="st-key-card_"]:hover, .ath-stat:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0,0,0,.4); }
+/* page transition: the open page's content rises in; the background video's own element is left alone */
+[data-testid="stTabPanel"] [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:not(:has(.ath-bg)),
+[data-testid="stTabPanel"] > div > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] {
+  animation: ath-page .5s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes ath-page { from { opacity: .3; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+[data-testid="stDataFrame"] { animation: ath-rise .6s cubic-bezier(.2,.7,.2,1) .15s both; }
+[class*="st-key-list_in"] > div { animation: ath-rise .55s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes ath-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+[data-testid="stSidebar"] { background:
+    radial-gradient(60% 40% at 20% 10%, rgba(63,163,122,.16), transparent 70%),
+    radial-gradient(50% 40% at 80% 80%, rgba(212,180,106,.12), transparent 70%), #132538 !important;
+  background-size: 200% 200%, 200% 200%, auto !important; animation: ath-drift 24s ease-in-out infinite alternate; }
+[data-testid="stSidebar"]::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .35;
+  background-image: radial-gradient(rgba(212,180,106,.55) 1px, transparent 1.6px); background-size: 32px 32px;
+  animation: ath-particles 50s linear infinite; }
+[data-testid="stSidebarContent"] { position: relative; z-index: 1; }
+@keyframes ath-drift { from { background-position: 0% 0%, 100% 100%, 0 0; } to { background-position: 100% 60%, 0% 30%, 0 0; } }
+@keyframes ath-particles { from { background-position: 0 0; } to { background-position: 0 -640px; } }
 @property --n { syntax: "\\3C integer\\3E"; initial-value: 0; inherits: false; }  /* the integer type, in CSS escapes: st.html drops any style block with an angle bracket */
 .ath-stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin: 4px 0 8px; }
 @media (max-width: 1100px) { .ath-stats { grid-template-columns: repeat(3, 1fr); } }
@@ -159,6 +219,23 @@ LANG = "ar" if st.session_state.get("lang_choice") == "العربية" else "en"
 for _k in ("min_score", "sources", "show_samples", "review_only", "confirmed_only"):
     if _k in st.session_state:
         st.session_state[_k] = st.session_state[_k]
+
+
+# Background videos (static/video/, free Pexels clips, credits in the README): muted, looping, no sound, no
+# controls. A navy overlay keeps text readable; pages full of data blur the video more. Anyone who asks their
+# device to reduce motion gets the still image instead.
+VIDEO_URL = "app/static/video/{}.{}"
+
+
+def _video_tag(name):
+    return (f"<video autoplay muted loop playsinline preload='auto' poster='{VIDEO_URL.format(name, 'jpg')}'>"
+            f"<source src='{VIDEO_URL.format(name, 'mp4')}' type='video/mp4'></video>")
+
+
+def page_video(name, dense=False):
+    """A full-screen background video behind this page (drawn once per page)."""
+    st.html(f"<div class='ath-bg{' ath-dense' if dense else ''}' aria-hidden='true' "
+            f"style=\"background-image:url('{VIDEO_URL.format(name, 'jpg')}')\">{_video_tag(name)}</div>")
 
 
 def first_time(name):
@@ -342,8 +419,13 @@ def show_campaigns(sites):
     st.caption(T("campaigns_note", min=config.CAMPAIGN_MIN_DOMAINS, gap=config.CAMPAIGN_MAX_GAP_DAYS))
     if not found:
         st.info(T("campaigns_none"))
+    slide = first_time("campaign_list")
+    if slide:
+        st.html("<style>" + "".join(f".st-key-list_in_camps > div:nth-child({i + 1}) {{ animation-delay: {i * 80}ms; }}"
+                                    for i in range(len(found))) + "</style>")
+    box = st.container(key="list_in_camps" if slide else "list_camps")
     for i, c in enumerate(found):
-        with st.expander(T("campaign_label", brand=c["brand"], n=len(c["domains"]),
+        with box, st.expander(T("campaign_label", brand=c["brand"], n=len(c["domains"]),
                            registrar=code_span(c["registrar"]), dates=escape_md(dates_text(c)))):
             st.markdown(T("campaign_detail", endings=escape_md(" ".join(c["endings"])), top=c["top_score"]))
             st.markdown(" · ".join(code_span(w) for w in c["websites"]))
@@ -535,6 +617,7 @@ def _keep(key, **default):
 
 # ----------------------------------------------------------------------------- Leads
 def render_leads():
+    page_video("leads", dense=True)
     sites = db.unique_sites()
     if not sites:
         st.info(T("no_sites"))
@@ -848,7 +931,11 @@ def agents_status(sites):
     rows.append((T("side_title"), T("agent_ai"), T("st_assistant", state=state)))
     st.subheader(T("agents_title"))
     st.caption(T("agents_note"))
-    with st.container(border=True):
+    slide = first_time("agents")
+    if slide:
+        st.html("<style>" + "".join(f".st-key-list_in_agents > div:nth-child({i + 1}) {{ animation-delay: {i * 110}ms; }}"
+                                    for i in range(len(rows))) + "</style>")
+    with st.container(border=True, key="list_in_agents" if slide else "list_agents"):
         for name, kind, line in rows:
             st.markdown(f"**{name}** · {kind}  \n{line}")
 
@@ -1180,7 +1267,6 @@ def next_steps(site, key, case):
 
 
 def render_overview():
-    st.markdown(T("tagline"))
     sites = db.unique_sites()
     if not sites:
         st.info(T("no_sites"))
@@ -1193,15 +1279,20 @@ def render_overview():
              (T("ov_confirmed"), sum(checks.confirmed_by(x) is not None for x in real)), (T("ov_review"), review),
              (T("ov_campaigns"), len(campaigns.find(sites)))]
     anim = " ath-in" if first_time("counters") else ""  # count up from 0 once per visit
-    st.html("<div class='ath-stats'>" + "".join(
+    numbers = "<div class='ath-stats'>" + "".join(
         f"<div class='ath-stat'><b>{html.escape(label)}</b><span class='ath-count{anim}' style='--to:{n}' "
-        f"aria-hidden='true'></span><span class='ath-sr'>{n:,}</span></div>" for label, n in stats) + "</div>")
+        f"aria-hidden='true'></span><span class='ath-sr'>{n:,}</span></div>" for label, n in stats) + "</div>"
+    st.html(f"<div class='ath-hero' style=\"background-image:url('{VIDEO_URL.format('overview', 'jpg')}')\">"
+            f"{_video_tag('overview')}<div class='ath-hero-in'><div class='ath-hero-kicker'>"
+            f"{html.escape(T('hero_kicker'))}</div><div class='ath-hero-title'>{html.escape(T('hero_title'))}</div>"
+            f"<p>{html.escape(T('tagline'))}</p>{numbers}</div></div>")
     st.caption(T("ov_note", total=len(real)))
     case_board(sites, real)
     render_agents(sites)
 
 
 def render_campaigns():
+    page_video("campaigns")
     show_campaigns(db.unique_sites())
 
 
@@ -1303,6 +1394,7 @@ def site_file(site, campaign, sites):
 
 
 def render_site_file():
+    page_video("file", dense=True)
     sites = db.unique_sites()
     site, campaign = current_site(sites)
     options = [x["url"] for x in sites]
@@ -1327,6 +1419,7 @@ def render_site_file():
 
 
 def render_report_page():
+    page_video("report")
     if config.PUBLIC_MODE:
         report_box()
     else:
@@ -1337,6 +1430,7 @@ def render_report_page():
 
 
 def render_about():
+    page_video("about")
     st.markdown(ABOUT[LANG].split("### Future plans")[0].split("### خطط مستقبلية")[0])
     st.markdown(two_opinions_checked())
     st.markdown(ml_plans() or ABOUT[LANG][ABOUT[LANG].find("###"):])

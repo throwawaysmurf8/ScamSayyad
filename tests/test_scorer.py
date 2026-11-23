@@ -1746,3 +1746,44 @@ def test_load_animations_play_once_per_visit_and_the_check_shows_real_steps(monk
                  "Google Safe Browsing: clean", "Score 75/100 (High), 4 signs found", "ath-radar ath-stop"):
         assert line in log, line
     assert "ath-bar" in log and "ath-in" in log  # the score bar fills the first time this file opens
+
+
+# ---------------------------------------------------------------- background videos (free Pexels clips, credited)
+VIDEOS = {"overview": "Overview", "leads": "Leads", "campaigns": "Campaigns", "file": "Site file",
+          "report": "Report a site", "about": "How it works"}
+
+
+def test_every_page_has_a_muted_looping_background_video_with_a_still_for_reduced_motion(monkeypatch, tmp_path):
+    import tomllib
+    db = _empty_db(monkeypatch, tmp_path)
+    _fresh_limits(monkeypatch, tmp_path)
+    monkeypatch.setattr(config, "CASES_FILE", tmp_path / "cases.json")
+    _case_sites(db)
+    settings = tomllib.loads((config.ROOT / ".streamlit" / "config.toml").read_text(encoding="utf-8"))
+    assert settings["server"]["enableStaticServing"] is True  # serves static/ at app/static/
+    for name, page in VIDEOS.items():
+        for ext in ("mp4", "jpg"):
+            assert (config.ROOT / "static" / "video" / f"{name}.{ext}").stat().st_size > 10_000, (name, ext)
+        at = _open_app(page)
+        assert not at.exception, (page, [e.value for e in at.exception])
+        body = " ".join(h.proto.body for h in at.get("html"))
+        tag = f"<source src='app/static/video/{name}.mp4' type='video/mp4'>"
+        assert tag in body, page
+        assert "<video autoplay muted loop playsinline" in body and f"poster='app/static/video/{name}.jpg'" in body
+        shown = " ".join(h.proto.body for h in at.get("html") if not h.proto.body.lstrip().startswith("<style>"))
+        assert ("class='ath-hero'" in shown) == (name == "overview")  # Overview: a hero; other pages: backgrounds
+    css = " ".join(h.proto.body for h in at.get("html") if h.proto.body.lstrip().startswith("<style>"))
+    assert "@media (prefers-reduced-motion: reduce) { .ath-bg video, .ath-hero video { display: none; } }" in css
+    assert "<" not in css.replace("<style>", "").replace("</style>", "")  # st.html drops a style block with '<'
+
+
+def test_readme_credits_every_video_clip_with_its_licence():
+    readme = (config.ROOT / "README.md").read_text(encoding="utf-8")
+    credits = readme[readme.index("## Video credits"):]
+    for clip in ("pexels.com/video/skyscrapers-against-vibrant-sunset-in-abu-dhabi-41090953",
+                 "pexels.com/video/dynamic-digital-waveform-in-futuristic-setting-34189433",
+                 "pexels.com/video/sand-dune-sunset-colors-26346980", "pexels.com/video/close-up-of-a-cpu-7140928",
+                 "pexels.com/video/drone-footage-of-a-highway-and-a-roundabout-9369897",
+                 "pexels.com/video/digital-calculation-in-geometrical-symmetry-3141210"):
+        assert clip in credits, clip
+    assert "Pexels License" in credits and "https://www.pexels.com/license/" in credits

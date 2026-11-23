@@ -656,6 +656,10 @@ S = {
                    "جارٍ تقييم علامات التحذير…"),
     "prog_score_done": ("Score {score}/100 ({level}), {n} signs found",
                         "النتيجة {score}/100 ({level})، {n} علامات"),
+    "hero_kicker": ("Operations overview",
+                    "نظرة تشغيلية عامة"),
+    "hero_title": ("Websites impersonating UAE authorities and banks",
+                   "مواقع تنتحل صفة الجهات الحكومية والبنوك في الدولة"),
 }
 
 

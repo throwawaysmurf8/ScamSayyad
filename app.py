@@ -11,6 +11,25 @@ import csv
 from pathlib import Path
 import html
 
+import os
+import sys
+
+# Streamlit Cloud can keep old copies of our modules in memory after an update, so a new page asks for text or
+# settings the old copy doesn't have. Before anything is drawn, any project module whose file changed since it
+# was loaded is re-read, settings first (other modules copy values from config when they load).
+_PROJECT = ["config", "i18n", "scorer", "db", "checks", "cases", "campaigns", "enrich", "report", "reports",
+            "ml_model", "briefing", "assistant", "local_llm", "ai", "limits", "ct_watcher", "search_scanner",
+            "maps_scanner"]
+for _name in _PROJECT:
+    _mod = sys.modules.get(_name)
+    _file = getattr(_mod, "__file__", None)
+    if not _file or not os.path.exists(_file):
+        continue
+    _changed = os.path.getmtime(_file)
+    if getattr(_mod, "_athar_loaded", _changed) < _changed:
+        _mod = importlib.reload(_mod)
+    _mod._athar_loaded = _changed
+
 import pandas as pd
 import streamlit as st
 
@@ -35,9 +54,6 @@ from enrich import check, check_and_save
 from report import code_span, escape_md
 from scorer import decode_punycode, explain_level, parse, score_url
 
-# Streamlit Cloud can keep an old copy of the screen text in memory after an update (the new page then asks
-# for text that the old copy doesn't have). The text module is small, so it is simply re-read on every run.
-importlib.reload(i18n)
 
 st.set_page_config(page_title="ATHAR · أثر", page_icon=str(Path(__file__).parent / "assets" / "emblem.svg"), layout="wide",
                    initial_sidebar_state="auto")  # auto: the side panel starts closed on phones
@@ -1157,13 +1173,25 @@ def two_opinions_checked():
     return out + T("two_lesson")
 
 
-def channels_block():
-    """The official reporting channels (config.REPORT_CHANNELS), Abu Dhabi Police first."""
-    (main, main_ar, how, how_ar, _), *alts = config.REPORT_CHANNELS
+def channels_block(site=None):
+    """Where to send a case, in two clearly separate sections: report the crime to UAE authorities (government
+    channels only, config.AUTHORITY_CHANNELS), and request a takedown (registrar and Google)."""
     ar = LANG == "ar"
-    lines = [f"**{T('channels_main')}:** {main_ar if ar else main}: {how_ar if ar else how}",
-             f"**{T('channels_alt')}:** " + "; ".join(f"[{n_ar if ar else n}]({url})" for n, n_ar, _, _, url in alts)]
-    st.markdown(f"**{T('channels_title')}**  \n" + "  \n".join(lines))
+    auth = "\n".join(f"- **{c['ar' if ar else 'name']}:** {c['how_ar' if ar else 'how']} · "
+                     + " · ".join(f"[{a if ar else e}]({url})" for e, a, url in c["links"])
+                     for c in config.AUTHORITY_CHANNELS)
+    st.markdown(f"**{T('auth_title')}**")
+    st.caption(T("auth_note"))
+    st.markdown(auth)
+    st.markdown(f"**{T('td_title')}**")
+    st.caption(T("td_note"))
+    if site:  # registry text (registrar, e-mail) is outside data: shown in code formatting, never as a link
+        reg = T("td_registrar_site", registrar=code_span(site.get("registrar") or T("unknown")),
+                email=code_span(site.get("abuse_email") or T("unknown")))
+    else:
+        reg = T("td_registrar_any")
+    st.markdown(f"- **{T('td_registrar')}:** {reg}\n"
+                f"- **{T('td_google')}:** [{T('td_google_link')}]({config.GOOGLE_PHISHING_REPORT})")
 
 
 def case_label(case):
@@ -1251,7 +1279,7 @@ def next_steps(site, key, case):
            "registrar": T("step_registrar_how") if mailto else T("step_registrar_none"),
            "aman": T("step_aman_how"), "google": T("step_google_how")}
     links = {"registrar": (T("btn_email"), mailto), "aman": (T("btn_call"), "tel:8002626"),
-             "google": (T("btn_google"), report.SAFE_BROWSING_REPORT)}
+             "google": (T("btn_google"), config.GOOGLE_PHISHING_REPORT)}
     for n, step in enumerate(cases.STEPS, 1):
         left, right = st.columns([3, 1], vertical_alignment="center")
         label = f"{n}. {T('step_' + step)}"
@@ -1382,7 +1410,7 @@ def site_file(site, campaign, sites):
             takedown_panel(site, key=site["url"])
         else:
             st.caption(T("report_not_needed"))
-        channels_block()
+        channels_block(site)
     with right:
         if report.is_reportable(site) and site in sites:
             with st.container(border=True):

@@ -239,19 +239,37 @@ government footage, or font file is used; the background videos are free stock c
 | **Leads** | The filterable table (minimum score, source, demo data, Needs review only, Confirmed scams only) with a **Status** column: Confirmed, Suspected (rule score 40+), Lead (below 40). Selecting a row opens its Site file. |
 | **Campaigns** | Possible campaigns: 3+ look-alike domains of one brand from the same registrar within 14 days. |
 | **Site file** | A case file for one site: status and case status, a dated **timeline** (registered, certificate issued, first seen, Google listing, safe check, status change), score and reasons, ML second opinion, Google Safe Browsing, VirusTotal, verification, registrar, registration date and age, abuse contact, campaign, **related domains** (same campaign, then the most alike names), first seen, source, a **next-steps checklist** (Verify evidence → Contact registrar abuse team → Report via Aman → Notify Google Safe Browsing, with e-mail, call and Google buttons), **Download evidence pack**, the takedown report and the official reporting channels. "Check a link" is here too. |
-| **Report a site** | Public site: the report form (link only). Laptop: the review queue for officers. Both: the reporting channels. |
-| **How it works** | Scoring table, the two opinions, future plans, and the reporting channels. |
+| **Report a site** | Public site: the report form (link only). Laptop: the review queue for officers. Both: where to send a case (report the crime; request a takedown). |
+| **How it works** | Scoring table, the two opinions, future plans, and where to send a case. |
 
 Only the open page is drawn, so the public site stays quick on a phone.
 
-## Official reporting channels
+## Where to send a case
 
-Checked on the web on 22 Nov 2026 (`config.REPORT_CHANNELS`; shown on the Site file, Report a site and How
-it works pages and in every takedown report):
+Two separate things, always shown as two clearly labelled sections (on the Site file, Report a site and How it
+works pages, in every takedown report and evidence pack, and in the assistant's rules, so it never gives any
+other number, site or app). The lists live in `config.py` (`AUTHORITY_CHANNELS`, `GOOGLE_PHISHING_REPORT`).
 
-- **Main channel: Abu Dhabi Police Aman Service:** call 8002626, SMS 2828, or the Abu Dhabi Police Smart App.
-- **Alternatives:** Dubai Police eCrime (https://ecrimehub.gov.ae) and the Ministry of Interior cybercrime
-  platform (https://www.moi.gov.ae, or the MOI UAE app).
+**Report the crime to UAE authorities** (government channels only; every link is on a `.gov.ae` or `u.ae`
+government site). Each was checked on 23 Nov 2026 against the official page listed:
+
+| Channel | How | Checked on |
+|---|---|---|
+| Abu Dhabi Police, Aman Service (main channel) | call 8002626, SMS 2828, or the Abu Dhabi Police Smart App (ADPolice); https://aman.adpolice.gov.ae | https://aman.adpolice.gov.ae/contact (Abu Dhabi Police) |
+| Dubai Police eCrime | online report form for cybercrimes in Dubai: https://www.dubaipolice.gov.ae/app/services/ecrime; guidance: https://ecrimehub.gov.ae | https://ecrimehub.gov.ae (Dubai Police eCrime Hub; its Report button opens that form) |
+| Ministry of Interior cybercrime platform | File Criminal Reports service (cybercrime and financial fraud included): https://www.moi.gov.ae/en/e-services/file.criminal.reports.140, or the MOI UAE app | the MOI page itself, and u.ae (below) for the app |
+| Federal Public Prosecution | the My Safe Society app (App Store and Google Play) | https://u.ae/en/information-and-services/justice-safety-and-the-law/Safety/cyber-safety-and-digital-security (u.ae lists all four channels) |
+
+**Request a takedown** (not a crime report: this asks for the site to be removed):
+
+- **Domain registrar (the company that sold the domain):** its abuse contact comes from each domain's
+  registration record (RDAP, or UAE WHOIS for .ae) and is shown in each site file and takedown report.
+- **Google Safe Browsing phishing report form:** https://safebrowsing.google.com/safebrowsing/report_phish/
+  (Google's own help page "Report Spam, Phishing, or Malware" on developers.google.com points to it).
+
+The old Dubai Police eCrime website address no longer answers and has been removed everywhere (including the
+official-domain list). The u.ae page still links it, but Dubai Police's eCrime Hub now sends reports to the form
+above.
 
 ## Security and privacy
 
@@ -296,7 +314,7 @@ it works pages and in every takedown report):
 | 14. "Confirmed scams only" switch, ✓ Verified scam, "Verified: not a scam", "Hides from scanners" | Working: 4 confirmed (all Google-listed), 3 verified not scams | `checks.py` | No |
 | 15. "Report a site" with a private review queue | Working (tested live 22 Nov 2026) | `reports.py` | No |
 | 16. Six pages, case-file Site file, Confirmed / Suspected / Lead status, AI agents status lines | Working | Built in | No |
-| 17. Official reporting channels (Aman Service first) in the app and every takedown report | Working, checked on the web 22 Nov 2026 | `config.REPORT_CHANNELS` | No |
+| 17. Where to send a case, in two sections: report the crime to UAE authorities (government channels only) and request a takedown | Working, every link checked on official government pages 23 Nov 2026 | `config.AUTHORITY_CHANNELS`, `config.GOOGLE_PHISHING_REPORT` | No |
 | 18. Officer workflow: case board, case statuses, next-steps checklist, evidence pack | Working (statuses and checklist saved on the laptop only; public demo shows labelled examples) | `cases.py`, `report.evidence_pack` | No |
 
 ### Audit of every site (22 Nov 2026)
@@ -576,7 +594,7 @@ Each still image (`static/video/*.jpg`) is the clip's own Pexels preview frame.
    official (score 0), but the unofficial `dubaipoliceefines.com` is flagged.
 5. **Leads and Site file.** Sort by score, filter by source, and select a row: its **Site file** opens with
    every fact in one place. Download the **takedown report**; it already contains the registrar's abuse
-   e-mail and the official reporting channels. Show the **case board** on the Overview: move a case to
+   e-mail, and both sections: request a takedown and report the crime to UAE authorities. Show the **case board** on the Overview: move a case to
    *Investigating*, tick **Verify evidence** in its next steps, and **Download evidence pack**. Turn on
    **Confirmed scams only (4)** to show the difference between confirmed scams and leads.
 6. **Close.** The core hunters and scorer need no paid service; Maps and the AI chat are optional, paid and capped. It never opens dangerous pages, and every score is explained, so

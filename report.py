@@ -13,16 +13,37 @@ import config
 import db
 from scorer import decode_punycode, explain_level, parse
 
-SAFE_BROWSING_REPORT = "https://safebrowsing.google.com/safebrowsing/report_phish/"
+SAFE_BROWSING_REPORT = config.GOOGLE_PHISHING_REPORT
 
 
-def channels_text(lang="en"):
-    """The official reporting channels, as numbered lines starting at 3 (after the registrar and Google)."""
-    (main, main_ar, how, how_ar, _), *alts = config.REPORT_CHANNELS
-    alt = "; ".join(f"{(n_ar if lang == 'ar' else n)}: {url}" for n, n_ar, _, _, url in alts)
-    if lang == "ar":
-        return f"3. {main_ar}: {how_ar}\n4. بدائل: {alt}"
-    return f"3. {main}: {how}\n4. Alternatives: {alt}"
+def authorities_text(lang="en"):
+    """'Report the crime to UAE authorities': the government channels only (config.AUTHORITY_CHANNELS)."""
+    ar = lang == "ar"
+    return "\n".join(f"- {c['ar' if ar else 'name']}: {c['how_ar' if ar else 'how']} ("
+                     + "; ".join(f"{a if ar else e}: {url}" for e, a, url in c["links"]) + ")"
+                     for c in config.AUTHORITY_CHANNELS)
+
+
+def send_to_text(site, abuse, is_listing, lang="en"):
+    """Two clearly separate sections: request a takedown (gets the site removed), then report the crime."""
+    ar = lang == "ar"
+    registrar = code_span(site["registrar"]) if _val(site, "registrar") else ("غير معروف" if ar else "unknown")
+    if ar:
+        reg = f"المسجِّل (الشركة التي باعت النطاق): {registrar}، جهة الإبلاغ عن الإساءة: {abuse}"
+        steps = ([f"خرائط Google: أبلغ عن الإدراج كمزيف (خيار «اقتراح تعديل» أو الإبلاغ).",
+                  f"إذا لم يكن موقع الإدراج رسمياً: {reg}"] if is_listing else
+                 [reg, f"نموذج Google Safe Browsing للإبلاغ عن التصيّد (يحظره في Chrome وأندرويد): {SAFE_BROWSING_REPORT}"])
+        return ("## طلب إزالة (ليس بلاغاً عن جريمة: يطلب إزالة الموقع)\n"
+                + "\n".join(f"{n}. {x}" for n, x in enumerate(steps, 1))
+                + "\n\n## الإبلاغ عن الجريمة لدى الجهات المختصة في الدولة (القنوات الحكومية فقط)\n"
+                + authorities_text("ar"))
+    reg = f"Domain registrar (the company that sold the domain): {registrar}, abuse contact: {abuse}"
+    steps = (["Google Maps: report the listing as fake (its \"Suggest an edit\" / report option).",
+              f"If the listing's website is not official: {reg}"] if is_listing else
+             [reg, f"Google Safe Browsing phishing report form (blocks it in Chrome and Android): {SAFE_BROWSING_REPORT}"])
+    return ("## Request a takedown (not a crime report: this asks for the site to be removed)\n"
+            + "\n".join(f"{n}. {x}" for n, x in enumerate(steps, 1))
+            + "\n\n## Report the crime to UAE authorities (government channels only)\n" + authorities_text())
 
 
 def is_reportable(site):
@@ -86,12 +107,7 @@ def build(site):
     is_listing = site.get("source") == "maps"
     title = "suspected fake Google Maps listing" if is_listing else "suspected fraudulent website"
     message_heading = "Google Maps listing (name | phone | address)" if is_listing else "Message that carried the link"
-    send_to = (f"1. Google Maps: report the listing as fake (its \"Suggest an edit\" / report option).\n"
-               f"2. If the listing's website is not official, its registrar abuse team: {abuse}\n"
-               + channels_text()) if is_listing else (
-               f"1. Registrar abuse team: {abuse}\n"
-               f"2. Google Safe Browsing (blocks it in Chrome/Android): {SAFE_BROWSING_REPORT}\n"
-               + channels_text())
+    send_to = send_to_text(site, abuse, is_listing)
     if is_listing:  # the website may be the real one: the listing (and its phone) is what goes
         action = (f"This Google Maps listing {'appears to' if site.get('level') == 'HIGH' else 'may'} "
                   "impersonate a UAE government or financial brand, for example with a phone number that "
@@ -128,7 +144,6 @@ def build(site):
 ## Requested action
 {action}
 
-## Where to send this
 {send_to}
 
 ---
@@ -164,18 +179,12 @@ def build_ar(site):
         title = "إدراج مشتبه بأنه مزيف في خرائط Google"
         action = (f"{sure} هذا الإدراج في خرائط Google ينتحل صفة علامة حكومية أو مالية إماراتية، مثلاً برقم هاتف "
                   "لا يخص العلامة. يُرجى إزالة الإدراج والاحتفاظ بسجل تعديلاته لمتابعة جهات إنفاذ القانون.")
-        send_to = (f"1. خرائط Google: أبلغ عن الإدراج كمزيف (خيار «اقتراح تعديل» أو الإبلاغ).\n"
-                   f"2. إذا لم يكن موقع الإدراج رسمياً، فريق الإساءة لدى مسجِّله: {abuse}\n"
-                   + channels_text("ar"))
     else:
         title = "موقع إلكتروني مشتبه بأنه احتيالي"
         action = (f"{sure} هذا النطاق ينتحل صفة علامة حكومية أو مالية إماراتية لجمع مدفوعات أو بيانات شخصية من "
                   "الجمهور. " + ("يُرجى إيقاف النطاق أو الاستضافة" if site.get("level") == "HIGH" else
                                  "يُرجى مراجعته، وإيقاف النطاق أو الاستضافة عند التأكد،") +
                   " والاحتفاظ بسجلات التسجيل لمتابعة جهات إنفاذ القانون.")
-        send_to = (f"1. فريق الإساءة لدى المسجِّل: {abuse}\n"
-                   f"2. Google Safe Browsing (يحظره في Chrome وأندرويد): {SAFE_BROWSING_REPORT}\n"
-                   + channels_text("ar"))
     text = (site.get("text") or "").strip().replace("```", "'''")
     show_text = text and (site.get("source", "manual") == "manual" or is_listing)
     heading = "إدراج خرائط Google (الاسم | الهاتف | العنوان)" if is_listing else "الرسالة التي حملت الرابط"
@@ -209,8 +218,7 @@ def build_ar(site):
 ## الإجراء المطلوب
 {action}
 
-## جهات الإرسال
-{send_to}
+{send_to_text(site, abuse, is_listing, 'ar')}
 
 ---
 *يتطلب مراجعة الضابط. لا تزر الموقع من جهاز العمل؛ أُعدّ هذا التقرير دون فتح الصفحة.*
@@ -342,8 +350,8 @@ def evidence_pack(site, status, case, campaign=None, related=(), ml=None, record
 ## 7. Next steps
 {steps}
 
-Official reporting channels:
-{channels_text()}
+Where to send it (both sections are in the takedown request below): **Request a takedown** from the domain
+registrar and Google Safe Browsing, and **Report the crime to UAE authorities** through the government channels.
 
 ---
 

@@ -535,12 +535,6 @@ S = {
                 "لا ينطبق"),
     "ml_value": ("{p}% scam-like name ({verdict})",
                  "{p}٪ تشابه مع أسماء الاحتيال ({verdict})"),
-    "channels_title": ("Official reporting channels",
-                       "قنوات الإبلاغ الرسمية"),
-    "channels_main": ("Main channel",
-                      "القناة الرئيسية"),
-    "channels_alt": ("Alternatives",
-                     "بدائل"),
     "report_page_laptop": ("Links reported by the public on the public site wait here for an officer. Approve adds the link to "
                            "Leads with source \"public report\"; Reject removes it from the queue.",
                            "تنتظر هنا الروابط التي أبلغ عنها الجمهور في الموقع العام لمراجعة ضابط. «موافقة» تضيف الرابط إلى "
@@ -660,6 +654,24 @@ S = {
                     "نظرة تشغيلية عامة"),
     "hero_title": ("Websites impersonating UAE authorities and banks",
                    "مواقع تنتحل صفة الجهات الحكومية والبنوك في الدولة"),
+    "auth_title": ("Report the crime to UAE authorities",
+                   "الإبلاغ عن الجريمة لدى الجهات المختصة في الدولة"),
+    "auth_note": ("Government channels only.",
+                  "القنوات الحكومية فقط."),
+    "td_title": ("Request a takedown",
+                 "طلب إزالة"),
+    "td_note": ("Not a crime report: this asks for the site to be removed.",
+                "ليس بلاغاً عن جريمة: يطلب إزالة الموقع."),
+    "td_registrar": ("Domain registrar (the company that sold the domain)",
+                     "المسجِّل (الشركة التي باعت النطاق)"),
+    "td_registrar_site": ("{registrar}, abuse contact: {email}",
+                          "{registrar}، جهة الإبلاغ عن الإساءة: {email}"),
+    "td_registrar_any": ("its abuse contact is shown in each site file, from the domain's registration record",
+                         "تظهر جهة الإبلاغ عن الإساءة لديه في ملف كل موقع، من سجل تسجيل النطاق"),
+    "td_google": ("Google Safe Browsing phishing report form",
+                  "نموذج Google Safe Browsing للإبلاغ عن التصيّد"),
+    "td_google_link": ("open the form",
+                       "فتح النموذج"),
 }
 
 

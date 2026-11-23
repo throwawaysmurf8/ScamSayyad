@@ -1275,8 +1275,7 @@ def test_visitors_never_see_the_model_or_company_name(monkeypatch, tmp_path):
 
 
 # Old product names. The only exceptions: the event's real name ("ScamShield AI hackathon"), the public-mode
-# switch the live site's secrets still use (SCAMSHIELD_PUBLIC), and ecrime.ae in the official-domain
-# allowlist (config.py) and the ML evaluation data, where it is a domain, not a reporting channel.
+# switch the live site's secrets still use (SCAMSHIELD_PUBLIC). ecrime.ae (no longer working) is gone everywhere.
 OLD_NAMES = re.compile(r"scamsayyad|sayyad|صيّاد|صياد|athar al anaq|أثر العناق|(?<![a-z])anaq(?![a-z])|عناق|scamshield|"
                        r"caracal|mascot")
 
@@ -1296,7 +1295,7 @@ def test_no_old_names_anywhere_in_the_project():
         text = (config.ROOT / name).read_bytes().decode("utf-8", errors="ignore")
         if _old_name(text):
             hits.append((name, _old_name(text).group(0)))
-        if "ecrime.ae" in text.replace("ecrimehub", "") and name not in ("config.py", "data/ml/metrics.json"):
+        if "ecrime.ae" in text.lower():
             hits.append((name, "ecrime.ae"))
     assert not hits, hits
     assert not [f for f in files if _old_name(f)]  # file names too
@@ -1317,14 +1316,22 @@ def test_site_file_is_a_case_file_with_the_reporting_channels(monkeypatch, tmp_p
     assert not at.exception, [e.value for e in at.exception]
     shown = " ".join(str(e.value) for kind in ("markdown", "caption", "text") for e in getattr(at, kind))
     for fact in ("Status: Suspected", "Outside checks", "Example Registrar", "2026-11-01", "21 days",
-                 "abuse@example.net", "Abu Dhabi Police Aman Service", "8002626", "2828",
-                 "https://ecrimehub.gov.ae", "https://www.moi.gov.ae", "First seen", "cert log · salik*"):
+                 "abuse@example.net", "Abu Dhabi Police, Aman Service", "8002626", "2828",
+                 "https://ecrimehub.gov.ae", "https://www.dubaipolice.gov.ae/app/services/ecrime",
+                 "https://www.moi.gov.ae/en/e-services/file.criminal.reports.140", "My Safe Society",
+                 "Report the crime to UAE authorities", "Request a takedown",
+                 "Domain registrar (the company that sold the domain)", "First seen", "cert log · salik*"):
         assert fact in shown, fact
-    assert "criminal" not in shown.lower()
+    assert "criminal" not in shown.lower().replace("file criminal reports", "").replace("file.criminal.reports", "")  # the MOI service's own name is the only exception
     assert any(b.label == "Download takedown report" for b in at.get("download_button"))
     import report
     text = report.build(db.unique_sites()[0])
-    assert "Abu Dhabi Police Aman Service: call 8002626, SMS 2828" in text and "ecrime.ae" not in text.replace("ecrimehub", "")
+    assert "Abu Dhabi Police, Aman Service (main channel): call 8002626, SMS 2828" in text and "ecrime.ae" not in text
+    takedown, crime = text.index("## Request a takedown"), text.index("## Report the crime to UAE authorities")
+    assert takedown < crime and "Domain registrar (the company that sold the domain)" in text[takedown:crime]
+    assert "safebrowsing.google.com" in text[takedown:crime] and "safebrowsing" not in text[crime:]
+    links = re.findall(r"https?://[^\s)`;]+", text[crime:])
+    assert links and all(re.match(r"https://([a-z0-9.-]+\.)?(gov\.ae|u\.ae)(/|$)", u) for u in links), links  # government only
 
 
 def test_only_person_verified_scams_get_the_badge_and_they_sort_first(monkeypatch, tmp_path):
@@ -1664,7 +1671,7 @@ def test_case_board_and_case_file_with_evidence_pack(monkeypatch, tmp_path):
         assert fact in shown, fact
     assert [c.label for c in at.checkbox] == ["1. Verify evidence", "2. Contact registrar abuse team",
                                               "3. Report via Aman", "4. Notify Google Safe Browsing"]
-    assert "criminal" not in shown.lower()
+    assert "criminal" not in shown.lower().replace("file criminal reports", "").replace("file.criminal.reports", "")  # the MOI service's own name is the only exception
     links = {b.proto.label: b.proto.url for b in at.get("link_button")}
     assert links["Call 8002626"] == "tel:8002626" and links["E-mail abuse team"].startswith("mailto:abuse@example.net")
     assert "safebrowsing.google.com" in links["Google report form"]
@@ -1677,10 +1684,10 @@ def test_case_board_and_case_file_with_evidence_pack(monkeypatch, tmp_path):
                                 related=[("salik-pay-fines.top", "40% similar name")], ml=90)
     for part in ("# Evidence pack", "**Status:** Confirmed", "**Case:** Reported", "does not identify",
                  "## 2. Timeline", "Domain registered", "Case status set (`Reported`)", "- [x] Verify evidence",
-                 "- [ ] Report via Aman", "Abu Dhabi Police Aman Service: call 8002626", "# Takedown request",
+                 "- [ ] Report via Aman", "Abu Dhabi Police, Aman Service (main channel): call 8002626", "# Takedown request",
                  "`salik-pay-fines.top` (40% similar name)"):
         assert part in pack, part
-    assert "criminal" not in pack.lower()
+    assert "criminal" not in pack.lower().replace("file criminal reports", "").replace("file.criminal.reports", "")
 
 
 def test_public_case_board_shows_examples_labelled_demo_and_changes_nothing(monkeypatch, tmp_path):

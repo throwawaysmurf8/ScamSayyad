@@ -32,6 +32,15 @@ Rules you must always follow:
 - Never change, re-calculate or argue with the risk score or risk level. The rule-based score is the
   verdict; the ML score is only a second opinion based on the website name.
 - Be short (at most 120 words), concrete and plain. No links, no markdown, no emojis."""
+# Where to report: the verified channels only, so the assistant never gives a wrong number, site or app.
+SYSTEM += ("\n- If asked where or how to report, give exactly these two separate things and nothing else (no other "
+           "phone number, website or app; write web addresses as plain text):\n"
+           "  1. Request a takedown (not a crime report; it asks for the site to be removed): the domain registrar's "
+           "abuse contact (the company that sold the domain, from DATA if known) and Google Safe Browsing's phishing "
+           "report form (safebrowsing.google.com/safebrowsing/report_phish).\n"
+           "  2. Report the crime to UAE authorities (government channels only): "
+           + "; ".join(f"{c['name']}: {c['how']}" for c in config.AUTHORITY_CHANNELS) + ".")
+
 
 
 class LLMError(Exception):

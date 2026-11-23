@@ -44,7 +44,7 @@
       "is_scam": true
     },
     "official_uae_sites": {
-      "count": 27,
+      "count": 26,
       "flagged_50_plus": 1,
       "scores": {
         "adcb.com": 45,
@@ -60,7 +60,6 @@
         "du.ae": 1,
         "dubaipolice.gov.ae": 0,
         "eand.com": 8,
-        "ecrime.ae": 2,
         "emiratesnbd.com": 60,
         "emiratespost.ae": 12,
         "etihadwe.ae": 13,

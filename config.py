@@ -87,16 +87,40 @@ OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b")
 #     local model (tools/make_public_answers.py). Briefings on the public site are the saved ones;
 #   * visitors can still try "Check a link" (free; nothing is saved).
 # The officer's laptop keeps everything.
-# Where the public reports scams (checked on the web, 22 Nov 2026). Shown on the Report a site page,
-# in each site file and in every takedown report. (name, name in Arabic, how, how in Arabic, link or None)
-REPORT_CHANNELS = [
-    ("Abu Dhabi Police Aman Service", "خدمة أمان، شرطة أبوظبي",
-     "call 8002626, SMS 2828, or the Abu Dhabi Police Smart App",
-     "اتصال 8002626، رسالة نصية 2828، أو تطبيق شرطة أبوظبي الذكي", None),
-    ("Dubai Police eCrime", "منصة eCrime، شرطة دبي", "online report", "بلاغ إلكتروني", "https://ecrimehub.gov.ae"),
-    ("Ministry of Interior cybercrime platform", "منصة الجرائم الإلكترونية، وزارة الداخلية",
-     "moi.gov.ae or the MOI UAE app", "moi.gov.ae أو تطبيق وزارة الداخلية", "https://www.moi.gov.ae"),
+# Where to send a case. Two separate things, never mixed (shown on the Site file, Report a site and How it
+# works pages, in every takedown report and evidence pack, and given to the assistant):
+#
+# 1. "Report the crime to UAE authorities": GOVERNMENT CHANNELS ONLY, each checked on 23 Nov 2026 against an
+#    official government page (`checked`). Links go to .gov.ae government sites only.
+AUTHORITY_CHANNELS = [
+    {"name": "Abu Dhabi Police, Aman Service (main channel)", "ar": "شرطة أبوظبي، خدمة أمان (القناة الرئيسية)",
+     "how": "call 8002626, SMS 2828, or the Abu Dhabi Police Smart App (ADPolice)",
+     "how_ar": "اتصال 8002626، رسالة نصية 2828، أو تطبيق شرطة أبوظبي الذكي (ADPolice)",
+     "links": [("aman.adpolice.gov.ae", "aman.adpolice.gov.ae", "https://aman.adpolice.gov.ae")],
+     "checked": "https://aman.adpolice.gov.ae/contact"},
+    {"name": "Dubai Police eCrime", "ar": "شرطة دبي، eCrime",
+     "how": "online report form, for cybercrimes in Dubai", "how_ar": "نموذج بلاغ إلكتروني، للجرائم الإلكترونية في دبي",
+     "links": [("report form", "نموذج البلاغ", "https://www.dubaipolice.gov.ae/app/services/ecrime"),
+               ("guidance: ecrimehub.gov.ae", "الإرشادات: ecrimehub.gov.ae", "https://ecrimehub.gov.ae")],
+     "checked": "https://ecrimehub.gov.ae (Dubai Police eCrime Hub; its Report button opens the form above)"},
+    {"name": "Ministry of Interior cybercrime platform", "ar": "منصة الجرائم الإلكترونية، وزارة الداخلية",
+     "how": "the File Criminal Reports service (cybercrime and financial fraud included), or the MOI UAE app",
+     "how_ar": "خدمة تقديم البلاغات الجنائية (تشمل الجرائم الإلكترونية والاحتيال المالي)، أو تطبيق MOI UAE",
+     "links": [("File Criminal Reports", "تقديم البلاغات الجنائية",
+                "https://www.moi.gov.ae/en/e-services/file.criminal.reports.140")],
+     "checked": "https://www.moi.gov.ae/en/e-services/file.criminal.reports.140 and the u.ae page below (MOI UAE app)"},
+    {"name": "Federal Public Prosecution", "ar": "النيابة العامة الاتحادية",
+     "how": "the My Safe Society app (App Store and Google Play)",
+     "how_ar": "تطبيق My Safe Society (App Store وGoogle Play)",
+     "links": [("u.ae information page", "صفحة المعلومات في u.ae",
+                "https://u.ae/en/information-and-services/justice-safety-and-the-law/Safety/"
+                "cyber-safety-and-digital-security")],
+     "checked": "https://u.ae/en/information-and-services/justice-safety-and-the-law/Safety/"
+                "cyber-safety-and-digital-security (lists all four channels)"},
 ]
+# 2. "Request a takedown": NOT a crime report; it asks for the site to be removed. The registrar's abuse
+#    contact comes from each domain's registration record (RDAP, or UAE WHOIS for .ae).
+GOOGLE_PHISHING_REPORT = "https://safebrowsing.google.com/safebrowsing/report_phish/"  # checked: developers.google.com/search/help/report-quality-issues
 
 PUBLIC_MODE = os.environ.get("SCAMSHIELD_PUBLIC", "") == "1"
 if PUBLIC_MODE:
@@ -109,7 +133,7 @@ if PUBLIC_MODE:
 OFFICIAL_DOMAINS = {
     # Police & government
     "dubaipolice.gov.ae", "adpolice.gov.ae", "moi.gov.ae", "u.ae", "icp.gov.ae",
-    "uaepass.ae", "ecrime.ae", "itc.gov.ae",
+    "uaepass.ae", "itc.gov.ae",
     # Transport, tolls, utilities, post, telecom
     "rta.ae", "salik.ae", "darb.ae", "dewa.gov.ae", "dewa.ae", "etihadwe.ae", "addc.ae",
     "emiratespost.ae",

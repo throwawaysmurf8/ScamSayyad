@@ -15,18 +15,23 @@ import os
 import sys
 
 # Streamlit Cloud can keep old copies of our modules in memory after an update, so a new page asks for text or
-# settings the old copy doesn't have. Before anything is drawn, any project module whose file changed since it
-# was loaded is re-read, settings first (other modules copy values from config when they load).
+# settings the old copy doesn't have. A project file changed after its module was loaded (on the cloud server:
+# after the server process started) is re-read once, before anything is drawn, settings first (other modules
+# copy values from config when they load). Locally, Streamlit's own file watcher already does this.
 _PROJECT = ["config", "i18n", "scorer", "db", "checks", "cases", "campaigns", "enrich", "report", "reports",
             "ml_model", "briefing", "assistant", "local_llm", "ai", "limits", "ct_watcher", "search_scanner",
             "maps_scanner"]
+try:
+    _STARTED = os.stat(f"/proc/{os.getpid()}").st_ctime  # Linux: when this server process started
+except OSError:
+    _STARTED = None
 for _name in _PROJECT:
     _mod = sys.modules.get(_name)
-    _file = getattr(_mod, "__file__", None)
-    if not _file or not os.path.exists(_file):
+    if _mod is None or not getattr(_mod, "__file__", None):
         continue
-    _changed = os.path.getmtime(_file)
-    if getattr(_mod, "_athar_loaded", _changed) < _changed:
+    _changed = os.path.getmtime(_mod.__file__)
+    _loaded = getattr(_mod, "_athar_loaded", _STARTED if _STARTED is not None else _changed)
+    if _changed > _loaded:
         _mod = importlib.reload(_mod)
     _mod._athar_loaded = _changed
 

@@ -36,7 +36,7 @@ from scorer import parse  # noqa: E402
 RAW = ROOT / "data" / "ml" / "raw"          # downloaded lists (not in Git)
 OUT = ROOT / "data" / "ml"
 PHIUSIIL_URL = "https://archive.ics.uci.edu/static/public/967/phiusiil+phishing+url+dataset.zip"
-TRANCO_URL = "https://tranco-list.eu/top-1m.csv.zip"
+TRANCO_URL = "https://tranco-list.eu/download/daily/top-1m.csv.zip"
 TRANCO_TOP = 100_000
 
 
